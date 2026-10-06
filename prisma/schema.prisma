@@ -1,0 +1,150 @@
+// Field Shift — Prisma schema
+// Earth-to-farm decision system persistence layer.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Core farm record ────────────────────────────────────────────────────────
+model Farm {
+  id             String   @id @default(cuid())
+  name           String
+  latitude       Float
+  longitude      Float
+  locationName   String   @map("location_name")
+  country        String?
+  area           Float?
+  areaUnit       String?  @default("acres") @map("area_unit")
+  soilType       String?  @map("soil_type")
+  irrigationType String?  @map("irrigation_type")
+  currentCrop    String?  @map("current_crop")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  preferences  FarmerPreference?
+  crops        FarmerCrop[]
+  observations FieldObservation[]
+  rotationPlan RotationPlan?
+
+  @@unique([latitude, longitude])
+  @@index([locationName])
+}
+
+model FarmerPreference {
+  id              String   @id @default(cuid())
+  farmId          String   @unique @map("farm_id")
+  soilHealthWeight Float   @default(25) @map("soil_health_weight")
+  waterWeight     Float   @default(25) @map("water_weight")
+  climateWeight   Float   @default(25) @map("climate_weight")
+  incomeWeight    Float   @default(25) @map("income_weight")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  farm Farm @relation(fields: [farmId], references: [id], onDelete: Cascade)
+}
+
+model FarmerCrop {
+  id      String @id @default(cuid())
+  farmId  String @map("farm_id")
+  cropId  String @map("crop_id")
+  cropRole String @map("crop_role") // primary | secondary | considering
+
+  farm Farm @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  crop Crop @relation(fields: [cropId], references: [id])
+
+  @@unique([farmId, cropId])
+  @@index([farmId])
+}
+
+model Crop {
+  id               String  @id @default(cuid())
+  name             String  @unique
+  family           String?
+  season           String?
+  waterDemand      String? @map("water_demand") // low | medium | high
+  rootDepth        String? @map("root_depth")    // shallow | medium | deep
+  nitrogenEffect   String? @map("nitrogen_effect") // fixer | depleter | neutral
+  heatTolerance    String? @map("heat_tolerance")   // low | medium | high
+  droughtTolerance String? @map("drought_tolerance")
+  floodTolerance   String? @map("flood_tolerance")
+  soilBenefits     String? @map("soil_benefits")
+  waterMm          Float?  @map("water_mm")
+  growTempMin      Float?  @map("grow_temp_min")
+  growTempMax      Float?  @map("grow_temp_max")
+  baseIncome       Float?  @map("base_income")
+
+  farmerCrops   FarmerCrop[]
+  rotationYears RotationYear[]
+}
+
+model FieldObservation {
+  id                 String   @id @default(cuid())
+  farmId             String   @map("farm_id")
+  temperature        Float?
+  rainfall           Float?
+  soilMoisture       Float?   @map("soil_moisture")
+  ndvi               Float?
+  heatRisk           Float?   @map("heat_risk")
+  droughtRisk        Float?   @map("drought_risk")
+  floodRisk          Float?   @map("flood_risk")
+  soilMoistureDeficit Float?  @map("soil_moisture_deficit")
+  source             String   @default("demo") // live | cached | demo
+  observationDate    DateTime @map("observation_date")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  farm Farm @relation(fields: [farmId], references: [id], onDelete: Cascade)
+
+  @@index([farmId])
+}
+
+model RotationPlan {
+  id            String   @id @default(cuid())
+  farmId        String   @unique @map("farm_id")
+  name          String
+  overallScore  Float    @map("overall_score")
+  soilScore     Float    @map("soil_score")
+  waterScore    Float    @map("water_score")
+  climateScore  Float    @map("climate_score")
+  incomeScore   Float    @map("income_score")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  farm  Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  years RotationYear[]
+}
+
+model RotationYear {
+  id              String @id @default(cuid())
+  rotationPlanId  String @map("rotation_plan_id")
+  year            Int
+  cropId          String @map("crop_id")
+  coverCrop       String? @map("cover_crop")
+  irrigationLevel String? @map("irrigation_level")
+  score           Float
+  reason          String
+
+  rotationPlan RotationPlan @relation(fields: [rotationPlanId], references: [id], onDelete: Cascade)
+  crop         Crop          @relation(fields: [cropId], references: [id])
+
+  @@index([rotationPlanId])
+}
+
+// ── NASA data cache ─────────────────────────────────────────────────────────
+// Cache key = source + rounded lat/lon + date range hash.
+model NasaCache {
+  id         String   @id @default(cuid())
+  source     String
+  latitude   Float
+  longitude  Float
+  dateRange  String   @map("date_range")
+  parameters String
+  response   String
+  createdAt  DateTime @default(now()) @map("created_at")
+  expiresAt  DateTime @map("expires_at")
+
+  @@unique([source, latitude, longitude, dateRange, parameters])
+  @@index([source, latitude, longitude])
+}

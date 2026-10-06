@@ -1,0 +1,169 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/*
+ * Field Shift — dark "mission control" theme
+ * The whole app is permanently in dark mode (no theme switcher). The palette
+ * is a deep space backdrop with cyan/amber accents — NASA mission-control
+ * feel without neon.
+ */
+:root {
+  --radius: 0.625rem;
+
+  /* Space backdrop */
+  --background: oklch(0.07 0.03 240);            /* deep navy-black */
+  --foreground: oklch(0.96 0.01 220);            /* near-white */
+
+  /* Cards / panels — slightly lifted from backdrop */
+  --card: oklch(0.12 0.025 240);
+  --card-foreground: oklch(0.96 0.01 220);
+  --popover: oklch(0.14 0.03 240);
+  --popover-foreground: oklch(0.96 0.01 220);
+
+  /* Primary = warm amber (selected-location marker color) */
+  --primary: oklch(0.78 0.16 75);                 /* amber */
+  --primary-foreground: oklch(0.15 0.03 240);
+
+  /* Secondary = subtle elevated panel */
+  --secondary: oklch(0.18 0.025 240);
+  --secondary-foreground: oklch(0.92 0.01 220);
+
+  /* Muted = subdued labels */
+  --muted: oklch(0.16 0.02 240);
+  --muted-foreground: oklch(0.62 0.02 220);
+
+  /* Accent = cyan (atmosphere / orbital rings) */
+  --accent: oklch(0.18 0.05 200);
+  --accent-foreground: oklch(0.86 0.07 200);
+
+  --destructive: oklch(0.68 0.20 25);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.62 0.12 200);
+
+  /* Chart palette */
+  --chart-1: oklch(0.78 0.16 75);     /* amber   — temperature */
+  --chart-2: oklch(0.7 0.13 200);     /* cyan    — water */
+  --chart-3: oklch(0.72 0.18 140);    /* green   — vegetation */
+  --chart-4: oklch(0.7 0.16 290);     /* violet  — soil */
+  --chart-5: oklch(0.72 0.14 30);     /* orange  — risks */
+
+  --sidebar: oklch(0.10 0.02 240);
+  --sidebar-foreground: oklch(0.96 0.01 220);
+  --sidebar-primary: oklch(0.78 0.16 75);
+  --sidebar-primary-foreground: oklch(0.15 0.03 240);
+  --sidebar-accent: oklch(0.18 0.05 200);
+  --sidebar-accent-foreground: oklch(0.86 0.07 200);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.62 0.12 200);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(900px circle at 20% -10%, oklch(0.18 0.08 240 / 0.5), transparent 50%),
+      radial-gradient(700px circle at 90% 110%, oklch(0.18 0.08 200 / 0.35), transparent 50%);
+    background-attachment: fixed;
+  }
+  html {
+    color-scheme: dark;
+  }
+}
+
+/* Starfield — extremely subtle dot pattern via radial-gradient stack */
+.starfield::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, oklch(0.95 0.01 220 / 0.5), transparent),
+    radial-gradient(1px 1px at 60% 70%, oklch(0.95 0.01 220 / 0.35), transparent),
+    radial-gradient(1px 1px at 80% 20%, oklch(0.95 0.01 220 / 0.4), transparent),
+    radial-gradient(1px 1px at 40% 80%, oklch(0.95 0.01 220 / 0.3), transparent),
+    radial-gradient(1px 1px at 90% 60%, oklch(0.95 0.01 220 / 0.4), transparent),
+    radial-gradient(1px 1px at 10% 60%, oklch(0.95 0.01 220 / 0.3), transparent);
+  background-size: 200px 200px, 300px 300px, 250px 250px, 180px 180px, 220px 220px, 280px 280px;
+  z-index: 0;
+}
+
+/* Glassy panel — used for cards overlaid on the globe */
+.glass-panel {
+  background: oklch(0.12 0.025 240 / 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid oklch(1 0 0 / 0.08);
+}
+
+/* Subtle glowing scan-line accent for "mission control" feel */
+.scanline {
+  position: relative;
+}
+.scanline::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(transparent 50%, oklch(0.86 0.07 200 / 0.04) 50%);
+  background-size: 100% 3px;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+/* Custom scrollbar — small, themed */
+.fs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.fs-scroll::-webkit-scrollbar-track { background: transparent; }
+.fs-scroll::-webkit-scrollbar-thumb { background: oklch(1 0 0 / 0.12); border-radius: 4px; }
+.fs-scroll::-webkit-scrollbar-thumb:hover { background: oklch(1 0 0 / 0.2); }
+
+/* Marker pulse for globe (used by globe component fallback) */
+@keyframes fs-marker-pulse {
+  0% { transform: scale(1); opacity: 0.9; }
+  100% { transform: scale(2.5); opacity: 0; }
+}

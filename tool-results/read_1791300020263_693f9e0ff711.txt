@@ -1,0 +1,657 @@
+     1→"use client";
+     2→
+     3→import * as React from 'react';
+     4→import dynamic from 'next/dynamic';
+     5→import { motion, AnimatePresence } from 'framer-motion';
+     6→import {
+     7→  ArrowLeft, ArrowRight, Check, Plus, X,
+     8→  Sprout, Droplets, Sun, ShieldCheck, Coins, Trash2, Info,
+     9→} from 'lucide-react';
+    10→import { cn } from '@/lib/utils';
+    11→import { useAppStore } from '@/lib/store';
+    12→import {
+    13→  ONBOARDING_CROP_OPTIONS,
+    14→  type CropSpec,
+    15→} from '@/lib/crops';
+    16→import { fetchEnvironment } from '@/lib/nasa/environment';
+    17→
+    18→const HolographicGlobe = dynamic(
+    19→  () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
+    20→  { ssr: false },
+    21→);
+    22→
+    23→// ── Types ───────────────────────────────────────────────────────────────────
+    24→type CropRole = 'primary' | 'secondary' | 'considering';
+    25→interface CropSelection { name: string; role: CropRole; }
+    26→
+    27→type Irrigation = 'rainfed' | 'limited' | 'reliable';
+    28→type Soil = 'unknown' | 'sandy' | 'loamy' | 'clay';
+    29→
+    30→// ── Fetch crop library ─────────────────────────────────────────────────────
+    31→function useCropLibrary() {
+    32→  const [crops, setCrops] = React.useState<CropSpec[]>([]);
+    33→  React.useEffect(() => {
+    34→    fetch('/api/crops')
+    35→      .then(r => r.json())
+    36→      .then((d: { crops: CropSpec[] }) => setCrops(d.crops ?? []))
+    37→      .catch(() => {});
+    38→  }, []);
+    39→  return crops;
+    40→}
+    41→
+    42→// ── Step indicator ──────────────────────────────────────────────────────────
+    43→function StepHeader({ step }: { step: number }) {
+    44→  const steps = ['What do you grow?', 'Farm information', 'What matters most?'];
+    45→  return (
+    46→    <div className="mb-8">
+    47→      <div className="flex items-center justify-between">
+    48→        {steps.map((label, i) => (
+    49→          <React.Fragment key={label}>
+    50→            <div className="flex flex-col items-center gap-1.5">
+    51→              <div
+    52→                className={cn(
+    53→                  'flex size-8 items-center justify-center rounded-full border font-mono text-xs transition-all',
+    54→                  i < step && 'border-emerald-400/40 bg-emerald-400/15 text-emerald-300',
+    55→                  i === step && 'border-amber-400/60 bg-amber-400/20 text-amber-200 shadow-[0_0_12px_2px_rgba(251,191,36,0.3)]',
+    56→                  i > step && 'border-white/10 bg-white/5 text-muted-foreground/60',
+    57→                )}
+    58→              >
+    59→                {i < step ? <Check className="size-4" /> : i + 1}
+    60→              </div>
+    61→              <span
+    62→                className={cn(
+    63→                  'font-mono text-[10px] uppercase tracking-wider transition-colors',
+    64→                  i === step ? 'text-amber-200' : 'text-muted-foreground/60',
+    65→                )}
+    66→              >
+    67→                {label}
+    68→              </span>
+    69→            </div>
+    70→            {i < steps.length - 1 && (
+    71→              <div className="mx-2 h-px flex-1 bg-gradient-to-r from-white/10 to-transparent" />
+    72→            )}
+    73→          </React.Fragment>
+    74→        ))}
+    75→      </div>
+    76→    </div>
+    77→  );
+    78→}
+    79→
+    80→// ── Step 1 — crops ──────────────────────────────────────────────────────────
+    81→function CropStep({
+    82→  selections, setSelections,
+    83→}: {
+    84→  selections: CropSelection[];
+    85→  setSelections: (s: CropSelection[]) => void;
+    86→}) {
+    87→  const [custom, setCustom] = React.useState('');
+    88→  const allCrops = ONBOARDING_CROP_OPTIONS;
+    89→  const selectedNames = new Set(selections.map(s => s.name));
+    90→
+    91→  const toggle = (name: string, role: CropRole = 'considering') => {
+    92→    if (selectedNames.has(name)) {
+    93→      setSelections(selections.filter(s => s.name !== name));
+    94→    } else {
+    95→      setSelections([...selections, { name, role }]);
+    96→    }
+    97→  };
+    98→
+    99→  const setRole = (name: string, role: CropRole) => {
+   100→    setSelections(selections.map(s => (s.name === name ? { ...s, role } : s)));
+   101→  };
+   102→
+   103→  const addCustom = () => {
+   104→    const n = custom.trim();
+   105→    if (n && !selectedNames.has(n)) {
+   106→      setSelections([...selections, { name: n, role: 'considering' }]);
+   107→      setCustom('');
+   108→    }
+   109→  };
+   110→
+   111→  return (
+   112→    <div className="space-y-6">
+   113→      <div>
+   114→        <h2 className="text-xl font-semibold text-foreground">What do you want to grow?</h2>
+   115→        <p className="mt-1 text-sm text-muted-foreground">
+   116→          Pick your primary crops, secondary crops, and any crops you're considering.
+   117→          We'll match each one to your field's signals.
+   118→        </p>
+   119→      </div>
+   120→
+   121→      <div className="flex flex-wrap gap-2">
+   122→        {allCrops.map(name => {
+   123→          const sel = selections.find(s => s.name === name);
+   124→          const active = !!sel;
+   125→          return (
+   126→            <button
+   127→              key={name}
+   128→              type="button"
+   129→              onClick={() => toggle(name)}
+   130→              className={cn(
+   131→                'group rounded-2xl border px-4 py-2.5 text-sm font-medium transition-all',
+   132→                active
+   133→                  ? 'border-amber-400/50 bg-amber-400/15 text-amber-100 shadow-[0_0_0_1px_rgba(251,191,36,0.3)]'
+   134→                  : 'border-white/10 bg-white/5 text-foreground/80 hover:border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-100',
+   135→              )}
+   136→            >
+   137→              <div className="flex items-center gap-2">
+   138→                <span className={cn(
+   139→                  'flex size-4 items-center justify-center rounded-full border',
+   140→                  active ? 'border-amber-300 bg-amber-300 text-black' : 'border-white/20',
+   141→                )}>
+   142→                  {active && <Check className="size-3" />}
+   143→                </span>
+   144→                {name}
+   145→              </div>
+   146→            </button>
+   147→          );
+   148→        })}
+   149→      </div>
+   150→
+   151→      {/* Add custom crop */}
+   152→      <div className="flex items-center gap-2">
+   153→        <input
+   154→          type="text"
+   155→          value={custom}
+   156→          onChange={e => setCustom(e.target.value)}
+   157→          onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustom())}
+   158→          placeholder="Add another crop..."
+   159→          className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-amber-400/40"
+   160→        />
+   161→        <button
+   162→          type="button"
+   163→          onClick={addCustom}
+   164→          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm hover:bg-amber-400/10 hover:text-amber-200"
+   165→        >
+   166→          <Plus className="size-4" /> Add
+   167→        </button>
+   168→      </div>
+   169→
+   170→      {/* Selected crops with role controls */}
+   171→      {selections.length > 0 && (
+   172→        <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
+   173→          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+   174→            Your selected crops ({selections.length})
+   175→          </div>
+   176→          <div className="space-y-2">
+   177→            {selections.map(s => (
+   178→              <div key={s.name} className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
+   179→                <span className="flex-1 text-sm font-medium text-foreground">{s.name}</span>
+   180→                <div className="flex gap-1">
+   181→                  {(['primary', 'secondary', 'considering'] as CropRole[]).map(role => (
+   182→                    <button
+   183→                      key={role}
+   184→                      type="button"
+   185→                      onClick={() => setRole(s.name, role)}
+   186→                      className={cn(
+   187→                        'rounded-lg px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-all',
+   188→                        s.role === role
+   189→                          ? 'bg-amber-400/20 text-amber-200'
+   190→                          : 'bg-white/5 text-muted-foreground/60 hover:bg-white/10',
+   191→                      )}
+   192→                    >
+   193→                      {role}
+   194→                    </button>
+   195→                  ))}
+   196→                </div>
+   197→                <button
+   198→                  type="button"
+   199→                  onClick={() => toggle(s.name)}
+   200→                  className="rounded-lg p-1 text-muted-foreground/60 hover:bg-rose-500/20 hover:text-rose-300"
+   201→                  aria-label="Remove"
+   202→                >
+   203→                  <X className="size-4" />
+   204→                </button>
+   205→              </div>
+   206→            ))}
+   207→          </div>
+   208→        </div>
+   209→      )}
+   210→    </div>
+   211→  );
+   212→}
+   213→
+   214→// ── Step 2 — farm info ───────────────────────────────────────────────────────
+   215→function FarmStep({
+   216→  area, setArea, areaUnit, setAreaUnit,
+   217→  currentCrop, setCurrentCrop,
+   218→  irrigation, setIrrigation,
+   219→  soil, setSoil,
+   220→}: {
+   221→  area: string; setArea: (v: string) => void;
+   222→  areaUnit: 'acres' | 'hectares'; setAreaUnit: (v: 'acres' | 'hectares') => void;
+   223→  currentCrop: string; setCurrentCrop: (v: string) => void;
+   224→  irrigation: Irrigation; setIrrigation: (v: Irrigation) => void;
+   225→  soil: Soil; setSoil: (v: Soil) => void;
+   226→}) {
+   227→  const currentOptions = ['Rice', 'Wheat', 'Maize', 'Vegetables', 'Other', 'None / fallow'];
+   228→  const irrigationOptions: { v: Irrigation; label: string; desc: string; icon: React.ReactNode }[] = [
+   229→    { v: 'rainfed', label: 'Rainfed', desc: 'No irrigation infrastructure.', icon: <Droplets className="size-4" /> },
+   230→    { v: 'limited', label: 'Limited irrigation', desc: 'Some supplemental watering in dry spells.', icon: <Droplets className="size-4" /> },
+   231→    { v: 'reliable', label: 'Reliable irrigation', desc: 'Steady water access through the season.', icon: <Droplets className="size-4" /> },
+   232→  ];
+   233→  const soilOptions: { v: Soil; label: string; desc: string }[] = [
+   234→    { v: 'unknown', label: "I don't know", desc: "We'll infer it from regional signals." },
+   235→    { v: 'sandy', label: 'Sandy', desc: 'Drains fast, low water retention.' },
+   236→    { v: 'loamy', label: 'Loamy', desc: 'Balanced texture, generally fertile.' },
+   237→    { v: 'clay', label: 'Clay', desc: 'Heavy, high water retention, slow drain.' },
+   238→  ];
+   239→
+   240→  return (
+   241→    <div className="space-y-6">
+   242→      <div>
+   243→        <h2 className="text-xl font-semibold text-foreground">Farm information</h2>
+   244→        <p className="mt-1 text-sm text-muted-foreground">
+   245→          A few details about your land. If you're unsure about soil, we'll infer it from regional signals.
+   246→        </p>
+   247→      </div>
+   248→
+   249→      {/* Farm size */}
+   250→      <div>
+   251→        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Farm size</label>
+   252→        <div className="mt-2 flex gap-2">
+   253→          <input
+   254→            type="number"
+   255→            inputMode="decimal"
+   256→            min="0"
+   257→            step="0.1"
+   258→            value={area}
+   259→            onChange={e => setArea(e.target.value)}
+   260→            placeholder="e.g. 5"
+   261→            className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm outline-none focus:border-amber-400/40"
+   262→          />
+   263→          <div className="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
+   264→            {(['acres', 'hectares'] as const).map(u => (
+   265→              <button
+   266→                key={u}
+   267→                type="button"
+   268→                onClick={() => setAreaUnit(u)}
+   269→                className={cn(
+   270→                  'rounded-lg px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all',
+   271→                  areaUnit === u ? 'bg-amber-400/20 text-amber-200' : 'text-muted-foreground/70 hover:text-foreground',
+   272→                )}
+   273→              >
+   274→                {u}
+   275→              </button>
+   276→            ))}
+   277→          </div>
+   278→        </div>
+   279→      </div>
+   280→
+   281→      {/* Current crop */}
+   282→      <div>
+   283→        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Current crop</label>
+   284→        <div className="mt-2 flex flex-wrap gap-2">
+   285→          {currentOptions.map(c => (
+   286→            <button
+   287→              key={c}
+   288→              type="button"
+   289→              onClick={() => setCurrentCrop(c)}
+   290→              className={cn(
+   291→                'rounded-xl border px-3.5 py-2 text-sm transition-all',
+   292→                currentCrop === c
+   293→                  ? 'border-amber-400/50 bg-amber-400/15 text-amber-100'
+   294→                  : 'border-white/10 bg-white/5 text-foreground/80 hover:border-amber-400/30 hover:bg-amber-400/10',
+   295→              )}
+   296→            >
+   297→              {c}
+   298→            </button>
+   299→          ))}
+   300→        </div>
+   301→      </div>
+   302→
+   303→      {/* Irrigation */}
+   304→      <div>
+   305→        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Irrigation</label>
+   306→        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+   307→          {irrigationOptions.map(o => (
+   308→            <button
+   309→              key={o.v}
+   310→              type="button"
+   311→              onClick={() => setIrrigation(o.v)}
+   312→              className={cn(
+   313→                'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+   314→                irrigation === o.v
+   315→                  ? 'border-amber-400/50 bg-amber-400/15 text-amber-100'
+   316→                  : 'border-white/10 bg-white/5 text-foreground/80 hover:border-amber-400/30',
+   317→              )}
+   318→            >
+   319→              <div className="flex items-center gap-2 text-sm font-medium">
+   320→                <span className={irrigation === o.v ? 'text-amber-300' : 'text-muted-foreground'}>{o.icon}</span>
+   321→                {o.label}
+   322→              </div>
+   323→              <span className="text-xs text-muted-foreground">{o.desc}</span>
+   324→            </button>
+   325→          ))}
+   326→        </div>
+   327→      </div>
+   328→
+   329→      {/* Soil type */}
+   330→      <div>
+   331→        <div className="flex items-center justify-between">
+   332→          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Soil type</label>
+   333→          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+   334→            <Info className="size-3" /> Not required — we'll infer it if you don't know.
+   335→          </span>
+   336→        </div>
+   337→        <div className="mt-2 grid gap-2 sm:grid-cols-4">
+   338→          {soilOptions.map(o => (
+   339→            <button
+   340→              key={o.v}
+   341→              type="button"
+   342→              onClick={() => setSoil(o.v)}
+   343→              className={cn(
+   344→                'flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition-all',
+   345→                soil === o.v
+   346→                  ? 'border-amber-400/50 bg-amber-400/15 text-amber-100'
+   347→                  : 'border-white/10 bg-white/5 text-foreground/80 hover:border-amber-400/30',
+   348→              )}
+   349→            >
+   350→              <span className="text-sm font-medium">{o.label}</span>
+   351→              <span className="text-[11px] text-muted-foreground">{o.desc}</span>
+   352→            </button>
+   353→          ))}
+   354→        </div>
+   355→      </div>
+   356→    </div>
+   357→  );
+   358→}
+   359→
+   360→// ── Step 3 — priorities ────────────────────────────────────────────────────
+   361→function PrioritiesStep({
+   362→  priorities, setPriorities,
+   363→}: {
+   364→  priorities: { soil: number; water: number; climate: number; income: number };
+   365→  setPriorities: (p: { soil: number; water: number; climate: number; income: number }) => void;
+   366→}) {
+   367→  const total = priorities.soil + priorities.water + priorities.climate + priorities.income;
+   368→  const ok = total === 100;
+   369→
+   370→  const items = [
+   371→    { key: 'soil' as const, label: 'Soil health', icon: <Sprout className="size-4" />, color: 'bg-green-400' },
+   372→    { key: 'water' as const, label: 'Water conservation', icon: <Droplets className="size-4" />, color: 'bg-cyan-400' },
+   373→    { key: 'climate' as const, label: 'Climate resilience', icon: <Sun className="size-4" />, color: 'bg-amber-400' },
+   374→    { key: 'income' as const, label: 'Income stability', icon: <Coins className="size-4" />, color: 'bg-violet-400' },
+   375→  ];
+   376→
+   377→  const normalize = () => {
+   378→    if (total === 0) {
+   379→      setPriorities({ soil: 25, water: 25, climate: 25, income: 25 });
+   380→      return;
+   381→    }
+   382→    const f = 100 / total;
+   383→    setPriorities({
+   384→      soil: Math.round(priorities.soil * f),
+   385→      water: Math.round(priorities.water * f),
+   386→      climate: Math.round(priorities.climate * f),
+   387→      income: 100 - Math.round(priorities.soil * f) - Math.round(priorities.water * f) - Math.round(priorities.climate * f),
+   388→    });
+   389→  };
+   390→
+   391→  return (
+   392→    <div className="space-y-6">
+   393→      <div>
+   394→        <h2 className="text-xl font-semibold text-foreground">What matters most to you?</h2>
+   395→        <p className="mt-1 text-sm text-muted-foreground">
+   396→          Assign a weight to each priority. The total should equal 100%. We weight crop
+   397→          recommendations accordingly.
+   398→        </p>
+   399→      </div>
+   400→
+   401→      {/* 100% meter */}
+   402→      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+   403→        <div className="flex items-center justify-between">
+   404→          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Total</span>
+   405→          <span className={cn(
+   406→            'font-mono text-lg font-semibold tabular-nums',
+   407→            ok ? 'text-emerald-300' : 'text-amber-300',
+   408→          )}>
+   409→            {total}%
+   410→          </span>
+   411→        </div>
+   412→        <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-white/5">
+   413→          <div className="bg-emerald-500" style={{ width: `${priorities.soil}%` }} />
+   414→          <div className="bg-cyan-500" style={{ width: `${priorities.water}%` }} />
+   415→          <div className="bg-amber-500" style={{ width: `${priorities.climate}%` }} />
+   416→          <div className="bg-violet-500" style={{ width: `${priorities.income}%` }} />
+   417→        </div>
+   418→        {!ok && (
+   419→          <div className="mt-2 flex items-center justify-between">
+   420→            <span className="text-xs text-amber-300/80">Total must equal 100% (currently {total}%)</span>
+   421→            <button
+   422→              type="button"
+   423→              onClick={normalize}
+   424→              className="rounded-lg bg-amber-400/15 px-2.5 py-1 text-xs text-amber-200 hover:bg-amber-400/25"
+   425→            >
+   426→              Normalize to 100%
+   427→            </button>
+   428→          </div>
+   429→        )}
+   430→      </div>
+   431→
+   432→      {/* Sliders */}
+   433→      <div className="space-y-4">
+   434→        {items.map(it => (
+   435→          <div key={it.key} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+   436→            <div className="flex items-center justify-between">
+   437→              <div className="flex items-center gap-2.5">
+   438→                <span className={cn('flex size-9 items-center justify-center rounded-xl bg-white/5', it.color.replace('bg-', 'text-'))}>
+   439→                  {it.icon}
+   440→                </span>
+   441→                <div>
+   442→                  <div className="text-sm font-medium text-foreground">{it.label}</div>
+   443→                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+   444→                    {priorities[it.key]}% weight
+   445→                  </div>
+   446→                </div>
+   447→              </div>
+   448→              <span className="font-mono text-2xl font-light tabular-nums text-foreground">{priorities[it.key]}</span>
+   449→            </div>
+   450→            <input
+   451→              type="range"
+   452→              min={0}
+   453→              max={100}
+   454→              step={1}
+   455→              value={priorities[it.key]}
+   456→              onChange={e => setPriorities({ ...priorities, [it.key]: parseInt(e.target.value, 10) })}
+   457→              className="mt-3 w-full accent-amber-400"
+   458→            />
+   459→          </div>
+   460→        ))}
+   461→      </div>
+   462→    </div>
+   463→  );
+   464→}
+   465→
+   466→// ── Main wizard ─────────────────────────────────────────────────────────────
+   467→export function OnboardingWizard() {
+   468→  const selected = useAppStore(s => s.selected);
+   469→  const setInputs = useAppStore(s => s.setInputs);
+   470→  const setView = useAppStore(s => s.setView);
+   471→  const setAnalysis = useAppStore(s => s.setAnalysis);
+   472→
+   473→  const crops = useCropLibrary();
+   474→  const [step, setStep] = React.useState(0);
+   475→
+   476→  // Step 1
+   477→  const [cropSelections, setCropSelections] = React.useState<CropSelection[]>([]);
+   478→  // Step 2
+   479→  const [area, setArea] = React.useState('5');
+   480→  const [areaUnit, setAreaUnit] = React.useState<'acres' | 'hectares'>('acres');
+   481→  const [currentCrop, setCurrentCrop] = React.useState('Rice');
+   482→  const [irrigation, setIrrigation] = React.useState<Irrigation>('limited');
+   483→  const [soil, setSoil] = React.useState<Soil>('unknown');
+   484→  // Step 3
+   485→  const [priorities, setPriorities] = React.useState({ soil: 35, water: 30, climate: 20, income: 15 });
+   486→
+   487→  if (!selected) {
+   488→    // Should never happen — but guard anyway.
+   489→    return (
+   490→      <div className="flex min-h-dvh items-center justify-center text-muted-foreground">
+   491→        <button onClick={() => setView('home')} className="text-amber-300 underline">
+   492→          Select a location first.
+   493→        </button>
+   494→      </div>
+   495→    );
+   496→  }
+   497→
+   498→  const canContinue = () => {
+   499→    if (step === 0) return cropSelections.length > 0;
+   500→    if (step === 1) return !!area && parseFloat(area) > 0;
+   501→    if (step === 2) {
+   502→      const t = priorities.soil + priorities.water + priorities.climate + priorities.income;
+   503→      return t === 100;
+   504→    }
+   505→    return false;
+   506→  };
+   507→
+   508→  const next = () => {
+   509→    if (step < 2) setStep(step + 1);
+   510→    else submit();
+   511→  };
+   512→  const back = () => {
+   513→    if (step === 0) setView('home');
+   514→    else setStep(step - 1);
+   515→  };
+   516→
+   517→  const submit = async () => {
+   518→    setView('analyzing');
+   519→    const lat = selected.latitude;
+   520→    const lng = selected.longitude;
+   521→    const desiredCrops = cropSelections.map(s => s.name);
+   522→    const body = {
+   523→      latitude: lat,
+   524→      longitude: lng,
+   525→      locationName: [selected.name, selected.admin1, selected.country].filter(Boolean).join(', '),
+   526→      country: selected.country || undefined,
+   527→      area: parseFloat(area) || undefined,
+   528→      areaUnit,
+   529→      currentCrop: currentCrop === 'None / fallow' ? null : currentCrop,
+   530→      desiredCrops,
+   531→      irrigation,
+   532→      soilType: soil,
+   533→      priorities,
+   534→    };
+   535→    // Save farmer inputs for re-use by compare tab etc.
+   536→    setInputs({
+   537→      latitude: lat,
+   538→      longitude: lng,
+   539→      area: parseFloat(area) || undefined,
+   540→      areaUnit,
+   541→      currentCrop: currentCrop === 'None / fallow' ? null : currentCrop,
+   542→      desiredCrops,
+   543→      irrigation,
+   544→      soilType: soil,
+   545→      priorities,
+   546→    });
+   547→
+   548→    try {
+   549→      const res = await fetch('/api/field/analyze', {
+   550→        method: 'POST',
+   551→        headers: { 'Content-Type': 'application/json' },
+   552→        body: JSON.stringify(body),
+   553→      });
+   554→      const json = await res.json();
+   555→      if (json.error) throw new Error(json.error);
+   556→      setAnalysis(json);
+   557→      setView('dashboard');
+   558→    } catch (e) {
+   559→      // Surface error then bounce home
+   560→      console.error(e);
+   561→      setView('home');
+   562→      alert('Analysis failed: ' + (e as Error).message);
+   563→    }
+   564→  };
+   565→
+   566→  return (
+   567→    <div className="relative min-h-dvh w-full overflow-hidden">
+   568→      {/* Compact globe in background */}
+   569→      <div className="pointer-events-none absolute inset-0 z-0 opacity-50">
+   570→        <HolographicGlobe
+   571→          selectedLat={selected.latitude}
+   572→          selectedLng={selected.longitude}
+   573→          locationName={selected.name}
+   574→          size="compact"
+   575→          autoRotate
+   576→        />
+   577→      </div>
+   578→
+   579→      {/* Top bar */}
+   580→      <header className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
+   581→        <button
+   582→          type="button"
+   583→          onClick={back}
+   584→          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
+   585→        >
+   586→          <ArrowLeft className="size-4" /> Back
+   587→        </button>
+   588→        <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+   589→          {selected.name} · {Math.abs(selected.latitude).toFixed(2)}°{selected.latitude >= 0 ? 'N' : 'S'} {Math.abs(selected.longitude).toFixed(2)}°{selected.longitude >= 0 ? 'E' : 'W'}
+   590→        </div>
+   591→      </header>
+   592→
+   593→      {/* Wizard card */}
+   594→      <div className="relative z-10 mx-auto flex min-h-[calc(100dvh-5rem)] w-full max-w-2xl flex-col justify-center px-4 py-6">
+   595→        <div className="glass-panel scanline rounded-3xl p-6 sm:p-8">
+   596→          <StepHeader step={step} />
+   597→          <AnimatePresence mode="wait">
+   598→            <motion.div
+   599→              key={step}
+   600→              initial={{ opacity: 0, x: 12 }}
+   601→              animate={{ opacity: 1, x: 0 }}
+   602→              exit={{ opacity: 0, x: -12 }}
+   603→              transition={{ duration: 0.25 }}
+   604→            >
+   605→              {step === 0 && <CropStep selections={cropSelections} setSelections={setCropSelections} />}
+   606→              {step === 1 && (
+   607→                <FarmStep
+   608→                  area={area} setArea={setArea}
+   609→                  areaUnit={areaUnit} setAreaUnit={setAreaUnit}
+   610→                  currentCrop={currentCrop} setCurrentCrop={setCurrentCrop}
+   611→                  irrigation={irrigation} setIrrigation={setIrrigation}
+   612→                  soil={soil} setSoil={setSoil}
+   613→                />
+   614→              )}
+   615→              {step === 2 && <PrioritiesStep priorities={priorities} setPriorities={setPriorities} />}
+   616→            </motion.div>
+   617→          </AnimatePresence>
+   618→
+   619→          <div className="mt-8 flex items-center justify-between gap-4">
+   620→            <button
+   621→              type="button"
+   622→              onClick={back}
+   623→              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
+   624→            >
+   625→              <ArrowLeft className="size-4" />
+   626→              {step === 0 ? 'Globe' : 'Back'}
+   627→            </button>
+   628→            <button
+   629→              type="button"
+   630→              disabled={!canContinue()}
+   631→              onClick={next}
+   632→              className={cn(
+   633→                'inline-flex items-center gap-2 rounded-xl border px-5 py-2.5 text-sm font-medium transition-all',
+   634→                canContinue()
+   635→                  ? 'border-amber-400/50 bg-amber-400/20 text-amber-100 hover:bg-amber-400/30'
+   636→                  : 'border-white/10 bg-white/5 text-muted-foreground/40 cursor-not-allowed',
+   637→              )}
+   638→            >
+   639→              {step === 2 ? (
+   640→                <>
+   641→                  <ShieldCheck className="size-4" />
+   642→                  Analyze my field
+   643→                </>
+   644→              ) : (
+   645→                <>
+   646→                  Continue
+   647→                  <ArrowRight className="size-4" />
+   648→                </>
+   649→              )}
+   650→            </button>
+   651→          </div>
+   652→        </div>
+   653→      </div>
+   654→    </div>
+   655→  );
+   656→}
+   657→
