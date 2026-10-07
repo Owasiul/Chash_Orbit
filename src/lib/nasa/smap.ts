@@ -64,8 +64,9 @@ export function deriveSoilMoisture(
     : 0;
   const currentPct = Math.max(0, Math.min(100, (currentMm / 150) * 100));
 
-  // Seasonal deficit = (crop water need over 90 days) - (actual rainfall over 90d)
-  const cropNeed90 = (cropWaterMm / 30) * 90; // approx mm per 90 days
+  // Seasonal deficit = (crop water need over 90 days) - (actual rainfall over 90d).
+  // cropWaterMm is the whole-season need; assume a ~120-day season.
+  const cropNeed90 = cropWaterMm * (90 / 120);
   const actual90 = power.growingSeasonRainfall;
   const seasonalDeficit = Math.max(0, cropNeed90 - actual90);
 
@@ -78,9 +79,10 @@ export function deriveSoilMoisture(
     currentPct: Math.round(currentPct * 10) / 10,
     seasonalDeficit: Math.round(seasonalDeficit * 10) / 10,
     tenYearTrend: Math.round(tenYearTrend * 1000) / 1000,
-    source: 'derived',
-    attribution:
-      'Derived estimate from NASA POWER precipitation + a water-balance model. Live NASA SMAP data requires authenticated NSIDC/AppEEARS access.',
+    source: power.source === 'demo' ? 'demo' : 'derived',
+    attribution: power.source === 'demo'
+      ? 'Demo estimate (NASA POWER unreachable). Values are illustrative.'
+      : 'Derived estimate from NASA POWER precipitation + a water-balance model. Live NASA SMAP data requires authenticated NSIDC/AppEEARS access.',
   };
 }
 

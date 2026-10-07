@@ -73,6 +73,8 @@ interface AppState {
   setSelected: (g: GeoResult | null) => void;
   setInputs: (i: FarmerInputs) => void;
   setAnalysis: (a: FullAnalysis | null) => void;
+  // Saves the inputs, shows the analyzing screen, and calls the analyze API.
+  runAnalysis: (inputs: FarmerInputs, meta: { locationName: string; country?: string }) => Promise<void>;
   reset: () => void;
 }
 
@@ -87,6 +89,24 @@ export const useAppStore = create<AppState>((set) => ({
   setSelected: (g) => set({ selected: g }),
   setInputs: (i) => set({ inputs: i }),
   setAnalysis: (a) => set({ analysis: a }),
+  runAnalysis: async (inputs, meta) => {
+    set({ inputs, view: 'analyzing' });
+    try {
+      const res = await fetch('/api/field/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...inputs, ...meta }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      set({ analysis: json, view: 'dashboard' });
+    } catch (e) {
+      // Surface error then bounce home
+      console.error(e);
+      set({ view: 'home' });
+      alert('Analysis failed: ' + (e as Error).message);
+    }
+  },
   reset: () =>
     set({
       view: 'home',

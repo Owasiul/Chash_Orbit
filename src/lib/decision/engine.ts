@@ -202,6 +202,22 @@ function buildReasons(c: CropSpec, scores: { climateFit: number; waterFit: numbe
   return reasons.slice(0, 4);
 }
 
+// Weighted average of the fit sub-scores; priorities shift the emphasis.
+// Income uses the crop's profitability index directly, and rotation fit is a
+// constant-weight term (10) on top of the farmer's priorities.
+function scoreCrop(crop: CropSpec, env: Environment, risks: Risks, inputs: FarmerInputs, soilType: SoilType) {
+  const climateF = climateFit(crop, env, risks);
+  const waterF = waterFit(crop, env, inputs.irrigation, risks);
+  const soilF = soilFit(crop, soilType);
+  const rotationF = rotationFit(crop, inputs.currentCrop ?? null);
+  const { soil, water, climate, income } = inputs.priorities;
+  const totalP = Math.max(1, soil + water + climate + income);
+  const overall =
+    (climateF * climate + waterF * water + soilF * soil + crop.baseIncome * income + rotationF * 10) /
+    (totalP + 10);
+  return { climateF, waterF, soilF, rotationF, overall };
+}
+
 export function computeCropCompatibility(inputs: FarmerInputs, env: Environment, risks: Risks): CropCompatibility[] {
   const soilType: SoilType = inputs.soilType === 'unknown' ? inferSoilType(inputs.latitude, inputs.longitude) : inputs.soilType;
 
@@ -211,20 +227,8 @@ export function computeCropCompatibility(inputs: FarmerInputs, env: Environment,
         .filter((c): c is CropSpec => !!c)
     : CROP_LIBRARY;
 
-  const { soil, water, climate, income } = inputs.priorities;
-  // normalize priorities (they should already sum to 100 but guard anyway)
-  const totalP = Math.max(1, soil + water + climate + income);
-
   return allCrops.map(crop => {
-    const climateF = climateFit(crop, env, risks);
-    const waterF = waterFit(crop, env, inputs.irrigation, risks);
-    const soilF = soilFit(crop, soilType);
-    const rotationF = rotationFit(crop, inputs.currentCrop ?? null);
-    // Weighted overall — priorities shift the emphasis
-    const overall =
-      (climateF * climate + waterF * water + soilF * soil +
-       (income > 0 ? crop.baseIncome * (income / 100) : 0) +
-       rotationF * 10) / (totalP + (income > 0 ? income : 0) + 10);
+    const { climateF, waterF, soilF, rotationF, overall } = scoreCrop(crop, env, risks, inputs, soilType);
     return {
       crop: crop.name,
       climateFit: climateF,
@@ -247,20 +251,11 @@ export function computeRecommendations(
   // Consider the full library (excluding current crop) and rank by overall fit,
   // then write a "Why?" sentence that cites a specific data signal.
   const excluded = new Set([inputs.currentCrop ?? '']);
-  const all = CROP_LIBRARY.filter(c => !excluded.has(c.name)).map(crop => {
-    const climateF = climateFit(crop, env, risks);
-    const waterF = waterFit(crop, env, inputs.irrigation, risks);
-    const soilType = inputs.soilType === 'unknown' ? inferSoilType(inputs.latitude, inputs.longitude) : inputs.soilType;
-    const soilF = soilFit(crop, soilType);
-    const rotationF = rotationFit(crop, inputs.currentCrop ?? null);
-    const { soil, water, climate, income } = inputs.priorities;
-    const totalP = Math.max(1, soil + water + climate + income);
-    const overall =
-      (climateF * climate + waterF * water + soilF * soil +
-       (income > 0 ? crop.baseIncome * (income / 100) : 0) +
-       rotationF * 10) / (totalP + (income > 0 ? income : 0) + 10);
-    return { crop: crop, climateF, waterF, soilF, rotationF, overall };
-  });
+  const soilType = inputs.soilType === 'unknown' ? inferSoilType(inputs.latitude, inputs.longitude) : inputs.soilType;
+  const all = CROP_LIBRARY.filter(c => !excluded.has(c.name)).map(crop => ({
+    crop,
+    ...scoreCrop(crop, env, risks, inputs, soilType),
+  }));
 
   all.sort((a, b) => b.overall - a.overall);
   return all.slice(0, 6).map((r, i) => {
@@ -387,7 +382,7 @@ export function buildRotationPlan(
     Math.max(1, inputs.priorities.soil + inputs.priorities.water + inputs.priorities.climate + inputs.priorities.income),
   );
 
-  const rationale = `This 4-year rotation alternates nitrogen-fixing legumes (${years.filter((_, i) => byName(used[i])?.nitrogenEffect === 'fixer').map((_, i) => used[i]).join(', ')}) with nitrogen-demanding cereals, weighted by your priorities (soil ${inputs.priorities.soil}%, water ${inputs.priorities.water}%, climate ${inputs.priorities.climate}%, income ${inputs.priorities.income}%).`;
+  const rationale = `This 4-year rotation alternates nitrogen-fixing legumes (${years.filter(y => byName(y.crop)?.nitrogenEffect === 'fixer').map(y => y.crop).join(', ')}) with nitrogen-demanding cereals, weighted by your priorities (soil ${inputs.priorities.soil}%, water ${inputs.priorities.water}%, climate ${inputs.priorities.climate}%, income ${inputs.priorities.income}%).`;
 
   return {
     name: 'Field Shift Recommended Rotation',

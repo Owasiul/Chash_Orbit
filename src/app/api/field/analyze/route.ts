@@ -40,7 +40,11 @@ export async function POST(req: Request) {
   // Validate
   const { latitude, longitude, desiredCrops, priorities, irrigation } = body;
   if (typeof latitude !== 'number' || typeof longitude !== 'number') return bad('latitude and longitude are required.');
+  if (!Number.isFinite(latitude) || Math.abs(latitude) > 90 || !Number.isFinite(longitude) || Math.abs(longitude) > 180) {
+    return bad('latitude must be within ±90 and longitude within ±180.');
+  }
   if (!Array.isArray(desiredCrops) || desiredCrops.length === 0) return bad('desiredCrops must be a non-empty array.');
+  if (desiredCrops.length > 20 || !desiredCrops.every(c => typeof c === 'string')) return bad('desiredCrops must be at most 20 crop names.');
   if (!priorities || typeof priorities.soil !== 'number' || typeof priorities.water !== 'number' || typeof priorities.climate !== 'number' || typeof priorities.income !== 'number') {
     return bad('priorities (soil, water, climate, income) are required.');
   }
@@ -96,10 +100,8 @@ export async function POST(req: Request) {
       },
     });
   } catch (e) {
-    return NextResponse.json(
-      { error: 'Failed to persist farm.', detail: (e as Error).message },
-      { status: 500 },
-    );
+    console.error('Failed to persist farm:', e);
+    return bad('Failed to persist farm.', 500);
   }
 
   // ── Step 2: Save farmer preferences (replace existing) ─────────────────
@@ -228,6 +230,7 @@ export async function POST(req: Request) {
       vegetation: env.vegetation,
       overallSource: env.overallSource,
       overallAttribution: env.overallAttribution,
+      rawPower: env.rawPower, // daily series for the Signals temperature chart
     },
     risks: result.risks,
     cropCompatibility: result.cropCompatibility,

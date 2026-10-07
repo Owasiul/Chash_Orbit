@@ -61,8 +61,10 @@ export const SAMPLE_FARMS: SampleFarm[] = [
     id: 'punjab',
     name: 'Punjab',
     fullName: 'Punjab, India',
-    latitude: 30.9010,
-    longitude: 75.8573,
+    // Rural Barnala district — distinct from Ludhiana city below, since farms
+    // are keyed on exact coordinates.
+    latitude: 30.3700,
+    longitude: 75.5500,
     country: 'India',
     note: 'Intensive rice-wheat belt; groundwater depletion concern.',
   },

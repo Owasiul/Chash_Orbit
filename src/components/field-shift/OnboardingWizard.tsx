@@ -466,9 +466,8 @@ function PrioritiesStep({
 // ── Main wizard ─────────────────────────────────────────────────────────────
 export function OnboardingWizard() {
   const selected = useAppStore(s => s.selected);
-  const setInputs = useAppStore(s => s.setInputs);
   const setView = useAppStore(s => s.setView);
-  const setAnalysis = useAppStore(s => s.setAnalysis);
+  const runAnalysis = useAppStore(s => s.runAnalysis);
 
   const crops = useCropLibrary();
   const [step, setStep] = React.useState(0);
@@ -514,54 +513,24 @@ export function OnboardingWizard() {
     else setStep(step - 1);
   };
 
-  const submit = async () => {
-    setView('analyzing');
-    const lat = selected.latitude;
-    const lng = selected.longitude;
-    const desiredCrops = cropSelections.map(s => s.name);
-    const body = {
-      latitude: lat,
-      longitude: lng,
-      locationName: [selected.name, selected.admin1, selected.country].filter(Boolean).join(', '),
-      country: selected.country || undefined,
-      area: parseFloat(area) || undefined,
-      areaUnit,
-      currentCrop: currentCrop === 'None / fallow' ? null : currentCrop,
-      desiredCrops,
-      irrigation,
-      soilType: soil,
-      priorities,
-    };
-    // Save farmer inputs for re-use by compare tab etc.
-    setInputs({
-      latitude: lat,
-      longitude: lng,
-      area: parseFloat(area) || undefined,
-      areaUnit,
-      currentCrop: currentCrop === 'None / fallow' ? null : currentCrop,
-      desiredCrops,
-      irrigation,
-      soilType: soil,
-      priorities,
-    });
-
-    try {
-      const res = await fetch('/api/field/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const json = await res.json();
-      if (json.error) throw new Error(json.error);
-      setAnalysis(json);
-      setView('dashboard');
-    } catch (e) {
-      // Surface error then bounce home
-      console.error(e);
-      setView('home');
-      alert('Analysis failed: ' + (e as Error).message);
-    }
-  };
+  const submit = () =>
+    runAnalysis(
+      {
+        latitude: selected.latitude,
+        longitude: selected.longitude,
+        area: parseFloat(area) || undefined,
+        areaUnit,
+        currentCrop: currentCrop === 'None / fallow' ? null : currentCrop,
+        desiredCrops: cropSelections.map(s => s.name),
+        irrigation,
+        soilType: soil,
+        priorities,
+      },
+      {
+        locationName: [selected.name, selected.admin1, selected.country].filter(Boolean).join(', '),
+        country: selected.country || undefined,
+      },
+    );
 
   return (
     <div className="relative min-h-dvh w-full overflow-hidden">
