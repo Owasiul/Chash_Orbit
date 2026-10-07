@@ -4,7 +4,7 @@
 // meteorological parameters for any point on Earth.
 
 const POWER_BASE = 'https://power.larc.nasa.gov/api/temporal';
-const NASA_API_KEY = process.env.NASA_API_KEY || 'nABN5PLL6knLpfwithqu6yd3wezM3XggOerk5cy5';
+const NASA_API_KEY = process.env.NASA_API_KEY;
 
 // ── Types ───────────────────────────────────────────────────────────────────
 export interface PowerDailySeries {
@@ -47,10 +47,10 @@ function last365Range(end = new Date()): { start: string; end: string } {
   return { start: ymd(s), end: ymd(end) };
 }
 
+// The monthly endpoint takes whole years (YYYY); use the last 10 complete years.
 function last10YearRange(end = new Date()): { start: string; end: string } {
-  const s = new Date(end);
-  s.setUTCFullYear(s.getUTCFullYear() - 10);
-  return { start: ymd(s), end: ymd(end) };
+  const lastFull = end.getUTCFullYear() - 1;
+  return { start: String(lastFull - 9), end: String(lastFull) };
 }
 
 // ── API call ────────────────────────────────────────────────────────────────
@@ -170,26 +170,21 @@ export async function fetchPowerAnalysis(
     const mp = monthlyRaw.properties?.parameter ?? {};
     const t2mM = mp.T2M ?? {};
     const preM = mp.PRECTOTCORR ?? {};
-    const keys = Object.keys(t2mM).filter(k => k !== '-999').sort();
-    const yearByKey: Record<string, number> = {};
-    keys.forEach(k => {
-      const yyyy = parseInt(k.slice(0, 4), 10);
-      yearByKey[k] = yyyy;
-    });
-    // Aggregate to annual means
-    const annualTemp: Record<number, number[]> = {};
-    const annualRain: Record<number, number[]> = {};
-    keys.forEach(k => {
-      const y = yearByKey[k];
+    // POWER returns 'YYYY13' as the annual value: mean °C for T2M and mean
+    // mm/day for PRECTOTCORR (×365 → mm/year).
+    const valid = (v: number | null | undefined): v is number => v != null && v !== -999;
+    const years: number[] = [];
+    const tempMeans: number[] = [];
+    const rainTotals: number[] = [];
+    Object.keys(t2mM).filter(k => k.endsWith('13')).sort().forEach(k => {
       const t = t2mM[k]; const r = preM[k];
-      if (t != null && t !== -999) (annualTemp[y] ||= []).push(t);
-      if (r != null && r !== -999) (annualRain[y] ||= []).push(r);
+      if (!valid(t) || !valid(r)) return;
+      years.push(parseInt(k.slice(0, 4), 10));
+      tempMeans.push(t);
+      rainTotals.push(r * 365);
     });
-    const years = Object.keys(annualTemp).map(Number).sort((a, b) => a - b);
-    const tempMeans = years.map(y => mean(annualTemp[y]));
-    const rainSums = years.map(y => sum(annualRain[y]));
-    tenYearTempTrend = linearSlope(years, tempMeans);    // °C/year
-    tenYearRainfallTrend = linearSlope(years, rainSums); // mm/year
+    tenYearTempTrend = linearSlope(years, tempMeans);      // °C/year
+    tenYearRainfallTrend = linearSlope(years, rainTotals); // mm/year
   } catch {
     // Trend is best-effort; ignore failures.
   }

@@ -5,7 +5,7 @@
 import { fetchPowerAnalysis, type PowerAnalysis } from './power';
 import { deriveSoilMoisture, type SoilMoistureAnalysis } from './smap';
 import { deriveRainfall, type RainfallAnalysis } from './gpm';
-import { deriveVegetation, type VegetationAnalysis } from './modis';
+import { deriveVegetation, getModisNdvi, type VegetationAnalysis } from './modis';
 import { getCached, setCached, CACHE_TTL, type CacheKey } from './cache';
 
 export type DataSource = 'live' | 'cached' | 'demo';
@@ -118,17 +118,23 @@ export async function fetchEnvironment(
     parameters: 'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M',
   };
 
+  // MODIS NDVI runs alongside POWER; it never throws and resolves to null if
+  // it can't answer within its time budget.
+  const modisJob = getModisNdvi(latitude, longitude);
+
   let power: PowerAnalysis;
   let cacheHit = false;
   try {
-    const cached = await getCached<PowerAnalysis>(key, CACHE_TTL.POWER);
+    // A cache read failure (e.g. DB unavailable) should fall through to a live fetch.
+    const cached = await getCached<PowerAnalysis>(key, CACHE_TTL.POWER).catch(() => null);
     if (cached) {
-      power = { ...cached.data, source: 'cached' as const };
+      power = { ...reviveSeries(cached.data), source: 'cached' as const };
       cacheHit = true;
     } else {
       power = await fetchPowerAnalysis(latitude, longitude);
-      // store only the live data; mark as cached when retrieved later
-      await setCached(key, { ...power, source: 'live' }, CACHE_TTL.POWER);
+      // store only the live data; mark as cached when retrieved later.
+      // A failed cache write must not discard the live data we just fetched.
+      await setCached(key, { ...power, source: 'live' }, CACHE_TTL.POWER).catch(() => {});
     }
   } catch {
     power = demoPower(latitude, longitude);
@@ -136,7 +142,7 @@ export async function fetchEnvironment(
 
   const soilMoisture = deriveSoilMoisture(power, cropWaterMm);
   const rainfall = deriveRainfall(power, latitude);
-  const vegetation = deriveVegetation(power, latitude);
+  const vegetation = deriveVegetation(power, latitude, await modisJob);
 
   // Source tagging
   const powerSrc: DataSource = cacheHit ? 'cached' : power.source;
@@ -157,12 +163,31 @@ export async function fetchEnvironment(
     vegetation,
     overallSource,
     overallAttribution:
-      overallSource === 'live'
-        ? 'Live NASA POWER (with derived SMAP/GPM/MODIS estimates)'
-        : overallSource === 'cached'
-          ? 'Cached NASA POWER data (with derived SMAP/GPM/MODIS estimates)'
-          : 'Demo data — NASA POWER unreachable. Values are illustrative.',
+      overallSource === 'demo'
+        ? 'Demo data — NASA POWER unreachable. Values are illustrative.'
+        : `${overallSource === 'live' ? 'Live' : 'Cached'} NASA POWER${
+            vegetation.source === 'live' || vegetation.source === 'cached' ? ' + MODIS NDVI' : ''
+          } (with derived soil-moisture estimates)`,
     rawPower: power,
+  };
+}
+
+// JSON turns NaN (missing POWER days) into null; restore NaN so the
+// derivations skip those days instead of treating them as 0 mm / 0 °C.
+function reviveSeries(p: PowerAnalysis): PowerAnalysis {
+  const fix = (a: (number | null)[]) => a.map(v => (v == null ? NaN : v));
+  const s = p.series;
+  return {
+    ...p,
+    series: {
+      dates: s.dates,
+      t2m: fix(s.t2m),
+      t2mMax: fix(s.t2mMax),
+      t2mMin: fix(s.t2mMin),
+      prectotcorr: fix(s.prectotcorr),
+      rh2m: fix(s.rh2m),
+      ws10m: fix(s.ws10m),
+    },
   };
 }
 

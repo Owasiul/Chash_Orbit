@@ -3,7 +3,7 @@
 import * as React from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Satellite, Sparkles, Globe2 } from 'lucide-react';
+import { ArrowRight, Satellite, Sparkles, Globe2, Play } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 import { LocationSearch } from './LocationSearch';
 import { SAMPLE_FARMS } from '@/lib/location';
@@ -32,6 +32,7 @@ export function HomeScreen() {
   const setSelected = useAppStore(s => s.setSelected);
   const selected = useAppStore(s => s.selected);
   const setView = useAppStore(s => s.setView);
+  const runAnalysis = useAppStore(s => s.runAnalysis);
   const [globeReady, setGlobeReady] = React.useState(false);
 
   const handleSelect = React.useCallback(
@@ -53,6 +54,27 @@ export function HomeScreen() {
       countryCode: '',
       featureCode: 'PCLI',
     });
+  };
+
+  // One-click walkthrough: a Rajshahi Boro-rice farmer facing dry-season water
+  // stress, skipping onboarding. Its NASA data is pre-warmed by warm-cache.
+  const runDemo = () => {
+    const s = SAMPLE_FARMS.find(f => f.id === 'rajshahi')!;
+    handleSample(s.id);
+    runAnalysis(
+      {
+        latitude: s.latitude,
+        longitude: s.longitude,
+        area: 2,
+        areaUnit: 'acres',
+        currentCrop: 'Rice',
+        desiredCrops: ['Wheat', 'Chickpea', 'Lentil', 'Maize', 'Potato'],
+        irrigation: 'limited',
+        soilType: 'unknown',
+        priorities: { soil: 25, water: 35, climate: 20, income: 20 },
+      },
+      { locationName: s.fullName, country: s.country },
+    );
   };
 
   return (
@@ -135,6 +157,18 @@ export function HomeScreen() {
             </button>
           ))}
         </motion.div>
+
+        <motion.button
+          type="button"
+          onClick={runDemo}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.45 }}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-xs text-emerald-200 transition-colors hover:border-emerald-300/50 hover:bg-emerald-400/20"
+        >
+          <Play className="size-3" />
+          See a demo: rice farmer in Rajshahi, Bangladesh
+        </motion.button>
       </section>
 
       {/* Bottom — selected location card + Analyze this area CTA */}

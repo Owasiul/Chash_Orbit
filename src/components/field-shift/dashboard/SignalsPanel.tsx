@@ -156,7 +156,9 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
     <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-[10px] text-foreground backdrop-blur">
       <div className="text-muted-foreground/80">{label}</div>
       {payload.map((p, i) => (
-        <div key={i} className="text-amber-200">{p.value}</div>
+        <div key={i} className="text-amber-200">
+          {payload.length > 1 ? `${p.name}: ` : ''}{p.value}
+        </div>
       ))}
     </div>
   );
@@ -207,6 +209,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
   const tempSeries = React.useMemo(() => monthlyTempSeries(environment.rawPower), [environment.rawPower]);
   const rainSeries = rain.seasonalPattern ?? [];
   const vegSeries = veg.seasonalPattern ?? [];
+  const vegObserved = veg.source === 'live' || veg.source === 'cached';
 
   const tempTrend = trendArrow(temp.tenYearTrend);
   const smTrend = trendArrow(sm.tenYearTrend);
@@ -346,10 +349,10 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
         <NasaCard
           title="Vegetation (NDVI)"
           icon={<Leaf />}
-          source={veg.source === 'derived' ? 'derived' : 'demo'}
+          source={veg.source}
           attribution={veg.attribution}
           big={veg.ndvi.toFixed(2)}
-          bigUnit="NDVI"
+          bigUnit={veg.observedDate ? `NDVI · MODIS ${veg.observedDate}` : 'NDVI'}
         >
           <StatRow
             label="Health"
@@ -371,9 +374,18 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
                   <XAxis dataKey="month" tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
                   <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" domain={[0, 1]} />
                   <Tooltip content={<ChartTooltip />} />
-                  <Line type="monotone" dataKey="ndvi" stroke="#34d399" strokeWidth={2} dot={false} />
+                  {vegObserved && (
+                    <Line type="monotone" dataKey="model" name="Model" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
+                  )}
+                  <Line type="monotone" dataKey="ndvi" name={vegObserved ? 'MODIS' : 'Model'} stroke="#34d399" strokeWidth={2} dot={vegObserved ? { r: 2 } : false} connectNulls />
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+          )}
+          {vegObserved && (
+            <div className="mt-1 flex items-center gap-3 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
+              <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-emerald-400" />MODIS observed</span>
+              <span className="flex items-center gap-1"><span className="h-0 w-3 border-t border-dashed border-slate-400" />POWER-driven model</span>
             </div>
           )}
         </NasaCard>
