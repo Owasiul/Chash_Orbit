@@ -95,7 +95,7 @@ export function HomeScreen() {
       <header className="relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
         <div className="flex items-center gap-2">
           <Satellite className="size-5 text-amber-300" />
-          <span className="font-mono text-xs tracking-[0.3em] text-amber-200/90">FIELD SHIFT</span>
+          <span className="font-mono text-xs tracking-[0.3em] text-amber-200/90">Chash Orbit</span>
         </div>
         <div className="hidden items-center gap-2 font-mono text-[10px] tracking-widest text-muted-foreground/70 sm:flex">
           <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />

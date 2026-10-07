@@ -8,7 +8,7 @@ import type { GlobeMethods } from "react-globe.gl";
  * HolographicGlobe
  * ----------------
  * Interactive 3D rotating Earth used as the visual centerpiece of the
- * Field Shift homepage (NASA Space Apps Challenge — Earth-to-farm decision
+ * Chash Orbit homepage (NASA Space Apps Challenge — Earth-to-farm decision
  * system). Built on `react-globe.gl` (a three.js wrapper).
  *
  * Keep all three.js / globe.gl usage inside this client component so the

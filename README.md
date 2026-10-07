@@ -1,8 +1,8 @@
-# Field Shift 🌍
+# Chash Orbit 🌍
 
 **Earth-to-farm decision system** · NASA Space Apps Challenge
 
-Pick any field on a 3D Earth. Field Shift pulls NASA satellite and reanalysis
+Pick any field on a 3D Earth. Chash Orbit pulls NASA satellite and reanalysis
 data for that exact point and recommends what to plant next: a ranked crop list
 and a 4-year rotation plan, with every score traceable to a NASA signal.
 
@@ -14,7 +14,7 @@ table falls, dry seasons get hotter, and continuous cereals deplete soil
 nitrogen. NASA observes all of this from orbit, but that data rarely reaches a
 planting decision.
 
-## What Field Shift does
+## What Chash Orbit does
 
 1. **Locate:** search a place or spin the globe to a field.
 2. **Profile (90 s):** current crop, crops under consideration, irrigation,
@@ -53,7 +53,7 @@ every badge turns **DEMO**.
 
 ## How the scoring works
 
-For each crop, Field Shift computes four 0–100 fit scores:
+For each crop, Chash Orbit computes four 0–100 fit scores:
 
 - **Climate fit:** growing-season temperature vs the crop's optimal window,
   heat tolerance vs heat risk, drought tolerance vs drought risk.

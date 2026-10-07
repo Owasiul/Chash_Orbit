@@ -1,4 +1,4 @@
-// Field Shift — Vegetation (NDVI) service
+// Chash Orbit — Vegetation (NDVI) service
 // LIVE: NASA MODIS MOD13Q1 (Terra, 250 m, 16-day NDVI composites) via the
 // public ORNL DAAC MODIS/VIIRS Land Product Subsets REST API — no Earthdata
 // login required. Docs: https://modis.ornl.gov/data/modis_webservice.html

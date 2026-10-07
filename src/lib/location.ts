@@ -1,4 +1,4 @@
-// Field Shift — Location service
+// Chash Orbit — Location service
 // Uses the free Open-Meteo geocoding API (no auth required) for place-name
 // search, plus a set of curated sample farms for the demo experience.
 

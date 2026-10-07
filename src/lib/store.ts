@@ -1,4 +1,4 @@
-// Field Shift — application flow state (single-page state machine).
+// Chash Orbit — application flow state (single-page state machine).
 // The whole app lives on `/` (per the constraint that users only see the
 // `/` route). This store tracks the current view + farmer inputs + analysis
 // result.

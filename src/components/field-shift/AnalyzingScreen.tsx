@@ -60,7 +60,7 @@ export function AnalyzingScreen() {
         >
           <div className="mb-6 text-center">
             <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-amber-200/80">
-              Field Shift · Acquisition in progress
+              Chash Orbit · Acquisition in progress
             </div>
             <h1 className="mt-2 text-3xl font-light text-foreground">
               Analyzing your <span className="text-amber-300">field</span>...

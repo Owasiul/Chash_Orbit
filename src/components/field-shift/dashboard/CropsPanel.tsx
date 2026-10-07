@@ -145,7 +145,7 @@ function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
     <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
       <SectionLabel icon={<Sparkles />}>What could grow well here?</SectionLabel>
       <p className="mb-3 text-xs text-muted-foreground">
-        Top six candidates outside of your current crop, ranked by Field Shift's overall fit score.
+        Top six candidates outside of your current crop, ranked by Chash Orbit's overall fit score.
       </p>
       <ol className="space-y-2.5">
         {analysis.recommendations.map((r, i) => {
@@ -291,7 +291,7 @@ function ChangeCropsSection() {
       <SectionLabel icon={<Layers />}>Change your crops</SectionLabel>
       <p className="mb-3 text-xs text-muted-foreground">
         Curious how a different crop mix changes the recommendations? Adjust your
-        selection below — Field Shift will re-run the analysis with the same NASA
+        selection below — Chash Orbit will re-run the analysis with the same NASA
         data and your priorities.
       </p>
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -326,7 +326,7 @@ function ChangeCropsSection() {
               Edit crops you're considering
             </DialogTitle>
             <DialogDescription>
-              Toggle crops to add or remove them. Field Shift re-runs the analysis
+              Toggle crops to add or remove them. Chash Orbit re-runs the analysis
               automatically (debounced) — keep at least one crop selected.
             </DialogDescription>
           </DialogHeader>

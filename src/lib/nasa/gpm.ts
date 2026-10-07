@@ -1,4 +1,4 @@
-// Field Shift — GPM IMERG rainfall service
+// Chash Orbit — GPM IMERG rainfall service
 // Live GPM IMERG is delivered through NASA GES DISC and requires Earthdata
 // authentication. NASA POWER's PRECTOTCORR (corrected precipitation) is itself
 // partly informed by GPM IMERG. We therefore use POWER-derived rainfall and

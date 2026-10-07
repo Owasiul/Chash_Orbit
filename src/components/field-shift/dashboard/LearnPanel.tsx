@@ -69,7 +69,7 @@ const SOURCE_CARDS: SourceCardData[] = [
     name: 'NASA POWER',
     measures: 'Daily + monthly temperature, rainfall, humidity, and wind for any point on Earth.',
     whyUse:
-      'Live, key-authenticated REST API. Field Shift uses POWER for temperature and rainfall directly — the backbone of every climate signal here.',
+      'Live, key-authenticated REST API. Chash Orbit uses POWER for temperature and rainfall directly — the backbone of every climate signal here.',
     auth: 'No special authentication required — NASA API key only.',
     icon: <Satellite className="size-5" />,
     accent: 'amber',
@@ -78,7 +78,7 @@ const SOURCE_CARDS: SourceCardData[] = [
     name: 'NASA SMAP',
     measures: 'Surface soil moisture (top ~5 cm) from the Soil Moisture Active Passive mission.',
     whyUse:
-      'Would provide true live soil moisture. Field Shift derives an estimate from POWER precipitation + a water-balance model instead, and labels it "derived" — never "live SMAP".',
+      'Would provide true live soil moisture. Chash Orbit derives an estimate from POWER precipitation + a water-balance model instead, and labels it "derived" — never "live SMAP".',
     auth: 'Requires Earthdata auth via NSIDC / AppEEARS. Demo uses POWER-derived substitute.',
     icon: <Droplets className="size-5" />,
     accent: 'cyan',
@@ -87,7 +87,7 @@ const SOURCE_CARDS: SourceCardData[] = [
     name: 'GPM IMERG',
     measures: 'Global Precipitation Measurement (Integrated Multi-satellitE Retrievals) — high-resolution rainfall.',
     whyUse:
-      'Field Shift uses POWER\'s PRECTOTCORR (GPM-corrected precipitation) and computes IMERG-style stats (anomaly, variability, dry spells) on top of it.',
+      'Chash Orbit uses POWER\'s PRECTOTCORR (GPM-corrected precipitation) and computes IMERG-style stats (anomaly, variability, dry spells) on top of it.',
     auth: 'Late-run GPM data is delivered via NASA GES DISC (Earthdata). POWER PRECTOTCORR already folds GPM in.',
     icon: <CloudRain className="size-5" />,
     accent: 'cyan',
@@ -96,7 +96,7 @@ const SOURCE_CARDS: SourceCardData[] = [
     name: 'MODIS / VIIRS',
     measures: 'NDVI vegetation index (MOD13 / VNP13 products) — global vegetation health, every 16 days.',
     whyUse:
-      'Would provide true live NDVI. Field Shift derives a seasonal NDVI model from POWER precipitation + temperature climatology instead, and labels it "derived".',
+      'Would provide true live NDVI. Chash Orbit derives a seasonal NDVI model from POWER precipitation + temperature climatology instead, and labels it "derived".',
     auth: 'Requires Earthdata auth via AppEEARS / LP DAAC. Demo uses POWER-derived substitute.',
     icon: <Leaf className="size-5" />,
     accent: 'emerald',
@@ -118,7 +118,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <h2 className="text-xl font-light text-foreground sm:text-2xl">About this analysis</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Field Shift turns NASA Earth-observation data into a transparent field-level
+          Chash Orbit turns NASA Earth-observation data into a transparent field-level
           recommendation. NASA POWER provides live temperature and rainfall data. Soil moisture,
           NDVI, and additional soil metrics are derived estimates — we never falsely label sample
           data as live NASA data.
@@ -210,7 +210,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
                   </div>
                   <div>
                     <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-                      Why Field Shift uses it
+                      Why Chash Orbit uses it
                     </span>
                     <p className="mt-0.5 text-foreground/80">{s.whyUse}</p>
                   </div>
@@ -237,7 +237,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
           </span>
         </div>
         <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
-          Field Shift · NASA Space Apps Challenge · Earth-to-farm decision system
+          Chash Orbit · NASA Space Apps Challenge · Earth-to-farm decision system
         </p>
       </Card>
     </div>
