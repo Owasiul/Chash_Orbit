@@ -1,4 +1,4 @@
-// Field Shift — Soil moisture service
+// Chash Orbit — Soil moisture service
 // NASA SMAP data is delivered via NSIDC / AppEEARS, which require Earthdata
 // authentication and are not available as a simple unauthenticated REST endpoint
 // for live demos. This module therefore derives a soil-moisture estimate from

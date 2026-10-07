@@ -14,17 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Field Shift — Earth-to-farm decision system",
+  title: "Chash Orbit — Earth-to-farm decision system",
   description:
-    "Field Shift turns NASA Earth-observation data into field-level crop and rotation recommendations. Tell us where your field is, what you grow, and what matters — we analyze NASA POWER, SMAP, GPM and MODIS signals and produce a transparent 4-year rotation plan.",
+    "Chash Orbit turns NASA Earth-observation data into field-level crop and rotation recommendations. Tell us where your field is, what you grow, and what matters — we analyze NASA POWER, SMAP, GPM and MODIS signals and produce a transparent 4-year rotation plan.",
   keywords: [
-    "NASA", "Field Shift", "NASA POWER", "SMAP", "GPM IMERG", "MODIS",
+    "NASA", "Chash Orbit", "NASA POWER", "SMAP", "GPM IMERG", "MODIS",
     "crop rotation", "precision agriculture", "Earth observation",
   ],
-  authors: [{ name: "Field Shift — NASA Space Apps Challenge" }],
-  icons: { icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg" },
+  authors: [{ name: "Chash Orbit — NASA Space Apps Challenge" }],
+  icons: { icon: "./Logo.png" },
   openGraph: {
-    title: "Field Shift",
+    title: "Chash Orbit",
     description: "Earth-to-farm decision system powered by NASA Earth-observation data.",
     type: "website",
   },

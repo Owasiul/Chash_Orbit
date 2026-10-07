@@ -1,4 +1,4 @@
-// Field Shift — dashboard tab panels.
+// Chash Orbit — dashboard tab panels.
 // Re-exports every panel so consumers can import them from a single entry point.
 //
 // Usage:

@@ -1,4 +1,4 @@
-// Field Shift — Decision engine
+// Chash Orbit — Decision engine
 // Computes field risks, crop compatibility, recommendations, and rotation
 // plans from the environment + farmer inputs. Scoring is transparent: every
 // score is the weighted sum of sub-scores that map directly to NASA signals
@@ -390,7 +390,7 @@ export function buildRotationPlan(
   const rationale = `This 4-year rotation alternates nitrogen-fixing legumes (${years.filter((_, i) => byName(used[i])?.nitrogenEffect === 'fixer').map((_, i) => used[i]).join(', ')}) with nitrogen-demanding cereals, weighted by your priorities (soil ${inputs.priorities.soil}%, water ${inputs.priorities.water}%, climate ${inputs.priorities.climate}%, income ${inputs.priorities.income}%).`;
 
   return {
-    name: 'Field Shift Recommended Rotation',
+    name: 'Chash Orbit Recommended Rotation',
     overallScore,
     soilScore,
     waterScore,

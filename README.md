@@ -1,8 +1,8 @@
-# Field Shift 🌍
+# Chash Orbit 🌍
 
 Earth-to-farm decision system — NASA Space Apps Challenge.
 
-Point at any location on the 3D Earth, and Field Shift combines live NASA satellite
+Point at any location on the 3D Earth, and Chash Orbit combines live NASA satellite
 observations (POWER, SMAP, GPM, MODIS) with a crop-compatibility and rotation-planning
 engine to recommend what to plant next.
 

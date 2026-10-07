@@ -1,4 +1,4 @@
-// Field Shift — Vegetation (NDVI) service
+// Chash Orbit — Vegetation (NDVI) service
 // NASA MODIS/VIIRS NDVI products (MOD13/VNP13) are delivered via AppEEARS / LP
 // DAAC and require Earthdata authentication. Without authenticated access, we
 // derive a vegetation index estimate from NASA POWER climatology + a seasonal

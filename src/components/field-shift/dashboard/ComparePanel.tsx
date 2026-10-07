@@ -145,10 +145,10 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
   );
 
   const chartData = [
-    { dimension: 'Soil', Current: currentScores.soil, 'Field Shift': plan.soilScore },
-    { dimension: 'Water', Current: currentScores.water, 'Field Shift': plan.waterScore },
-    { dimension: 'Climate', Current: currentScores.climate, 'Field Shift': plan.climateScore },
-    { dimension: 'Income', Current: currentScores.income, 'Field Shift': plan.incomeScore },
+    { dimension: 'Soil', Current: currentScores.soil, 'Chash Orbit': plan.soilScore },
+    { dimension: 'Water', Current: currentScores.water, 'Chash Orbit': plan.waterScore },
+    { dimension: 'Climate', Current: currentScores.climate, 'Chash Orbit': plan.climateScore },
+    { dimension: 'Income', Current: currentScores.income, 'Chash Orbit': plan.incomeScore },
   ];
 
   const delta = plan.overallScore - currentScores.overall;
@@ -158,7 +158,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <h2 className="text-xl font-light text-foreground sm:text-2xl">Compare rotations</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          See how the Field Shift recommended rotation outperforms the current rotation.
+          See how the Chash Orbit recommended rotation outperforms the current rotation.
         </p>
       </Card>
 
@@ -195,11 +195,11 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
           </div>
         </Card>
 
-        {/* Field Shift plan */}
+        {/* Chash Orbit plan */}
         <Card className="border-amber-400/30 bg-amber-400/[0.04] p-4 sm:p-6">
           <div className="mb-3 flex items-center justify-between">
             <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-              Field Shift plan
+              Chash Orbit plan
             </span>
             <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200">
               {plan.name}
@@ -245,7 +245,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
                 iconType="circle"
               />
               <Bar dataKey="Current" name="Current rotation" fill="#fb7185" radius={[3, 3, 0, 0]} fillOpacity={0.85} />
-              <Bar dataKey="Field Shift" name="Field Shift plan" fill="#fbbf24" radius={[3, 3, 0, 0]} fillOpacity={0.9} />
+              <Bar dataKey="Chash Orbit" name="Chash Orbit plan" fill="#fbbf24" radius={[3, 3, 0, 0]} fillOpacity={0.9} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -258,7 +258,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
       >
         <Card className="border-amber-400/30 bg-amber-400/[0.06] p-4 sm:p-6">
           <p className="text-sm text-foreground/90">
-            Field Shift plan scores <span className="font-mono text-amber-300">{plan.overallScore}</span>{' '}
+            Chash Orbit plan scores <span className="font-mono text-amber-300">{plan.overallScore}</span>{' '}
             vs current <span className="font-mono text-rose-300">{currentScores.overall}</span> —{' '}
             <span className="inline-flex items-center gap-1 font-mono text-amber-300">
               {delta > 0 ? (

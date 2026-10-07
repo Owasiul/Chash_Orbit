@@ -40,7 +40,7 @@ export function FieldNavigation() {
             title="Back to globe"
           >
             <Home className="size-3.5" />
-            <span className="hidden md:inline">FIELD SHIFT</span>
+            <span className="hidden md:inline">Home</span>
           </button>
           <div className="mx-1 h-5 w-px bg-white/10" />
           {TABS.map(t => {

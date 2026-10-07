@@ -54,7 +54,7 @@ export function FieldDashboard() {
 
       {/* Sticky footer */}
       <footer className="mt-auto border-t border-white/5 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50 sm:px-6">
-        Field Shift · NASA Earth-observation decision system · POWER · SMAP · GPM · MODIS
+        Chash Orbit · NASA Earth-observation decision system · POWER · SMAP · GPM · MODIS
       </footer>
     </div>
   );
