@@ -97,7 +97,7 @@ response cache)
 Requires Node.js ≥ 20.9.
 
 ```bash
-npm install          # also generates the Prisma client
+npm i         # also generates the Prisma client
 cp .env.example .env
 npm run db:push      # create the SQLite database
 npm run dev          # http://localhost:3000
