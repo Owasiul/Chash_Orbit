@@ -4,6 +4,7 @@ import * as React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 import { FieldNavigation } from './FieldNavigation';
+import { AdvisorPanel } from './dashboard/AdvisorPanel';
 import {
   FieldOverview,
   SignalsPanel,
@@ -48,6 +49,7 @@ export function FieldDashboard() {
             {tab === 'planner' && <PlannerPanel analysis={analysis} />}
             {tab === 'compare' && <ComparePanel analysis={analysis} />}
             {tab === 'learn' && <LearnPanel analysis={analysis} />}
+            {tab === 'advisor' && <AdvisorPanel analysis={analysis} />}
           </motion.div>
         </AnimatePresence>
       </main>

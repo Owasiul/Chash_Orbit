@@ -334,7 +334,7 @@ export function buildRotationPlan(
     const reason = cur
       ? `Follows ${cur.name} (${cur.nitrogenEffect}). ${c.nitrogenEffect === 'fixer' ? c.name + ' fixes nitrogen, restoring fertility after the previous depleting crop.' : 'Rotates away from the previous family to break pest/disease cycles.'}`
       : `Best first-year match for this field's climate and water signals.`;
-    pushYear(1, y1, null, inputs.irrigation === 'reliable' ? 'reliable' : inputs.irrigation === 'limited' ? 'limited' : 'rainfed', compat.find(c => c.crop === y1)?.overallFit ?? 80, reason);
+    pushYear(1, y1, null, inputs.irrigation === 'reliable' ? 'reliable' : inputs.irrigation === 'limited' ? 'limited' : 'rainfed', compat.find(c => c.crop === y1)?.overallFit ?? recommendations.find(r => r.crop === y1)?.score ?? 80, reason);
   }
 
   // Years 2-4 — alternate legume ↔ cereal, avoid repeating family
@@ -368,7 +368,7 @@ export function buildRotationPlan(
       : c.nitrogenEffect === 'fixer'
         ? `${c.name} fixes nitrogen after a depleting cereal year, rebuilding soil fertility.`
         : `${c.name} rotates away from the previous family and uses residual nitrogen from the prior legume year.`;
-    pushYear(y, pick, cover, inputs.irrigation === 'reliable' ? 'reliable' : 'limited', compat.find(cc => cc.crop === pick)?.overallFit ?? 75, reason);
+    pushYear(y, pick, cover, inputs.irrigation === 'reliable' ? 'reliable' : 'limited', compat.find(cc => cc.crop === pick)?.overallFit ?? recommendations.find(r => r.crop === pick)?.score ?? 75, reason);
   }
 
   // Aggregate scores

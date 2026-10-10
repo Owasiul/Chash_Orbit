@@ -74,6 +74,14 @@ alternates nitrogen fixers and depleters, and adds a cover crop when the
 soil-health priority is high. The code is in
 [`src/lib/decision/engine.ts`](src/lib/decision/engine.ts).
 
+## AI Field Advisor
+
+Chash Orbit now features an LLM-powered agricultural advisor built with the Vercel AI SDK and Google Gemini.
+
+- **AI Field Report:** An automated, plain-language summary of the field analysis. It highlights key environmental risks, explains why top crops were ranked highly, and details the logic behind the rotation plan.
+- **Ask Your Field:** A conversational chat interface where farmers can ask questions about their specific field data. The AI explains the reasoning behind scores, discusses crop trade-offs, and answers scenario questions (e.g., "What if it rains less?").
+- **Grounded in Data:** The AI acts strictly as an explainer. It does not invent or hallucinate scores, crop rankings, or environmental data. All numerical data rendered in the UI comes strictly from the deterministic decision engine.
+
 ## Limitations (stated plainly)
 
 - The crop library (`src/lib/crops.ts`) holds illustrative agronomic values, not

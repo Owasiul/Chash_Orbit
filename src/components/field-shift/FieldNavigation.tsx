@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
-  Globe2, Activity, Sprout, CalendarClock, BarChart3, GraduationCap, Home,
+  Globe2, Activity, Sprout, CalendarClock, BarChart3, GraduationCap, Home, MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore, type DashboardTab } from '@/lib/store';
@@ -21,6 +21,7 @@ const TABS: Tab[] = [
   { id: 'planner', label: 'Planner', icon: CalendarClock },
   { id: 'compare', label: 'Compare', icon: BarChart3 },
   { id: 'learn', label: 'Learn', icon: GraduationCap },
+  { id: 'advisor', label: 'Advisor', icon: MessageSquare },
 ];
 
 export function FieldNavigation() {
