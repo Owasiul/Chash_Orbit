@@ -24,7 +24,8 @@ export type DashboardTab =
   | 'crops'
   | 'planner'
   | 'compare'
-  | 'learn';
+  | 'learn'
+  | 'advisor';
 
 export interface FieldSummary {
   farmId: string;
@@ -66,6 +67,8 @@ interface AppState {
 
   // Final analysis result
   analysis: FullAnalysis | null;
+  advisorChatHistory: any[];
+  advisorReport: any | null;
 
   // Actions
   setView: (v: View) => void;
@@ -73,6 +76,8 @@ interface AppState {
   setSelected: (g: GeoResult | null) => void;
   setInputs: (i: FarmerInputs) => void;
   setAnalysis: (a: FullAnalysis | null) => void;
+  setAdvisorChatHistory: (history: any[]) => void;
+  setAdvisorReport: (report: any | null) => void;
   // Saves the inputs, shows the analyzing screen, and calls the analyze API.
   runAnalysis: (inputs: FarmerInputs, meta: { locationName: string; country?: string }) => Promise<void>;
   reset: () => void;
@@ -84,13 +89,17 @@ export const useAppStore = create<AppState>((set) => ({
   selected: null,
   inputs: null,
   analysis: null,
+  advisorChatHistory: [],
+  advisorReport: null,
   setView: (v) => set({ view: v }),
   setDashboardTab: (t) => set({ dashboardTab: t }),
   setSelected: (g) => set({ selected: g }),
   setInputs: (i) => set({ inputs: i }),
   setAnalysis: (a) => set({ analysis: a }),
+  setAdvisorChatHistory: (h) => set({ advisorChatHistory: h }),
+  setAdvisorReport: (r) => set({ advisorReport: r }),
   runAnalysis: async (inputs, meta) => {
-    set({ inputs, view: 'analyzing' });
+    set({ inputs, view: 'analyzing', advisorReport: null, advisorChatHistory: [] });
     try {
       const res = await fetch('/api/field/analyze', {
         method: 'POST',
@@ -114,5 +123,7 @@ export const useAppStore = create<AppState>((set) => ({
       selected: null,
       inputs: null,
       analysis: null,
+      advisorChatHistory: [],
+      advisorReport: null,
     }),
 }));
