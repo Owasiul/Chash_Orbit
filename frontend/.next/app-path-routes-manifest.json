@@ -1,0 +1,12 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/compare/page": "/compare",
+  "/crops/page": "/crops",
+  "/field/page": "/field",
+  "/learn/page": "/learn",
+  "/page": "/",
+  "/plan/[id]/page": "/plan/[id]",
+  "/planner/page": "/planner",
+  "/setup/page": "/setup"
+}

@@ -1,0 +1,34 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/planner/layout,_N_T_/planner/page,_N_T_/planner"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/planner/__PAGE__"
+  ],
+  "prefetchHints": {
+    "hints": 64,
+    "slots": {
+      "children": {
+        "hints": 96,
+        "slots": {
+          "children": {
+            "hints": 160,
+            "slots": null
+          }
+        }
+      }
+    }
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/ef23da419fc07fffc7b3502a02653d670b2097c5374032b96cce8d430601d85e/$/planner",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/planner/page"
+    },
+    "isFallback": false
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "headers": {
+    "x-nextjs-stale-time": "300",
+    "x-nextjs-prerender": "1",
+    "x-next-cache-tags": "_N_T_/layout,_N_T_/crops/layout,_N_T_/crops/page,_N_T_/crops"
+  },
+  "segmentPaths": [
+    "/_tree",
+    "/_full",
+    "/crops/__PAGE__"
+  ],
+  "prefetchHints": {
+    "hints": 64,
+    "slots": {
+      "children": {
+        "hints": 96,
+        "slots": {
+          "children": {
+            "hints": 160,
+            "slots": null
+          }
+        }
+      }
+    }
+  },
+  "routeCache": {
+    "key": "/route-cache/APP_PAGE/15e57ebe1a84e5f83c2e9a032cc037108114ea7b84992c9cdb02b5ce05966f6b/$/crops",
+    "owner": {
+      "kind": "APP_PAGE",
+      "sourceRoute": "/crops/page"
+    },
+    "isFallback": false
+  }
+}

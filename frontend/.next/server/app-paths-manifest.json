@@ -1,0 +1,12 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/compare/page": "app/compare/page.js",
+  "/crops/page": "app/crops/page.js",
+  "/field/page": "app/field/page.js",
+  "/learn/page": "app/learn/page.js",
+  "/page": "app/page.js",
+  "/plan/[id]/page": "app/plan/[id]/page.js",
+  "/planner/page": "app/planner/page.js",
+  "/setup/page": "app/setup/page.js"
+}
