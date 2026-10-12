@@ -90,7 +90,21 @@ function SubScore({ label, value, color }: { label: string; value: number; color
 }
 
 // ── Year row ──────────────────────────────────────────────────────────────────
-function YearRow({ year, crop, score, coverCrop }: { year: number; crop: string; score?: number; coverCrop?: string | null }) {
+function YearRow({
+  year,
+  crop,
+  score,
+  coverCrop,
+  plantingSeason,
+  harvestSeason,
+}: {
+  year: number;
+  crop: string;
+  score?: number;
+  coverCrop?: string | null;
+  plantingSeason?: string;
+  harvestSeason?: string;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.03] px-3 py-2">
       <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
@@ -99,6 +113,11 @@ function YearRow({ year, crop, score, coverCrop }: { year: number; crop: string;
       <Sprout className="size-3.5 text-amber-300/80" />
       <div className="flex-1">
         <div className="text-sm font-medium text-foreground">{crop}</div>
+        {(plantingSeason || harvestSeason) && (
+          <div className="text-[10px] text-muted-foreground/80">
+            Plant {plantingSeason ?? '—'} · Harvest {harvestSeason ?? '—'}
+          </div>
+        )}
         {coverCrop && (
           <div className="text-[11px] italic text-emerald-300/70">+ {coverCrop}</div>
         )}
@@ -207,7 +226,15 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
           </div>
           <div className="space-y-1.5">
             {plan.years.map(y => (
-              <YearRow key={y.year} year={y.year} crop={y.crop} score={y.score} coverCrop={y.coverCrop} />
+              <YearRow
+                key={y.year}
+                year={y.year}
+                crop={y.crop}
+                score={y.score}
+                coverCrop={y.coverCrop}
+                plantingSeason={y.plantingSeason}
+                harvestSeason={y.harvestSeason}
+              />
             ))}
           </div>
           <div className="mt-4 border-t border-amber-400/20 pt-2">

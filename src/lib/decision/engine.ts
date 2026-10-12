@@ -11,7 +11,15 @@ import {
   inferSoilType,
   type IrrigationType,
   type SoilType,
+  isCurrentlyPlantable,
+  isInHarvestWindow,
+  getPlantingLabel,
+  getHarvestLabel,
+  monthsUntilPlanting,
+  getAdjustedPlantingMonths,
+  getGrowingWindowMonths,
 } from '@/lib/crops';
+import { aggregateMonths, buildMonthlyClimatology } from '@/lib/nasa/climatology';
 import type { Environment } from '@/lib/nasa/environment';
 
 export interface Risks {
@@ -47,8 +55,17 @@ export interface CropCompatibility {
   waterFit: number;
   soilFit: number;
   rotationFit: number;
+  seasonFit: number;     // 0..100 — how well the current time matches planting window
   overallFit: number;
   reasons: string[];
+  /** Human-readable planting season, e.g. "Jun–Jul" */
+  plantingSeason: string;
+  /** Human-readable harvest season, e.g. "Oct–Nov" */
+  harvestSeason: string;
+  /** Whether this crop can be planted right now (±1 month tolerance) */
+  isPlantableNow: boolean;
+  /** Months until the next planting window (0 = now) */
+  monthsUntilPlant: number;
 }
 
 export interface Recommendation {
@@ -65,6 +82,12 @@ export interface RotationYear {
   irrigationLevel: 'rainfed' | 'limited' | 'reliable' | null;
   score: number;
   reason: string;
+  /** When to plant this crop, e.g. "Jun–Jul" */
+  plantingSeason: string;
+  /** When to harvest, e.g. "Oct–Nov" */
+  harvestSeason: string;
+  /** Approximate growing duration in days */
+  growingDays: number;
 }
 
 export interface RotationPlan {
@@ -122,39 +145,67 @@ function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-function climateFit(crop: CropSpec, env: Environment, risks: Risks): number {
-  // Temperature window match
-  const t = env.temperature.growingSeasonAvg;
+/** NASA POWER stats during this crop's planting→harvest months (not “last 90 days”). */
+function cropWindowSignals(crop: CropSpec, env: Environment, lat: number) {
+  const power = env.rawPower;
+  if (!power?.series.dates.length) {
+    return {
+      tempAvgC: env.temperature.growingSeasonAvg,
+      rainMm: env.rainfall.growingSeasonRainfall,
+      heatStressDays: env.temperature.heatStressDays,
+      fromCropWindow: false as const,
+    };
+  }
+  const months = getGrowingWindowMonths(crop, lat);
+  const clim = buildMonthlyClimatology(power.series);
+  const agg = aggregateMonths(clim, months);
+  if (agg.monthsUsed === 0 || Number.isNaN(agg.tempAvgC)) {
+    return {
+      tempAvgC: env.temperature.growingSeasonAvg,
+      rainMm: env.rainfall.growingSeasonRainfall,
+      heatStressDays: env.temperature.heatStressDays,
+      fromCropWindow: false as const,
+    };
+  }
+  return {
+    tempAvgC: agg.tempAvgC,
+    rainMm: agg.rainMm,
+    heatStressDays: agg.heatStressDays,
+    fromCropWindow: true as const,
+  };
+}
+
+function climateFit(crop: CropSpec, env: Environment, risks: Risks, lat: number): number {
+  const window = cropWindowSignals(crop, env, lat);
+  const t = window.tempAvgC;
   let tempScore: number;
   if (t >= crop.growTempMin && t <= crop.growTempMax) tempScore = 100;
   else if (t < crop.growTempMin) tempScore = clamp(100 - (crop.growTempMin - t) * 8, 0, 100);
   else tempScore = clamp(100 - (t - crop.growTempMax) * 8, 0, 100);
 
-  // Heat tolerance vs heat risk
+  // Heat stress during this crop's season (from POWER daily in those months)
+  const heatThreshold = 20;
+  const cropHeatRisk = clamp((window.heatStressDays / heatThreshold) * 100, 0, 100);
   const heatMap = { low: 0, medium: 0.5, high: 1 } as const;
-  const heatScore = clamp(50 + heatMap[crop.heatTolerance] * 50 - risks.heatRisk * 0.4, 0, 100);
+  const heatScore = clamp(50 + heatMap[crop.heatTolerance] * 50 - cropHeatRisk * 0.4, 0, 100);
 
-  // Drought tolerance vs drought risk
   const droughtMap = { low: 0, medium: 0.5, high: 1 } as const;
   const droughtScore = clamp(50 + droughtMap[crop.droughtTolerance] * 50 - risks.droughtRisk * 0.3, 0, 100);
 
   return Math.round(tempScore * 0.4 + heatScore * 0.3 + droughtScore * 0.3);
 }
 
-function waterFit(crop: CropSpec, env: Environment, irrigation: IrrigationType, risks: Risks): number {
-  // Annual rainfall vs crop water need (rough seasonal comparison)
-  const annual = env.rainfall.annualRainfall;
-  const ratio = annual / Math.max(1, crop.waterMm);
+function waterFit(crop: CropSpec, env: Environment, irrigation: IrrigationType, risks: Risks, lat: number): number {
+  const window = cropWindowSignals(crop, env, lat);
+  const ratio = window.rainMm / Math.max(1, crop.waterMm);
   let rainScore: number;
   if (ratio >= 1.2) rainScore = 90;
   else if (ratio >= 0.9) rainScore = 75;
   else if (ratio >= 0.6) rainScore = 55;
   else rainScore = 35;
 
-  // Irrigation uplift
   const irrigUplift = irrigation === 'reliable' ? 25 : irrigation === 'limited' ? 12 : 0;
 
-  // Flood tolerance vs flood risk
   const floodMap = { low: 0, medium: 0.5, high: 1 } as const;
   const floodScore = clamp(50 + floodMap[crop.floodTolerance] * 50 - risks.floodRisk * 0.3, 0, 100);
 
@@ -190,32 +241,106 @@ function rotationFit(crop: CropSpec, currentCropName: string | null): number {
   return 78;
 }
 
-function buildReasons(c: CropSpec, scores: { climateFit: number; waterFit: number; soilFit: number; rotationFit: number }, env: Environment, risks: Risks): string[] {
+// ── Season/timing fit ───────────────────────────────────────────────────────
+// Scores how well the current time of year matches the crop's planting window,
+// adjusted for hemisphere. This is the key fix: crops should not be recommended
+// outside their natural growing season.
+function seasonFit(crop: CropSpec, lat: number): number {
+  if (crop.season === 'year_round') return 80; // always reasonable
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const plantMonths = getAdjustedPlantingMonths(crop, lat);
+
+  // Find the closest planting month (circular distance on 1-12)
+  let minDist = 12;
+  for (const pm of plantMonths) {
+    const dist = Math.min(
+      Math.abs(currentMonth - pm),
+      12 - Math.abs(currentMonth - pm),
+    );
+    if (dist < minDist) minDist = dist;
+  }
+
+  // Score based on distance to the nearest planting month:
+  //   0 months → 100 (perfect timing)
+  //   1 month  → 75  (close enough — can still prepare)
+  //   2 months → 50  (feasible with planning)
+  //   3 months → 35  (need to wait)
+  //   4+ months → 25 (wrong season entirely)
+  if (minDist === 0) return 100;
+  if (minDist === 1) return 75;
+  if (minDist === 2) return 50;
+  if (minDist === 3) return 35;
+  return 25;
+}
+
+function buildReasons(
+  c: CropSpec,
+  scores: { climateFit: number; waterFit: number; soilFit: number; rotationFit: number; seasonFit: number },
+  env: Environment,
+  risks: Risks,
+  lat: number,
+): string[] {
   const reasons: string[] = [];
-  if (scores.waterFit >= 75) reasons.push(`Field rainfall (${Math.round(env.rainfall.annualRainfall)} mm/year) covers ${c.name}'s seasonal water need (${c.waterMm} mm).`);
-  else if (scores.waterFit < 55) reasons.push(`${c.name} needs ~${c.waterMm} mm water; field rainfall averages ${Math.round(env.rainfall.annualRainfall)} mm/year, so irrigation is important.`);
-  if (scores.climateFit >= 75) reasons.push(`Growing-season temperature (~${Math.round(env.temperature.growingSeasonAvg)}°C) sits inside ${c.name}'s optimal window (${c.growTempMin}–${c.growTempMax}°C).`);
-  else if (scores.climateFit < 55) reasons.push(`Temperature / heat-stress days (${env.temperature.heatStressDays} in last 90 days) push ${c.name} outside its comfort zone.`);
+
+  const plantLabel = getPlantingLabel(c, lat);
+  const harvestLabel = getHarvestLabel(c, lat);
+  const plantable = isCurrentlyPlantable(c, lat);
+  const harvesting = isInHarvestWindow(c, lat);
+
+  if (plantable) {
+    reasons.push(`${c.name} is in planting season now (plant ${plantLabel}) — good timing to start.`);
+  } else if (harvesting) {
+    reasons.push(`${c.name} is in harvest season (${harvestLabel}) — plan the next crop after harvest, not a new planting now.`);
+  } else if (scores.seasonFit <= 35) {
+    const mUntil = monthsUntilPlanting(c, lat);
+    reasons.push(`${c.name} is out of season — planting window is ${plantLabel} (${mUntil} month${mUntil !== 1 ? 's' : ''} away). Consider for future planning.`);
+  } else {
+    reasons.push(`${c.name}'s planting season (${plantLabel}) is approaching — prepare soon.`);
+  }
+
+  const window = cropWindowSignals(c, env, lat);
+  const rainNote = window.fromCropWindow
+    ? `NASA POWER rainfall during ${c.name}'s season (~${Math.round(window.rainMm)} mm)`
+    : `Field rainfall (${Math.round(env.rainfall.annualRainfall)} mm/year)`;
+
+  if (scores.waterFit >= 75) reasons.push(`${rainNote} covers ${c.name}'s seasonal water need (~${c.waterMm} mm).`);
+  else if (scores.waterFit < 55) reasons.push(`${c.name} needs ~${c.waterMm} mm in-season; ${rainNote} — irrigation may be important.`);
+
+  const tempNote = window.fromCropWindow
+    ? `Mean temperature during ${c.name}'s season (~${Math.round(window.tempAvgC)}°C, NASA POWER)`
+    : `Recent mean temperature (~${Math.round(env.temperature.growingSeasonAvg)}°C, NASA POWER)`;
+
+  if (scores.climateFit >= 75) reasons.push(`${tempNote} sits inside ${c.name}'s optimal window (${c.growTempMin}–${c.growTempMax}°C).`);
+  else if (scores.climateFit < 55) reasons.push(`${tempNote} and heat-stress days in that window (${window.heatStressDays}) push ${c.name} outside its comfort zone.`);
   if (c.nitrogenEffect === 'fixer') reasons.push(`${c.name} fixes nitrogen — improves soil fertility for the following crop.`);
   if (c.droughtTolerance === 'high' && risks.droughtRisk > 50) reasons.push(`High drought tolerance fits the field's seasonal moisture deficit (${env.soilMoisture.seasonalDeficit} mm).`);
   if (c.floodTolerance === 'high' && risks.floodRisk > 50) reasons.push(`Tolerates wet spells — matches this field's rainfall variability (σ=${env.rainfall.variability}).`);
-  return reasons.slice(0, 4);
+  return reasons.slice(0, 5);
 }
 
 // Weighted average of the fit sub-scores; priorities shift the emphasis.
-// Income uses the crop's profitability index directly, and rotation fit is a
-// constant-weight term (10) on top of the farmer's priorities.
+// Income uses the crop's profitability index directly, rotation and season
+// fit are constant-weight terms on top of the farmer's priorities.
+// Season fit acts as a soft gate: out-of-season crops get significantly lower
+// scores even if they'd otherwise be a perfect match.
 function scoreCrop(crop: CropSpec, env: Environment, risks: Risks, inputs: FarmerInputs, soilType: SoilType) {
-  const climateF = climateFit(crop, env, risks);
-  const waterF = waterFit(crop, env, inputs.irrigation, risks);
+  const lat = inputs.latitude;
+  const climateF = climateFit(crop, env, risks, lat);
+  const waterF = waterFit(crop, env, inputs.irrigation, risks, lat);
   const soilF = soilFit(crop, soilType);
   const rotationF = rotationFit(crop, inputs.currentCrop ?? null);
+  let seasonF = seasonFit(crop, lat);
+  // Mid-harvest window: good for rotation planning, not for planting this crop now.
+  if (!isCurrentlyPlantable(crop, lat) && isInHarvestWindow(crop, lat) && crop.season !== 'year_round') {
+    seasonF = Math.min(seasonF, 40);
+  }
   const { soil, water, climate, income } = inputs.priorities;
   const totalP = Math.max(1, soil + water + climate + income);
+
   const overall =
-    (climateF * climate + waterF * water + soilF * soil + crop.baseIncome * income + rotationF * 10) /
-    (totalP + 10);
-  return { climateF, waterF, soilF, rotationF, overall };
+    (climateF * climate + waterF * water + soilF * soil + crop.baseIncome * income + rotationF * 10 + seasonF * 22) /
+    (totalP + 10 + 22);
+  return { climateF, waterF, soilF, rotationF, seasonF, overall };
 }
 
 export function computeCropCompatibility(inputs: FarmerInputs, env: Environment, risks: Risks): CropCompatibility[] {
@@ -228,15 +353,20 @@ export function computeCropCompatibility(inputs: FarmerInputs, env: Environment,
     : CROP_LIBRARY;
 
   return allCrops.map(crop => {
-    const { climateF, waterF, soilF, rotationF, overall } = scoreCrop(crop, env, risks, inputs, soilType);
+    const { climateF, waterF, soilF, rotationF, seasonF, overall } = scoreCrop(crop, env, risks, inputs, soilType);
     return {
       crop: crop.name,
       climateFit: climateF,
       waterFit: waterF,
       soilFit: soilF,
       rotationFit: rotationF,
+      seasonFit: seasonF,
       overallFit: Math.round(clamp(overall, 0, 100)),
-      reasons: buildReasons(crop, { climateFit: climateF, waterFit: waterF, soilFit: soilF, rotationFit: rotationF }, env, risks),
+      reasons: buildReasons(crop, { climateFit: climateF, waterFit: waterF, soilFit: soilF, rotationFit: rotationF, seasonFit: seasonF }, env, risks, inputs.latitude),
+      plantingSeason: getPlantingLabel(crop, inputs.latitude),
+      harvestSeason: getHarvestLabel(crop, inputs.latitude),
+      isPlantableNow: isCurrentlyPlantable(crop, inputs.latitude),
+      monthsUntilPlant: monthsUntilPlanting(crop, inputs.latitude),
     };
   }).sort((a, b) => b.overallFit - a.overallFit);
 }
@@ -257,20 +387,32 @@ export function computeRecommendations(
     ...scoreCrop(crop, env, risks, inputs, soilType),
   }));
 
-  all.sort((a, b) => b.overall - a.overall);
+  all.sort((a, b) => {
+    const aPlant = isCurrentlyPlantable(a.crop, inputs.latitude) ? 1 : 0;
+    const bPlant = isCurrentlyPlantable(b.crop, inputs.latitude) ? 1 : 0;
+    if (bPlant !== aPlant) return bPlant - aPlant;
+    return b.overall - a.overall;
+  });
   return all.slice(0, 6).map((r, i) => {
     const c = r.crop;
+    const window = cropWindowSignals(c, env, inputs.latitude);
+    const plantLabel = getPlantingLabel(c, inputs.latitude);
+    const harvestLabel = getHarvestLabel(c, inputs.latitude);
     let why = '';
-    if (r.waterF >= 80 && risks.droughtRisk > 50) {
+    if (!isCurrentlyPlantable(c, inputs.latitude) && isInHarvestWindow(c, inputs.latitude)) {
+      why = `${c.name} fits this field climatically, but harvest is typically ${harvestLabel} — use it in your rotation plan rather than planting now.`;
+    } else if (!isCurrentlyPlantable(c, inputs.latitude) && r.seasonF <= 35) {
+      why = `${c.name} matches NASA climate signals for its season (${plantLabel}), but planting is ${monthsUntilPlanting(c, inputs.latitude)} month(s) away — best for planner year 2+.`;
+    } else if (r.waterF >= 80 && risks.droughtRisk > 50) {
       why = `${c.name} scores highly because this field shows seasonal water stress (${env.soilMoisture.seasonalDeficit} mm deficit) and ${c.name} has ${c.droughtTolerance} drought tolerance with low water demand (~${c.waterMm} mm).`;
     } else if (c.nitrogenEffect === 'fixer' && inputs.priorities.soil >= 25) {
       why = `${c.name} fixes nitrogen, improving soil fertility — matches your ${inputs.priorities.soil}% soil-health priority and the field's ${inferSoilType(inputs.latitude, inputs.longitude)} soil.`;
-    } else if (r.climateF >= 80) {
-      why = `${c.name}'s optimal temperature window (${c.growTempMin}–${c.growTempMax}°C) matches the field's growing-season mean (${Math.round(env.temperature.growingSeasonAvg)}°C).`;
+    } else if (r.climateF >= 80 && window.fromCropWindow) {
+      why = `${c.name}'s optimal window (${c.growTempMin}–${c.growTempMax}°C) matches NASA POWER during its season (~${Math.round(window.tempAvgC)}°C, plant ${plantLabel}).`;
     } else if (r.overall >= 75) {
-      why = `${c.name} balances well across climate, water, soil, and rotation fit for this field — no major mismatch.`;
+      why = `${c.name} balances climate, water, soil, and rotation for this field in its planting window (${plantLabel}).`;
     } else {
-      why = `${c.name} is the next-best available option given this field's signals, but scores are moderate — consider trialing a small area.`;
+      why = `${c.name} is the next-best available option given this field's NASA signals — consider trialing a small area in ${plantLabel}.`;
     }
     return {
       rank: i + 1,
@@ -297,6 +439,19 @@ export function buildRotationPlan(
   const recs = recommendations.map(r => r.crop);
   const topCompat = compat.filter(c => desired.has(c.crop)).map(c => c.crop);
   const candidateOrder = [...topCompat, ...recs];
+  const seasonRank = (name: string) => {
+    const c = CROP_LIBRARY.find(x => x.name === name);
+    if (!c) return 0;
+    if (isCurrentlyPlantable(c, inputs.latitude)) return 3;
+    if (monthsUntilPlanting(c, inputs.latitude) <= +2) return 2;
+    return 1;
+  };
+  const bySeasonThenScore = (names: string[]) =>
+    [...names].sort((a, b) => {
+      const sr = seasonRank(b) - seasonRank(a);
+      if (sr !== 0) return sr;
+      return (compat.find(c => c.crop === b)?.overallFit ?? 0) - (compat.find(c => c.crop === a)?.overallFit ?? 0);
+    });
 
   // Library lookups
   const byName = (n: string) => CROP_LIBRARY.find(c => c.name === n);
@@ -310,23 +465,36 @@ export function buildRotationPlan(
   const currentCropName = inputs.currentCrop && byName(inputs.currentCrop) ? inputs.currentCrop : null;
   const cur = currentCropName ? byName(currentCropName)! : null;
   let y1: string | null = null;
+  const ordered = bySeasonThenScore(candidateOrder);
+  const orderedTop = bySeasonThenScore(topCompat.length ? topCompat : candidateOrder);
   if (cur && cur.nitrogenEffect === 'depleter') {
-    y1 = topCompat.find(n => byName(n)?.nitrogenEffect === 'fixer')
-      ?? candidateOrder.find(n => byName(n)?.nitrogenEffect === 'fixer')
-      ?? candidateOrder[0];
+    y1 = orderedTop.find(n => byName(n)?.nitrogenEffect === 'fixer')
+      ?? ordered.find(n => byName(n)?.nitrogenEffect === 'fixer')
+      ?? ordered[0];
   } else if (cur && cur.nitrogenEffect === 'fixer') {
-    y1 = topCompat.find(n => byName(n)?.nitrogenEffect === 'depleter')
-      ?? candidateOrder.find(n => byName(n)?.nitrogenEffect === 'depleter')
-      ?? candidateOrder[0];
+    y1 = orderedTop.find(n => byName(n)?.nitrogenEffect === 'depleter')
+      ?? ordered.find(n => byName(n)?.nitrogenEffect === 'depleter')
+      ?? ordered[0];
   } else {
-    y1 = candidateOrder[0];
+    y1 = ordered[0];
   }
 
   const pushYear = (year: number, cropName: string, cover: string | null, irrigation: RotationYear['irrigationLevel'], score: number, reason: string) => {
     if (!cropName) return;
-    years.push({ year, crop: cropName, coverCrop: cover, irrigationLevel: irrigation, score, reason });
+    const spec = byName(cropName);
+    years.push({
+      year,
+      crop: cropName,
+      coverCrop: cover,
+      irrigationLevel: irrigation,
+      score,
+      reason,
+      plantingSeason: spec ? getPlantingLabel(spec, inputs.latitude) : 'Unknown',
+      harvestSeason: spec ? getHarvestLabel(spec, inputs.latitude) : 'Unknown',
+      growingDays: spec?.growingDays ?? 90,
+    });
     used.push(cropName);
-    families.push(byName(cropName)?.family ?? 'Unknown');
+    families.push(spec?.family ?? 'Unknown');
   };
 
   if (y1) {

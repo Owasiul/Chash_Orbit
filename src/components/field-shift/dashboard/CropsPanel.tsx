@@ -92,6 +92,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                 )}
                 <div className="ml-auto flex items-center gap-3">
                   <div className="hidden gap-3 sm:flex">
+                    <FitBar label="Season" value={c.seasonFit} />
                     <FitBar label="Climate" value={c.climateFit} />
                     <FitBar label="Water" value={c.waterFit} />
                     <FitBar label="Soil" value={c.soilFit} />
@@ -106,10 +107,28 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
             <AccordionContent>
               <div className="space-y-3 pt-2">
                 <div className="grid grid-cols-2 gap-3 sm:hidden">
+                  <FitBar label="Season" value={c.seasonFit} />
                   <FitBar label="Climate" value={c.climateFit} />
                   <FitBar label="Water" value={c.waterFit} />
                   <FitBar label="Soil" value={c.soilFit} />
                   <FitBar label="Rotation" value={c.rotationFit} />
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  <Badge variant="outline" className="border-white/10 font-normal">
+                    Plant {c.plantingSeason}
+                  </Badge>
+                  <Badge variant="outline" className="border-white/10 font-normal">
+                    Harvest {c.harvestSeason}
+                  </Badge>
+                  {c.isPlantableNow ? (
+                    <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-emerald-200">
+                      Plantable now
+                    </Badge>
+                  ) : c.monthsUntilPlant > 0 ? (
+                    <Badge variant="outline" className="border-amber-400/30 text-amber-200/90">
+                      Next plant in {c.monthsUntilPlant} mo
+                    </Badge>
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">

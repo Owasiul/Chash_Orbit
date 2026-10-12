@@ -64,6 +64,9 @@ function YearCard({
   irrigationLevel,
   score,
   reason,
+  plantingSeason,
+  harvestSeason,
+  growingDays,
   isLast,
 }: {
   year: number;
@@ -72,6 +75,9 @@ function YearCard({
   irrigationLevel: 'rainfed' | 'limited' | 'reliable' | null;
   score: number;
   reason: string;
+  plantingSeason?: string;
+  harvestSeason?: string;
+  growingDays?: number;
   isLast: boolean;
 }) {
   return (
@@ -91,6 +97,12 @@ function YearCard({
           </span>
         </div>
         <div className="text-xl font-medium text-foreground">{crop}</div>
+        {(plantingSeason || harvestSeason) && (
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/80">
+            Plant {plantingSeason ?? '—'} · Harvest {harvestSeason ?? '—'}
+            {growingDays != null ? ` · ~${growingDays}d` : ''}
+          </p>
+        )}
         {coverCrop && (
           <div className="mt-1 text-xs italic text-muted-foreground">
             with {coverCrop}
@@ -172,6 +184,9 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
                 irrigationLevel={y.irrigationLevel}
                 score={y.score}
                 reason={y.reason}
+                plantingSeason={y.plantingSeason}
+                harvestSeason={y.harvestSeason}
+                growingDays={y.growingDays}
                 isLast={i === plan.years.length - 1}
               />
             ))}
@@ -188,6 +203,9 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
               irrigationLevel={y.irrigationLevel}
               score={y.score}
               reason={y.reason}
+              plantingSeason={y.plantingSeason}
+              harvestSeason={y.harvestSeason}
+              growingDays={y.growingDays}
               isLast={i === plan.years.length - 1}
             />
           ))}
