@@ -14,6 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { BrainCircuit, Send, Loader2, AlertCircle, RefreshCcw, Database } from 'lucide-react';
 import { FullAnalysis } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 
 
 
@@ -66,6 +67,7 @@ function ReportSkeleton() {
 }
 
 export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
+  const { locale, t } = useTranslation();
   const report = useAppStore(s => s.advisorReport);
   const setReport = useAppStore(s => s.setAdvisorReport);
   const [loadingReport, setLoadingReport] = React.useState(false);
@@ -77,8 +79,8 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
 
   const transport = React.useMemo(() => new DefaultChatTransport({
     api: '/api/field/chat',
-    body: { analysis }
-  }), [analysis]);
+    body: { analysis, locale }
+  }), [analysis, locale]);
 
   const { messages, status, sendMessage, error: chatError } = useChat({
     id: `chat-${analysis.field.latitude}-${analysis.field.longitude}`,
@@ -96,7 +98,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
       const res = await fetch('/api/field/explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysis }),
+        body: JSON.stringify({ analysis, locale }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch report');
@@ -106,12 +108,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
     } finally {
       setLoadingReport(false);
     }
-  }, [analysis]);
+  }, [analysis, locale, setReport]);
 
   React.useEffect(() => {
+    setReport(null);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReport();
-  }, [fetchReport]);
+  }, [fetchReport, setReport]);
 
   const renderDataStatus = (status: string) => {
     const map: Record<string, { color: string, label: string }> = {
@@ -138,12 +141,12 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">
             <BrainCircuit className="size-4" />
-            AI Field Report
+            {t('AI Field Report')}
           </div>
           
           {!loadingReport && reportError && (
              <Button variant="ghost" size="sm" onClick={fetchReport} className="h-6 text-[10px]">
-               <RefreshCcw className="mr-1 size-3" /> Retry
+               <RefreshCcw className="mr-1 size-3" /> {t('Retry')}
              </Button>
           )}
         </div>
@@ -152,7 +155,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
 
         {reportError && (
           <div className="rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
-            <div className="flex items-center gap-2 font-bold"><AlertCircle className="size-4"/> Error</div>
+            <div className="flex items-center gap-2 font-bold"><AlertCircle className="size-4"/> {t('Error')}</div>
             {reportError}
           </div>
         )}
@@ -160,13 +163,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
         {report && (
           <div className="space-y-6 text-sm text-muted-foreground">
             <div>
-              <h3 className="mb-2 font-semibold text-foreground">Executive Summary</h3>
+              <h3 className="mb-2 font-semibold text-foreground">{t('Executive Summary')}</h3>
               <p>{report.executiveSummary}</p>
             </div>
 
             {report.keyRisks && report.keyRisks.length > 0 && (
               <div>
-                <h3 className="mb-2 font-semibold text-foreground">Environmental Risks</h3>
+                <h3 className="mb-2 font-semibold text-foreground">{t('Environmental Risks')}</h3>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {report.keyRisks.map((risk: any, i: number) => (
                     <div key={i} className="rounded-lg border border-white/5 bg-white/5 p-3">
@@ -175,7 +178,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
                         {renderDataStatus(risk.dataStatus)}
                       </div>
                       <p className="mb-2 text-xs opacity-80">{risk.evidence.join(' ')}</p>
-                      <div className="text-xs text-cyan-200/80">Action: {risk.action}</div>
+                      <div className="text-xs text-cyan-200/80">{t('Action')}: {risk.action}</div>
                     </div>
                   ))}
                 </div>
@@ -183,7 +186,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
             )}
 
             <div>
-              <h3 className="mb-2 font-semibold text-foreground">Crop Comparison & Rankings</h3>
+              <h3 className="mb-2 font-semibold text-foreground">{t('Crop Comparison & Rankings')}</h3>
               <Accordion type="single" collapsible className="w-full">
                 {report.cropComparisons.map((comp: any) => {
                   const realRec = analysis.recommendations.find((r: any) => 
@@ -206,13 +209,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
                     <AccordionContent className="text-muted-foreground">
                       <div className="space-y-3 pt-2">
                         <div>
-                          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Strengths:</span>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Strengths:')}</span>
                           <ul className="ml-4 list-disc text-xs">
                             {comp.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
                           </ul>
                         </div>
                         <div>
-                          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">Concerns:</span>
+                          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Concerns:')}</span>
                           <ul className="ml-4 list-disc text-xs">
                             {comp.concerns.map((s: string, i: number) => <li key={i}>{s}</li>)}
                           </ul>
@@ -230,13 +233,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
 
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
-                <h3 className="mb-2 font-semibold text-foreground">Rotation Insights</h3>
+                <h3 className="mb-2 font-semibold text-foreground">{t('Rotation Insights')}</h3>
                 <ul className="ml-4 list-disc text-xs space-y-1">
                   {report.rotationInsights.map((r: string, i: number) => <li key={i}>{r}</li>)}
                 </ul>
               </div>
               <div>
-                <h3 className="mb-2 font-semibold text-foreground">Practical Next Steps</h3>
+                <h3 className="mb-2 font-semibold text-foreground">{t('Practical Next Steps')}</h3>
                 <ul className="ml-4 list-disc text-xs space-y-1">
                   {report.nextSteps.map((s: string, i: number) => <li key={i}>{s}</li>)}
                 </ul>
@@ -245,7 +248,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
 
             <div className="rounded-lg border border-white/5 bg-black/20 p-3 text-xs">
               <div className="mb-1 flex items-center gap-2 font-semibold text-foreground">
-                <Database className="size-3" /> Data Confidence & Limitations
+                <Database className="size-3" /> {t('Data Confidence & Limitations')}
               </div>
               <ul className="ml-4 list-disc space-y-1 opacity-80">
                 {report.dataLimitations.map((l: string, i: number) => <li key={i}>{l}</li>)}
@@ -258,7 +261,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="flex flex-col border-white/10 bg-card/50 overflow-hidden" style={{ height: '400px' }}>
         <div className="flex items-center gap-2 border-b border-white/5 p-4 font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">
           <BrainCircuit className="size-4" />
-          Ask Your Field
+          {t('Ask Your Field')}
         </div>
         
         <ScrollArea className="flex-1 min-h-0">
@@ -267,7 +270,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
               <div className="flex h-full flex-col items-center justify-center text-center opacity-50">
                 <BrainCircuit className="mb-2 size-8" />
 
-                <p className="text-sm">Ask anything about this field's analysis, crop rankings, or risks.</p>
+                <p className="text-sm">{t("Ask anything about this field's analysis, crop rankings, or risks.")}</p>
               </div>
             ) : (
               messages.map(m => (
@@ -299,13 +302,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
             {chatLoading && (
               <div className="flex justify-start">
                 <div className="flex items-center gap-2 rounded-2xl rounded-tl-sm bg-white/10 px-4 py-2 text-sm text-foreground">
-                  <Loader2 className="size-3 animate-spin" /> Thinking...
+                  <Loader2 className="size-3 animate-spin" /> {t('Thinking...')}
                 </div>
               </div>
             )}
             {chatError && (
               <div className="flex justify-center text-xs text-red-400">
-                An error occurred. Please try again.
+                {t('An error occurred. Please try again.')}
               </div>
             )}
           </div>
@@ -322,7 +325,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="e.g. Why is water availability a concern?"
+              placeholder={t('e.g. Why is water availability a concern?')}
               className="border-white/10 bg-black/20"
               disabled={chatLoading}
             />

@@ -18,10 +18,15 @@ export interface GeoResult {
 
 const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 
-export async function searchLocation(query: string): Promise<GeoResult[]> {
+export function hasBengaliScript(text: string): boolean {
+  return /[\u0980-\u09FF]/u.test(text);
+}
+
+export async function searchLocation(query: string, language: 'en' | 'bn' = 'en'): Promise<GeoResult[]> {
   const q = query.trim();
   if (!q) return [];
-  const url = `${GEOCODE_URL}?name=${encodeURIComponent(q)}&count=10&language=en&format=json`;
+  const resultLanguage = hasBengaliScript(q) ? 'bn' : language;
+  const url = `${GEOCODE_URL}?name=${encodeURIComponent(q)}&count=10&language=${resultLanguage}&format=json`;
   try {
     const res = await fetch(url, {
       headers: { Accept: 'application/json' },

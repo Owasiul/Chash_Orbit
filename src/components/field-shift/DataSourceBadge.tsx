@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 // 'derived' = computed from a NASA source via a model (e.g. soil moisture
 // derived from POWER precipitation + water-balance). This is distinct from
@@ -42,6 +43,7 @@ interface Props {
 }
 
 export function DataSourceBadge({ source, size = 'md', className, showLabel = true }: Props) {
+  const { t } = useTranslation();
   const s = STYLES[source] ?? STYLES.demo; // safe fallback so we never crash
   return (
     <span
@@ -59,7 +61,7 @@ export function DataSourceBadge({ source, size = 'md', className, showLabel = tr
         )}
         <span className={cn('relative inline-flex h-2 w-2 rounded-full', s.dot)} />
       </span>
-      {showLabel && <span>{s.label}</span>}
+      {showLabel && <span>{t(s.label)}</span>}
     </span>
   );
 }

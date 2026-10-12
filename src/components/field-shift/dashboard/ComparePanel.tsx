@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { FullAnalysis } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 
 // ── Derive the "current rotation" baseline ─────────────────────────────────
 // If the field's currentCrop is Rice or Wheat (rice-wheat system), produce the
@@ -79,10 +80,11 @@ function estimateCurrentScores(
 
 // ── Sub-score badge ──────────────────────────────────────────────────────────
 function SubScore({ label, value, color }: { label: string; value: number; color: string }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between py-1.5 text-xs">
       <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-        {label}
+        {t(label)}
       </span>
       <span className={cn('font-mono font-light tabular-nums', color)}>{value}</span>
     </div>
@@ -105,17 +107,18 @@ function YearRow({
   plantingSeason?: string;
   harvestSeason?: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.03] px-3 py-2">
       <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-        Y{year}
+        {t('Year {year}').replace('{year}', String(year))}
       </span>
       <Sprout className="size-3.5 text-amber-300/80" />
       <div className="flex-1">
-        <div className="text-sm font-medium text-foreground">{crop}</div>
+        <div className="text-sm font-medium text-foreground">{t(crop)}</div>
         {(plantingSeason || harvestSeason) && (
           <div className="text-[10px] text-muted-foreground/80">
-            Plant {plantingSeason ?? '—'} · Harvest {harvestSeason ?? '—'}
+            {t('Plant')} {t(plantingSeason ?? '—')} · {t('Harvest')} {t(harvestSeason ?? '—')}
           </div>
         )}
         {coverCrop && (
@@ -131,14 +134,15 @@ function YearRow({
 
 // ── Bar chart tooltip ──────────────────────────────────────────────────────
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: string }) {
+  const { t } = useTranslation();
   if (!active || !payload || !payload.length) return null;
   return (
     <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-[10px] text-foreground backdrop-blur">
-      <div className="text-muted-foreground/80">{label}</div>
+      <div className="text-muted-foreground/80">{label ? t(label) : ''}</div>
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-1.5">
           <span className="size-2 rounded-full" style={{ background: p.color }} />
-          <span className="text-foreground/80">{p.name}:</span>
+          <span className="text-foreground/80">{t(p.name)}:</span>
           <span className="font-medium">{p.value}</span>
         </div>
       ))}
@@ -148,6 +152,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 
 // ── Main panel ──────────────────────────────────────────────────────────────
 export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
+  const { t } = useTranslation();
   const plan = analysis.rotationPlan;
   const currentCrop = analysis.field.currentCrop;
   const currentRot = React.useMemo(() => deriveCurrentRotation(currentCrop), [currentCrop]);
@@ -164,7 +169,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
   );
 
   const chartData = [
-    { dimension: 'Soil', Current: currentScores.soil, 'Chash Orbit': plan.soilScore },
+    { dimension: 'Soil health', Current: currentScores.soil, 'Chash Orbit': plan.soilScore },
     { dimension: 'Water', Current: currentScores.water, 'Chash Orbit': plan.waterScore },
     { dimension: 'Climate', Current: currentScores.climate, 'Chash Orbit': plan.climateScore },
     { dimension: 'Income', Current: currentScores.income, 'Chash Orbit': plan.incomeScore },
@@ -190,7 +195,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
               Current rotation
             </span>
             <Badge variant="outline" className="border-rose-400/30 bg-rose-400/10 text-rose-200">
-              {currentRot.name}
+              {t(currentRot.name)}
             </Badge>
           </div>
           <div className="space-y-1.5">
@@ -221,7 +226,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
               Chash Orbit plan
             </span>
             <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200">
-              {plan.name}
+              {t(plan.name)}
             </Badge>
           </div>
           <div className="space-y-1.5">
@@ -271,8 +276,8 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
                 wrapperStyle={{ fontSize: 11 }}
                 iconType="circle"
               />
-              <Bar dataKey="Current" name="Current rotation" fill="#fb7185" radius={[3, 3, 0, 0]} fillOpacity={0.85} />
-              <Bar dataKey="Chash Orbit" name="Chash Orbit plan" fill="#fbbf24" radius={[3, 3, 0, 0]} fillOpacity={0.9} />
+              <Bar dataKey="Current" name={t('Current rotation')} fill="#fb7185" radius={[3, 3, 0, 0]} fillOpacity={0.85} />
+              <Bar dataKey="Chash Orbit" name={t('Chash Orbit plan')} fill="#fbbf24" radius={[3, 3, 0, 0]} fillOpacity={0.9} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -290,25 +295,25 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
             <span className="inline-flex items-center gap-1 font-mono text-amber-300">
               {delta > 0 ? (
                 <>
-                  +{delta} point
+                  +{delta} {t('point')}
                   <ArrowRight className="size-3.5" />
-                  improvement
+                  {t('improvement')}
                 </>
               ) : delta < 0 ? (
                 <>
-                  {delta} point
+                  {delta} {t('point')}
                   <ArrowRight className="size-3.5 rotate-90" />
-                  regression
+                  {t('regression')}
                 </>
               ) : (
-                <>no overall change</>
+                <>{t('no overall change')}</>
               )}
             </span>{' '}
-            weighted by your priorities.
+            {t('weighted by your priorities.')}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Leaf className="size-3 text-emerald-300" /> Soil {analysis.field.priorities.soil}%
+              <Leaf className="size-3 text-emerald-300" /> {t('Soil health')} {analysis.field.priorities.soil}%
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Droplets className="size-3 text-cyan-300" /> Water {analysis.field.priorities.water}%

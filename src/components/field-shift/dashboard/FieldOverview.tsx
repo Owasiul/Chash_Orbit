@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { formatLatLng } from '@/lib/location';
 import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
 import type { FullAnalysis } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 
 // Dynamically import the holographic globe (ssr:false so three.js never runs
 // on the server).
@@ -90,6 +91,7 @@ const RING_ACCENT: Record<RingProps['accent'], { ring: string; text: string; bg:
 };
 
 function InfoRing({ icon, label, value, accent }: RingProps) {
+  const { t } = useTranslation();
   const s = RING_ACCENT[accent];
   return (
     <div className="flex flex-col items-center gap-2 text-center">
@@ -108,9 +110,9 @@ function InfoRing({ icon, label, value, accent }: RingProps) {
       </div>
       <div className="leading-tight">
         <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-          {label}
+          {t(label)}
         </div>
-        <div className={cn('text-xs font-medium sm:text-sm', s.text)}>{value}</div>
+        <div className={cn('text-xs font-medium sm:text-sm', s.text)}>{t(value)}</div>
       </div>
     </div>
   );
@@ -132,7 +134,8 @@ const TONE: Record<CondRowProps['tone'], { text: string; dot: string }> = {
 };
 
 function ConditionRow({ icon, label, value, tone }: CondRowProps) {
-  const t = TONE[tone];
+  const { t: translate } = useTranslation();
+  const toneStyle = TONE[tone];
   return (
     <div className="flex items-center gap-3 py-2">
       <span className="flex size-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-muted-foreground">
@@ -142,8 +145,8 @@ function ConditionRow({ icon, label, value, tone }: CondRowProps) {
         {label}
       </span>
       <span className="ml-auto flex items-center gap-2 text-sm">
-        <span className={cn('size-1.5 rounded-full', t.dot)} />
-        <span className={t.text}>{value}</span>
+        <span className={cn('size-1.5 rounded-full', toneStyle.dot)} />
+        <span className={toneStyle.text}>{translate(value)}</span>
       </span>
     </div>
   );
@@ -191,6 +194,7 @@ function vegetationLabel(ndvi: number): { value: string; tone: CondRowProps['ton
 
 // ── Main panel ──────────────────────────────────────────────────────────────
 export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
+  const { t } = useTranslation();
   const { field, environment, risks } = analysis;
   const rings = [
     {
@@ -208,7 +212,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
     {
       icon: <Sprout />,
       label: 'Soil zone',
-      value: field.soilType.charAt(0).toUpperCase() + field.soilType.slice(1),
+      value: t(field.soilType.charAt(0).toUpperCase() + field.soilType.slice(1)),
       accent: 'emerald' as const,
     },
     {
@@ -232,7 +236,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-amber-200/80">
             <MapPin className="size-3" />
-            YOUR FIELD
+            {t('YOUR FIELD')}
           </div>
           <DataSourceBadge source={environment.overallSource} size="sm" />
         </div>
@@ -246,29 +250,29 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
           </span>
           {field.area != null && (
             <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
-              {field.area} {field.areaUnit}
+              {field.area} {field.areaUnit ? t(field.areaUnit) : ''}
             </span>
           )}
           <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
             <SproutIcon className="size-3" />
-            {field.soilType} soil
+            {t(field.soilType)} {t('soil')}
           </span>
           {field.irrigationType && (
             <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
               <Droplets className="size-3" />
-              {field.irrigationType} irrigation
+              {t(field.irrigationType)} {t('irrigation')}
             </span>
           )}
           {field.currentCrop && (
             <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200">
-              Now: {field.currentCrop}
+              {t('Now:')} {t(field.currentCrop)}
             </Badge>
           )}
         </div>
         {field.desiredCrops.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-              Considering:
+              {t('Considering:')}
             </span>
             {field.desiredCrops.map(c => (
               <Badge
@@ -276,7 +280,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
                 variant="outline"
                 className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
               >
-                {c}
+                {t(c)}
               </Badge>
             ))}
           </div>
@@ -315,7 +319,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Thermometer className="size-3" />
-          FIELD CONDITION
+          {t('FIELD CONDITION')}
         </div>
         <Separator className="mb-2 bg-white/10" />
         <div className="divide-y divide-white/5">
@@ -327,7 +331,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
         </div>
         {risks.summary && (
           <p className="mt-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-muted-foreground italic">
-            {risks.summary}
+            {t(risks.summary)}
           </p>
         )}
       </Card>

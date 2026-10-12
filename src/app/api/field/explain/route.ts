@@ -29,7 +29,8 @@ const explainSchema = z.object({
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { analysis } = body;
+    const { analysis, locale } = body;
+    const responseLanguage = locale === 'bn' ? 'Bengali' : 'English';
 
     if (!analysis) {
       return NextResponse.json({ error: 'Analysis data is required' }, { status: 400 });
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
       prompt: `You are an expert agricultural advisor. Analyze the following deterministic field analysis results and explain them clearly to a farmer.
 
 RULES:
+- Write every human-readable field in ${responseLanguage}. Keep crop names and NASA product names recognizable.
 - DO NOT invent, fabricate, or hallucinate any numbers, yield estimates, measurements, or scores.
 - Only use the provided analysis data. If something is not in the data, do not guess it.
 - Clearly distinguish between LIVE data (from NASA), CACHED data, DERIVED estimates, and DEMO data based on the source attributes in the data.

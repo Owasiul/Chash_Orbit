@@ -22,18 +22,29 @@ export interface HolographicGlobeProps {
   selectedLng?: number | null;
   /** Optional human-readable location name shown next to the coordinate readout. */
   locationName?: string | null;
-  /** Called once the globe has finished initializing. */
+  /** Called once, the first time the globe finishes initializing. */
   onReady?: () => void;
   /** hero = full homepage centerpiece, compact = small dashboard version. */
   size?: "hero" | "compact";
   /** Whether the globe should slowly auto-rotate. Default true. */
   autoRotate?: boolean;
+  /**
+   * Mouse-wheel / pinch zoom on the globe.
+   *
+   * Defaults to `false` in `hero` mode: the hero globe is a full-viewport
+   * page background, and enabling wheel-zoom there swallows the page scroll
+   * and makes the whole homepage feel broken. Pass `true` explicitly if you
+   * really want wheel-zoom on the hero.
+   */
+  enableZoom?: boolean;
 }
 
 // --- Static configuration ----------------------------------------------------
 
-const EARTH_TEXTURE_DAY = "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
-const EARTH_TEXTURE_TOPOLOGY = "//unpkg.com/three-globe/example/img/earth-topology.png";
+const EARTH_TEXTURE_DAY =
+  "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
+const EARTH_TEXTURE_TOPOLOGY =
+  "https://unpkg.com/three-globe/example/img/earth-topology.png";
 
 // Cyan / teal atmosphere — harmonises with the deep-space dark page background
 // and avoids the "neon blue game" look.
@@ -46,6 +57,9 @@ const MARKER_COLOR = "#fbbf24";
 
 // Cyan used for orbital rings (soft, low opacity).
 const RING_RGB = "34, 211, 238";
+
+// A pleasant elevated view of the eastern Atlantic / Africa.
+const INITIAL_POV = { lat: 18, lng: 12 } as const;
 
 // --- Types -------------------------------------------------------------------
 
@@ -80,7 +94,7 @@ function formatCoords(lat: number, lng: number): string {
 /**
  * Builds the HTML element used as the selected-location marker.
  * - A small amber dot at the surface
- * - A pulsing outer ring (`animate-ping`-style keyframe injected via <style>)
+ * - A pulsing outer ring (`hg-marker-ping` keyframe injected via <style>)
  * - A thin reticle / label ring around the dot
  * - A vertical amber beam rising from the surface so the marker is visible
  *   from any camera angle.
@@ -111,6 +125,28 @@ function buildMarkerEl(): HTMLElement {
   return el;
 }
 
+// --- Stable accessors --------------------------------------------------------
+// These live at module scope on purpose: react-globe.gl compares prop identity
+// and re-binds / rebuilds its layers when the accessor functions change, which
+// inline arrow props would do on every single render.
+
+const ringLat = (d: object) => (d as RingDatum).lat;
+const ringLng = (d: object) => (d as RingDatum).lng;
+const ringMaxRadius = (d: object) => (d as RingDatum).maxR;
+
+/**
+ * globe.gl calls the ring-colour accessor with the ring datum and expects a
+ * `t => color` function back (t = normalised ring radius, 0→1). The types
+ * shipped with react-globe.gl only model `string | ((t: number) => string)`,
+ * hence the cast.
+ */
+const ringColorAccessor = () => (t: number) =>
+  `rgba(${RING_RGB}, ${(0.55 * (1 - t)).toFixed(3)})`;
+
+const markerLat = (d: object) => (d as MarkerDatum).lat;
+const markerLng = (d: object) => (d as MarkerDatum).lng;
+const markerElement = () => buildMarkerEl();
+
 // --- Component ---------------------------------------------------------------
 
 function HolographicGlobeImpl(props: HolographicGlobeProps) {
@@ -124,10 +160,18 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
   } = props;
 
   const isHero = size === "hero";
+  const enableZoom = props.enableZoom ?? !isHero;
 
   // react-globe.gl exposes the underlying globe.gl instance through the ref.
   const globeRef = React.useRef<GlobeMethods | undefined>(undefined);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  // Mirror `onReady` so the globe-ready handler never closes over a stale prop.
+  const onReadyRef = React.useRef(onReady);
+  React.useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+  const readyNotifiedRef = React.useRef(false);
 
   const [dims, setDims] = React.useState<{ width: number; height: number }>({
     width: 0,
@@ -136,43 +180,76 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
   const [globeReady, setGlobeReady] = React.useState(false);
   const [webglFailed, setWebglFailed] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
+  const [reducedMotion, setReducedMotion] = React.useState(false);
   const [rings, setRings] = React.useState<RingDatum[]>([]);
-  const [marker, setMarker] = React.useState<MarkerDatum[]>([]);
 
-  // --- Measure the parent container (the Globe needs explicit width/height) ----
+  const spin = autoRotate && !reducedMotion;
+
+  // --- Measure the parent container (the Globe needs explicit width/height) ---
   React.useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const update = () => {
+
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
       const rect = el.getBoundingClientRect();
-      setDims({
-        width: Math.max(0, Math.floor(rect.width)),
-        height: Math.max(0, Math.floor(rect.height)),
-      });
+      const width = Math.max(0, Math.floor(rect.width));
+      const height = Math.max(0, Math.floor(rect.height));
+      setDims(prev =>
+        prev.width === width && prev.height === height ? prev : { width, height },
+      );
     };
-    update();
-    const ro = new ResizeObserver(update);
+    const schedule = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(measure);
+    };
+
+    measure();
+    const ro = new ResizeObserver(schedule);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (frame) window.cancelAnimationFrame(frame);
+    };
   }, []);
 
   // --- Mobile detection — reduces quality for small screens ----------------
   React.useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  // --- Respect the user's motion preference --------------------------------
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
   }, []);
 
   // --- Detect WebGL support so we can gracefully degrade ---------------------
   React.useEffect(() => {
+    let failed = false;
     try {
-      const testCanvas = document.createElement("canvas");
-      const gl = testCanvas.getContext("webgl") || testCanvas.getContext("webgl2");
-      if (!gl) setWebglFailed(true);
+      const canvas = document.createElement("canvas");
+      const gl = canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+      if (!gl) {
+        failed = true;
+      } else {
+        // Release the probe context immediately: browsers cap the number of
+        // live WebGL contexts (~8–16) and this one is never used for
+        // rendering. Leaking it makes the *real* globe fail on remounts.
+        gl.getExtension("WEBGL_lose_context")?.loseContext();
+      }
     } catch {
-      setWebglFailed(true);
+      failed = true;
     }
+    setWebglFailed(failed);
   }, []);
 
   // --- Generate orbital rings (great-circle style expanding/fading pulses) ---
@@ -183,31 +260,54 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
   }, [isHero, isMobile, webglFailed]);
 
   // --- Marker data derived from selected coordinates -------------------------
+  const marker = React.useMemo<MarkerDatum[]>(
+    () =>
+      selectedLat != null && selectedLng != null
+        ? [{ lat: selectedLat, lng: selectedLng, name: locationName ?? "Selected" }]
+        : [],
+    [selectedLat, selectedLng, locationName],
+  );
+
+  // Mirror the spin flag so OrbitControls event handlers always read the
+  // current value without forcing the config effect to re-run.
+  const spinRef = React.useRef(spin);
   React.useEffect(() => {
-    if (selectedLat != null && selectedLng != null) {
-      setMarker([
-        { lat: selectedLat, lng: selectedLng, name: locationName ?? "Selected" },
-      ]);
-    } else {
-      setMarker([]);
-    }
-  }, [selectedLat, selectedLng, locationName]);
+    spinRef.current = spin;
+  }, [spin]);
 
   // --- Reset ready flag if the container ever collapses (e.g. parent swap) ---
   React.useEffect(() => {
     if (dims.width === 0 || dims.height === 0) setGlobeReady(false);
   }, [dims]);
 
-  // --- Configure OrbitControls + initial point-of-view once the globe is ready
+  // --- One-time initial camera framing --------------------------------------
+  // Deliberately its own effect: previously the camera framing lived in the
+  // same effect as the OrbitControls config, so *any* change to `autoRotate`
+  // re-ran the effect and snapped the camera back to the initial POV,
+  // throwing away wherever the user had dragged the globe.
+  const framedRef = React.useRef(false);
   React.useEffect(() => {
-    if (!globeReady) return;
+    if (!globeReady) {
+      framedRef.current = false;
+      return;
+    }
+    if (framedRef.current) return;
     const g = globeRef.current;
     if (!g) return;
 
-    const controls = g.controls();
-    controls.autoRotate = autoRotate;
+    framedRef.current = true;
+    g.pointOfView({ ...INITIAL_POV, altitude: isHero ? 2.5 : 1.8 }, 0);
+  }, [globeReady, isHero]);
+
+  // --- Configure OrbitControls once the globe is ready ----------------------
+  React.useEffect(() => {
+    if (!globeReady) return;
+    const controls = globeRef.current?.controls?.();
+    if (!controls) return;
+
+    controls.autoRotate = spinRef.current;
     controls.autoRotateSpeed = isHero ? 0.35 : 0.15; // very slow in compact mode
-    controls.enableZoom = true;
+    controls.enableZoom = enableZoom;
     controls.enablePan = false;
     controls.enableDamping = true;
     controls.dampingFactor = 0.1;
@@ -216,17 +316,13 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
     controls.rotateSpeed = 0.55;
     controls.zoomSpeed = 0.6;
 
-    // Initial vantage: a pleasant elevated view of the eastern Atlantic / Africa.
-    const initialAltitude = isHero ? 2.5 : 1.8;
-    g.pointOfView({ lat: 18, lng: 12, altitude: initialAltitude }, 0);
-
     // Pause auto-rotation while the user interacts, resume after a short idle.
     // OrbitControls dispatches 'start' / 'end' events but the @types/three
     // OrbitControlsEventMap only declares 'change', so we cast to a loose
     // dispatcher here.
     const dispatcher = controls as unknown as {
-      addEventListener: (type: string, listener: (e?: any) => void) => void;
-      removeEventListener: (type: string, listener: (e?: any) => void) => void;
+      addEventListener: (type: string, listener: () => void) => void;
+      removeEventListener: (type: string, listener: () => void) => void;
     };
 
     let resumeTimer: number | undefined;
@@ -240,7 +336,7 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
     const onEnd = () => {
       if (resumeTimer) window.clearTimeout(resumeTimer);
       resumeTimer = window.setTimeout(() => {
-        if (autoRotate) controls.autoRotate = true;
+        if (spinRef.current) controls.autoRotate = true;
       }, 2000);
     };
 
@@ -252,18 +348,37 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
       dispatcher.removeEventListener("end", onEnd);
       if (resumeTimer) window.clearTimeout(resumeTimer);
     };
-    // We intentionally omit `onReady`/callbacks from the dependency array.
-  }, [globeReady, autoRotate, isHero]);
+  }, [globeReady, isHero, enableZoom]);
 
-  // --- Animate the camera to the selected location when it changes -----------
+  // --- Keep auto-rotation in sync *without* touching the camera -------------
   React.useEffect(() => {
     if (!globeReady) return;
+    const controls = globeRef.current?.controls?.();
+    if (controls) controls.autoRotate = spin;
+  }, [globeReady, spin]);
+
+  // --- Animate the camera to the selected location when it changes -----------
+  // Declared after the framing effect so that, on first mount with a location
+  // already selected, this wins.
+  React.useEffect(() => {
+    if (!globeReady) return;
+    if (selectedLat == null || selectedLng == null) return;
     const g = globeRef.current;
     if (!g) return;
-    if (selectedLat == null || selectedLng == null) return;
-    const altitude = isHero ? 2.2 : 1.4;
-    g.pointOfView({ lat: selectedLat, lng: selectedLng, altitude }, 1000);
+
+    g.pointOfView(
+      { lat: selectedLat, lng: selectedLng, altitude: isHero ? 2.2 : 1.4 },
+      1000,
+    );
   }, [selectedLat, selectedLng, isHero, globeReady]);
+
+  const handleGlobeReady = React.useCallback(() => {
+    setGlobeReady(true);
+    if (!readyNotifiedRef.current) {
+      readyNotifiedRef.current = true;
+      onReadyRef.current?.();
+    }
+  }, []);
 
   const formattedCoords =
     selectedLat != null && selectedLng != null
@@ -272,9 +387,14 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
 
   // --- Graceful fallback if WebGL is unavailable -----------------------------
   if (webglFailed) {
+    // Still attach the container ref so measurement keeps working if support
+    // is restored (e.g. the user re-enables hardware acceleration).
     return (
-      <div className="relative flex h-full w-full items-center justify-center p-6 text-center">
-        <p className="max-w-xs text-xs font-mono text-white/60">
+      <div
+        ref={containerRef}
+        className="relative flex h-full w-full items-center justify-center p-6 text-center"
+      >
+        <p className="max-w-xs font-mono text-xs text-white/60">
           WebGL not available — showing reduced experience
         </p>
       </div>
@@ -282,11 +402,21 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
   }
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden">
+    <div
+      ref={containerRef}
+      className="hg-globe-surface relative h-full w-full overflow-hidden"
+    >
       <style>{`
         @keyframes hg-marker-ping {
           0% { transform: scale(0.45); opacity: 0.85; }
           80%, 100% { transform: scale(2.4); opacity: 0; }
+        }
+        ${
+          // When zoom is off, let vertical touch gestures fall through to the
+          // page so mobile users can still scroll past the hero globe.
+          enableZoom
+            ? ""
+            : ".hg-globe-surface canvas { touch-action: pan-y !important; }"
         }
       `}</style>
 
@@ -302,26 +432,22 @@ function HolographicGlobeImpl(props: HolographicGlobeProps) {
           atmosphereColor={ATMOSPHERE_COLOR}
           atmosphereAltitude={ATMOSPHERE_ALTITUDE}
           showGraticules={false}
-          onGlobeReady={() => {
-            setGlobeReady(true);
-            onReady?.();
-          }}
+          onGlobeReady={handleGlobeReady}
           // Orbital rings — slowly expand & fade for the satellite-mission feel.
           ringsData={rings}
-          ringLat={(d: object) => (d as RingDatum).lat}
-          ringLng={(d: object) => (d as RingDatum).lng}
-          ringMaxRadius={(d: object) => (d as RingDatum).maxR}
+          ringLat={ringLat}
+          ringLng={ringLng}
+          ringMaxRadius={ringMaxRadius}
           ringAltitude={0.015}
           ringPropagationSpeed={1.4}
           ringRepeatPeriod={1400}
-          ringColor={() => (t: number) =>
-            `rgba(${RING_RGB}, ${(0.55 * (1 - t)).toFixed(3)})`}
+          ringColor={ringColorAccessor as unknown as string}
           // Selected-location pulsing marker with vertical beam.
           htmlElementsData={marker}
-          htmlLat={(d: object) => (d as MarkerDatum).lat}
-          htmlLng={(d: object) => (d as MarkerDatum).lng}
+          htmlLat={markerLat}
+          htmlLng={markerLng}
           htmlAltitude={0.012}
-          htmlElement={() => buildMarkerEl()}
+          htmlElement={markerElement}
         />
       )}
 

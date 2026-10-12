@@ -32,6 +32,7 @@ import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
 import type { FullAnalysis } from '@/lib/store';
 import type { Environment } from '@/lib/nasa/environment';
 import type { PowerAnalysis } from '@/lib/nasa/power';
+import { useTranslation } from '@/lib/i18n';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function trendArrow(trend: number): { icon: React.ReactNode; label: string; color: string } {
@@ -61,16 +62,18 @@ function monthlyTempSeries(raw?: PowerAnalysis): { month: string; t: number }[] 
 
 // ── Mini section header ──────────────────────────────────────────────────────
 function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-3' })}
-      {children}
+      {typeof children === 'string' ? t(children) : children}
     </div>
   );
 }
 
 // ── Stat row helper ──────────────────────────────────────────────────────────
 function StatRow({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'warn' | 'risk' | 'neutral' }) {
+  const { t } = useTranslation();
   const color =
     tone === 'good'
       ? 'text-emerald-300'
@@ -81,8 +84,8 @@ function StatRow({ label, value, tone }: { label: string; value: string; tone?: 
           : 'text-foreground/80';
   return (
     <div className="flex items-center justify-between py-1 text-xs">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{label}</span>
-      <span className={cn('font-medium', color)}>{value}</span>
+      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t(label)}</span>
+      <span className={cn('font-medium', color)}>{t(value)}</span>
     </div>
   );
 }
@@ -105,6 +108,7 @@ function NasaCard({
   big: string;
   bigUnit: string;
 }) {
+  const { t } = useTranslation();
   return (
     <Card className="border-white/10 bg-card/50 p-4 sm:p-5">
       <div className="flex items-start justify-between gap-2">
@@ -113,7 +117,7 @@ function NasaCard({
             {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-4' })}
           </span>
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
-            {title}
+            {t(title)}
           </span>
         </div>
         <DataSourceBadge source={source} size="sm" />
@@ -124,7 +128,7 @@ function NasaCard({
       </div>
       <div className="mt-3 divide-y divide-white/5">{children}</div>
       <div className="mt-3 border-t border-white/5 pt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
-        Source: {attribution}
+        {t('Source:')} {t(attribution)}
       </div>
     </Card>
   );
@@ -151,13 +155,14 @@ function soilBadgeTone(v: SoilMetric): { label: string; cls: string } {
 
 // ── Chart tooltip ────────────────────────────────────────────────────────────
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string }[]; label?: string }) {
+  const { t } = useTranslation();
   if (!active || !payload || !payload.length) return null;
   return (
     <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-[10px] text-foreground backdrop-blur">
-      <div className="text-muted-foreground/80">{label}</div>
+      <div className="text-muted-foreground/80">{label ? t(label) : ''}</div>
       {payload.map((p, i) => (
         <div key={i} className="text-amber-200">
-          {payload.length > 1 ? `${p.name}: ` : ''}{p.value}
+          {payload.length > 1 ? `${t(p.name)}: ` : ''}{p.value}
         </div>
       ))}
     </div>
@@ -200,6 +205,7 @@ function deriveSoilCondition(env: Environment, currentCrop: string | null) {
 
 // ── Main panel ──────────────────────────────────────────────────────────────
 export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
+  const { t } = useTranslation();
   const { environment, field } = analysis;
   const temp = environment.temperature;
   const rain = environment.rainfall;
@@ -241,7 +247,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             tone={temp.heatStressDays > 20 ? 'risk' : temp.heatStressDays > 10 ? 'warn' : 'good'}
           />
           <div className="flex items-center justify-between py-1 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">10y trend</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('10y trend')}</span>
             <span className={cn('flex items-center gap-1 font-medium', tempTrend.color)}>
               {tempTrend.icon}
               {Math.abs(temp.tenYearTrend).toFixed(3)} °C/yr
@@ -321,7 +327,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             tone={sm.seasonalDeficit > 80 ? 'risk' : sm.seasonalDeficit > 40 ? 'warn' : 'good'}
           />
           <div className="flex items-center justify-between py-1 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">10y trend</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('10y trend')}</span>
             <span className={cn('flex items-center gap-1 font-medium', smTrend.color)}>
               {smTrend.icon}
               {Math.abs(sm.tenYearTrend).toFixed(3)} %/yr
@@ -330,7 +336,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           {/* Horizontal bar: current vs 100% */}
           <div className="mt-3">
             <div className="mb-1 flex items-center justify-between font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
-              <span>Field capacity</span>
+              <span>{t('Field capacity')}</span>
               <span>{sm.currentPct.toFixed(0)} / 100%</span>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/5">
@@ -360,7 +366,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             tone={veg.health === 'vigorous' || veg.health === 'good' ? 'good' : veg.health === 'moderate' ? 'neutral' : 'risk'}
           />
           <div className="flex items-center justify-between py-1 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Recent trend</span>
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Recent trend')}</span>
             <span className={cn('flex items-center gap-1 font-medium', vegTrend.color)}>
               {vegTrend.icon}
               {Math.abs(veg.recentTrend).toFixed(3)} /yr

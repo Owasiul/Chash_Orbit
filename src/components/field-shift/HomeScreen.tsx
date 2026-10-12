@@ -8,6 +8,7 @@ import { useAppStore } from '@/lib/store';
 import { LocationSearch } from './LocationSearch';
 import { SAMPLE_FARMS } from '@/lib/location';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 const HolographicGlobe = dynamic(
   () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
@@ -29,6 +30,7 @@ function GlobeLoading() {
 }
 
 export function HomeScreen() {
+  const { locale, t } = useTranslation();
   const setSelected = useAppStore(s => s.setSelected);
   const selected = useAppStore(s => s.selected);
   const setView = useAppStore(s => s.setView);
@@ -73,7 +75,7 @@ export function HomeScreen() {
         soilType: 'unknown',
         priorities: { soil: 25, water: 35, climate: 20, income: 20 },
       },
-      { locationName: s.fullName, country: s.country },
+      { locationName: s.fullName, country: s.country, locale },
     );
   };
 
@@ -97,9 +99,9 @@ export function HomeScreen() {
           <Satellite className="size-5 text-amber-300" />
           <span className="font-mono text-xs tracking-[0.3em] text-amber-200/90">Chash Orbit</span>
         </div>
-        <div className="hidden items-center gap-2 font-mono text-[10px] tracking-widest text-muted-foreground/70 sm:flex">
+        <div className="mr-24 hidden items-center gap-2 font-mono text-[10px] tracking-widest text-muted-foreground/70 sm:flex">
           <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-          EARTH OBSERVATION INTERFACE · v1.0
+          {t('EARTH OBSERVATION INTERFACE · v1.0')}
         </div>
       </header>
 
@@ -112,12 +114,10 @@ export function HomeScreen() {
           className="max-w-3xl"
         >
           <h1 className="font-sans text-4xl font-light tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            Where is your <span className="text-amber-300">field</span>?
+            {t('Where is your field?')}
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground/80 sm:text-base">
-            Tell us where your farm is. We analyze NASA Earth-observation data — temperature,
-            rainfall, soil moisture, vegetation — and turn it into a transparent
-            4-year crop rotation plan.
+            {t('Tell us where your farm is. We analyze NASA Earth-observation data — temperature, rainfall, soil moisture, vegetation — and turn it into a transparent 4-year crop rotation plan.')}
           </p>
         </motion.div>
 
@@ -138,7 +138,7 @@ export function HomeScreen() {
           className="mt-5 flex flex-wrap items-center justify-center gap-2"
         >
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
-            Quick pick
+            {t('Quick pick')}
           </span>
           {SAMPLE_FARMS.map(f => (
             <button
@@ -167,7 +167,7 @@ export function HomeScreen() {
           className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-xs text-emerald-200 transition-colors hover:border-emerald-300/50 hover:bg-emerald-400/20"
         >
           <Play className="size-3" />
-          See a demo: rice farmer in Rajshahi, Bangladesh
+          {t('See a demo: rice farmer in Rajshahi, Bangladesh')}
         </motion.button>
       </section>
 
@@ -189,7 +189,7 @@ export function HomeScreen() {
                   </div>
                   <div>
                     <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-                      Selected Field
+                      {t('Selected Field')}
                     </div>
                     <div className="text-lg font-semibold text-foreground">
                       {[selected.name, selected.admin1, selected.country].filter(Boolean).join(', ')}
@@ -202,7 +202,7 @@ export function HomeScreen() {
                   </div>
                 </div>
                 <div className="hidden shrink-0 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-300 sm:block">
-                  ◦ Awaiting farmer profile
+                  ◦ {t('Awaiting farmer profile')}
                 </div>
               </div>
 
@@ -215,10 +215,10 @@ export function HomeScreen() {
                   <Sparkles className="size-5 text-amber-300" />
                   <div>
                     <div className="font-sans text-base font-medium text-amber-100">
-                      Analyze this area
+                      {t('Analyze this area')}
                     </div>
                     <div className="text-xs text-amber-200/60">
-                      Tell us what you grow · 90-second onboarding
+                      {t('Tell us what you grow · 90-second onboarding')}
                     </div>
                   </div>
                 </div>

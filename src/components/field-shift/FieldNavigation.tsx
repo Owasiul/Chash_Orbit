@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore, type DashboardTab } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 
 interface Tab {
   id: DashboardTab;
@@ -25,6 +26,7 @@ const TABS: Tab[] = [
 ];
 
 export function FieldNavigation() {
+  const { t: translate } = useTranslation();
   const tab = useAppStore(s => s.dashboardTab);
   const setTab = useAppStore(s => s.setDashboardTab);
   const reset = useAppStore(s => s.reset);
@@ -38,10 +40,10 @@ export function FieldNavigation() {
             type="button"
             onClick={reset}
             className="mr-1 flex items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-amber-200/80 transition-colors hover:bg-amber-400/10 hover:text-amber-200"
-            title="Back to globe"
+            title={translate('Back to globe')}
           >
             <Home className="size-3.5" />
-            <span className="hidden md:inline">Home</span>
+            <span className="hidden md:inline">{translate('Home')}</span>
           </button>
           <div className="mx-1 h-5 w-px bg-white/10" />
           {TABS.map(t => {
@@ -65,7 +67,7 @@ export function FieldNavigation() {
                   />
                 )}
                 <Icon className="relative size-3.5" />
-                <span className="relative">{t.label}</span>
+                <span className="relative">{translate(t.label)}</span>
               </button>
             );
           })}
@@ -94,7 +96,7 @@ export function FieldNavigation() {
                 )}>
                   <Icon className="size-4" />
                 </span>
-                {t.label}
+                {translate(t.label)}
               </button>
             );
           })}

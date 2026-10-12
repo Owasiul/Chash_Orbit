@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table';
 import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
 import type { FullAnalysis } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 
 // ── Score explanation row ──────────────────────────────────────────────────
 const SCORE_EXPLANATIONS: { name: string; desc: string; icon: React.ReactNode }[] = [
@@ -112,16 +113,14 @@ const ACCENT: Record<SourceCardData['accent'], { text: string; border: string; b
 
 // ── Main panel ──────────────────────────────────────────────────────────────
 export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       {/* Title */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <h2 className="text-xl font-light text-foreground sm:text-2xl">About this analysis</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Chash Orbit turns NASA Earth-observation data into a transparent field-level
-          recommendation. NASA POWER provides live temperature and rainfall data. Soil moisture,
-          NDVI, and additional soil metrics are derived estimates — we never falsely label sample
-          data as live NASA data.
+        {t('Chash Orbit turns NASA Earth-observation data into a transparent field-level recommendation. NASA POWER provides live temperature and rainfall data. Soil moisture, NDVI, and additional soil metrics are derived estimates — we never falsely label sample data as live NASA data.')}
         </p>
       </Card>
 
@@ -129,19 +128,19 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Satellite className="size-3" />
-          DATA SOURCES
+          {t('DATA SOURCES')}
         </div>
         <Table>
           <TableHeader>
             <TableRow className="border-white/10">
               <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                Dataset
+                {t('Dataset')}
               </TableHead>
               <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                Source status
+                {t('Source status')}
               </TableHead>
               <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                Attribution
+                {t('Attribution')}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -163,7 +162,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Coins className="size-3" />
-          HOW WE SCORE
+          {t('HOW WE SCORE')}
         </div>
         <div className="space-y-2">
           {SCORE_EXPLANATIONS.map(s => (
@@ -182,7 +181,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Info className="size-3" />
-          WHY THESE DATA SOURCES
+          {t('WHY THESE DATA SOURCES')}
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {SOURCE_CARDS.map((s, i) => {
@@ -204,13 +203,13 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
                 <div className="mt-3 space-y-2 text-xs">
                   <div>
                     <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-                      Measures
+                      {t('Measures')}
                     </span>
                     <p className="mt-0.5 text-foreground/80">{s.measures}</p>
                   </div>
                   <div>
                     <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-                      Why Chash Orbit uses it
+                      {t('Why Chash Orbit uses it')}
                     </span>
                     <p className="mt-0.5 text-foreground/80">{s.whyUse}</p>
                   </div>
@@ -229,15 +228,14 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <Badge variant="outline" className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">
             <Satellite className="size-3" />
-            NASA Open Data
+            {t('NASA Open Data')}
           </Badge>
           <span>
-            Temperature & rainfall: NASA POWER (Langley Research Center). Soil moisture, NDVI,
-            and additional soil metrics are derived estimates (see attributions above).
+            {t('Temperature & rainfall: NASA POWER (Langley Research Center). Soil moisture, NDVI, and additional soil metrics are derived estimates (see attributions above).')}
           </span>
         </div>
         <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
-          Chash Orbit · NASA Space Apps Challenge · Earth-to-farm decision system
+          {t('Chash Orbit · NASA Space Apps Challenge · Earth-to-farm decision system')}
         </p>
       </Card>
     </div>

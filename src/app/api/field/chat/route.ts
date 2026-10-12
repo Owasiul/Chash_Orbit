@@ -5,7 +5,8 @@ export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const { messages, analysis } = await req.json();
+    const { messages, analysis, locale } = await req.json();
+    const responseLanguage = locale === 'bn' ? 'Bengali' : 'English';
 
     if (!messages || !analysis) {
       return new Response(JSON.stringify({ error: 'Messages and analysis data are required' }), { status: 400 });
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
     const systemPrompt = `You are a professional agricultural decision-support assistant answering a farmer's questions.
 
 RULES:
+- Reply in ${responseLanguage}. Keep crop names and NASA product names recognizable.
 - Base your answers ONLY on the provided field analysis data.
 - NEVER invent, fabricate, or hallucinate measurements, crop yields, scores, or environmental data.
 - When referring to a crop's score, use the EXACT decimal value from the analysis data (e.g., 85.4). Do not round it to a whole number.

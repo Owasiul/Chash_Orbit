@@ -11,6 +11,7 @@ import type {
   FarmerPriorities,
 } from '@/lib/decision/engine';
 import type { GeoResult } from '@/lib/location';
+import { translateMessage, type Locale } from '@/lib/i18n';
 
 export type View =
   | 'home'
@@ -79,7 +80,7 @@ interface AppState {
   setAdvisorChatHistory: (history: any[]) => void;
   setAdvisorReport: (report: any | null) => void;
   // Saves the inputs, shows the analyzing screen, and calls the analyze API.
-  runAnalysis: (inputs: FarmerInputs, meta: { locationName: string; country?: string }) => Promise<void>;
+  runAnalysis: (inputs: FarmerInputs, meta: { locationName: string; country?: string; locale?: Locale }) => Promise<void>;
   reset: () => void;
 }
 
@@ -113,7 +114,7 @@ export const useAppStore = create<AppState>((set) => ({
       // Surface error then bounce home
       console.error(e);
       set({ view: 'home' });
-      alert('Analysis failed: ' + (e as Error).message);
+      alert(`${translateMessage(meta.locale ?? 'en', 'Analysis failed')}: ${(e as Error).message}`);
     }
   },
   reset: () =>

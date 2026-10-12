@@ -4,6 +4,7 @@ import * as React from 'react';
 import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Loader2, Radio, Satellite } from 'lucide-react';
+import { useTranslation } from '@/lib/i18n';
 
 const HolographicGlobe = dynamic(
   () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
@@ -28,6 +29,7 @@ const STEPS = [
 // the parent swaps the view. The completion of the last 2 steps is implicit
 // in the view transition (we never show a false "✓ done" before data is back).
 export function AnalyzingScreen() {
+  const { t } = useTranslation();
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -60,10 +62,10 @@ export function AnalyzingScreen() {
         >
           <div className="mb-6 text-center">
             <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-amber-200/80">
-              Chash Orbit · Acquisition in progress
+              {t('Chash Orbit · Acquisition in progress')}
             </div>
             <h1 className="mt-2 text-3xl font-light text-foreground">
-              Analyzing your <span className="text-amber-300">field</span>...
+              {t('Analyzing your field...')}
             </h1>
           </div>
 
@@ -96,7 +98,7 @@ export function AnalyzingScreen() {
                             : 'text-muted-foreground/50'
                       }`}
                     >
-                      {s.label}
+                      {t(s.label)}
                     </span>
                     {done && (
                       <span className="ml-auto font-mono text-[10px] uppercase tracking-widest text-emerald-300/80">
@@ -115,14 +117,14 @@ export function AnalyzingScreen() {
                   animate={{ opacity: 1 }}
                   className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 font-mono text-[11px] text-amber-200/80"
                 >
-                  ◦ Comparing your crops against NASA observations — composing rotation plan...
+                  ◦ {t('Comparing your crops against NASA observations — composing rotation plan...')}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
           <div className="mt-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
-            Live NASA POWER · SMAP / GPM / MODIS derived
+            {t('Live NASA POWER · SMAP / GPM / MODIS derived')}
           </div>
         </motion.div>
       </div>

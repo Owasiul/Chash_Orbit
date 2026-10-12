@@ -22,9 +22,12 @@ export function FieldShiftApp() {
     fetch('/api/crops').catch(() => {});
   }, []);
 
-  if (view === 'home') return <HomeScreen />;
-  if (view === 'onboarding') return <OnboardingWizard />;
-  if (view === 'analyzing') return <AnalyzingScreen />;
-  if (view === 'dashboard') return <FieldDashboard />;
-  return <HomeScreen />;
+  let screen;
+  if (view === 'home') screen = <HomeScreen />;
+  else if (view === 'onboarding') screen = <OnboardingWizard />;
+  else if (view === 'analyzing') screen = <AnalyzingScreen />;
+  else if (view === 'dashboard') screen = <FieldDashboard />;
+  else screen = <HomeScreen />;
+
+  return screen;
 }

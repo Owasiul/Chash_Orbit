@@ -34,15 +34,17 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAppStore, type FullAnalysis } from '@/lib/store';
 import type { FarmerInputs } from '@/lib/decision/engine';
+import { useTranslation } from '@/lib/i18n';
 
 // ── Mini-fit-bar ────────────────────────────────────────────────────────────
 function FitBar({ label, value }: { label: string; value: number }) {
+  const { t } = useTranslation();
   const color =
     value >= 75 ? 'bg-emerald-400' : value >= 50 ? 'bg-amber-400' : 'bg-rose-400';
   return (
     <div className="flex flex-col gap-1">
       <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-        {label} {value}
+        {t(label)} {value}
       </span>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
         <div
@@ -56,16 +58,18 @@ function FitBar({ label, value }: { label: string; value: number }) {
 
 // ── Section label ──────────────────────────────────────────────────────────────
 function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-3' })}
-      {children}
+      {typeof children === 'string' ? t(children) : children}
     </div>
   );
 }
 
 // ── Section 1: Your crops ────────────────────────────────────────────────────
 function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
+  const { t } = useTranslation();
   return (
     <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
       <SectionLabel icon={<Sprout />}>Your crops</SectionLabel>
@@ -84,7 +88,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
           >
             <AccordionTrigger className="hover:no-underline">
               <div className="flex w-full items-center gap-3 pr-2">
-                <span className="text-sm font-medium text-foreground">{c.crop}</span>
+                <span className="text-sm font-medium text-foreground">{t(c.crop)}</span>
                 {i === 0 && (
                   <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200">
                     Top fit
@@ -115,10 +119,10 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
                   <Badge variant="outline" className="border-white/10 font-normal">
-                    Plant {c.plantingSeason}
+                    Plant                     {t(c.plantingSeason)}
                   </Badge>
                   <Badge variant="outline" className="border-white/10 font-normal">
-                    Harvest {c.harvestSeason}
+                    Harvest                     {t(c.harvestSeason)}
                   </Badge>
                   {c.isPlantableNow ? (
                     <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-emerald-200">
@@ -126,7 +130,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                     </Badge>
                   ) : c.monthsUntilPlant > 0 ? (
                     <Badge variant="outline" className="border-amber-400/30 text-amber-200/90">
-                      Next plant in {c.monthsUntilPlant} mo
+                      {t('Next plant in {months} mo').replace('{months}', String(c.monthsUntilPlant))}
                     </Badge>
                   ) : null}
                 </div>
@@ -139,7 +143,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                       {c.reasons.map((r, idx) => (
                         <li key={idx} className="flex gap-2 text-xs text-foreground/80">
                           <span className="mt-1 size-1.5 shrink-0 rounded-full bg-amber-400" />
-                          {r}
+                          {t(r)}
                         </li>
                       ))}
                     </ul>
@@ -160,6 +164,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
 
 // ── Section 2: What could grow well here? ────────────────────────────────────
 function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
+  const { t } = useTranslation();
   return (
     <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
       <SectionLabel icon={<Sparkles />}>What could grow well here?</SectionLabel>
@@ -193,7 +198,7 @@ function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
               <div className="flex-1">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className={cn('font-medium', isTop ? 'text-base text-foreground' : 'text-sm text-foreground/90')}>
-                    {r.crop}
+                    {t(r.crop)}
                   </span>
                   <span
                     className={cn(
@@ -204,7 +209,7 @@ function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
                     {r.score}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">{r.why}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t(r.why)}</p>
               </div>
             </motion.li>
           );
@@ -216,6 +221,7 @@ function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
 
 // ── Section 3: Change your crops ─────────────────────────────────────────────
 function ChangeCropsSection() {
+  const { locale, t } = useTranslation();
   const inputs = useAppStore(s => s.inputs);
   const analysis = useAppStore(s => s.analysis);
   const setInputs = useAppStore(s => s.setInputs);
@@ -236,7 +242,7 @@ function ChangeCropsSection() {
   const runAnalysis = React.useCallback(async (crops: string[]) => {
     if (!inputs || !analysis) return;
     if (crops.length === 0) {
-      toast.error('You must select at least one crop to consider.');
+      toast.error(t('You must select at least one crop to consider.'));
       return;
     }
     const updatedInputs: FarmerInputs = { ...inputs, desiredCrops: crops };
@@ -262,20 +268,21 @@ function ChangeCropsSection() {
           irrigation: inputs.irrigation,
           soilType: inputs.soilType,
           priorities: inputs.priorities,
+          locale,
         }),
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       setAnalysis(json as FullAnalysis);
-      toast.success('Analysis updated with new crop selection.');
+      toast.success(t('Analysis updated with new crop selection.'));
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
-        toast.error('Re-analysis failed: ' + (e as Error).message);
+        toast.error(t('Re-analysis failed: ') + (e as Error).message);
       }
     } finally {
       setRecalculating(false);
     }
-  }, [inputs, analysis, setInputs, setAnalysis]);
+  }, [inputs, analysis, setInputs, setAnalysis, locale, t]);
 
   // Commit on Done click — explicit user action, no debounce cancellation.
   const handleDone = React.useCallback(() => {
@@ -323,7 +330,7 @@ function ChangeCropsSection() {
             variant="outline"
             className="border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
           >
-            {c}
+            {t(c)}
           </Badge>
         ))}
       </div>
@@ -366,7 +373,7 @@ function ChangeCropsSection() {
                     className="group inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-400/25"
                   >
                     <Check className="size-3" />
-                    {c}
+                    {t(c)}
                     <X className="size-3 opacity-50 group-hover:opacity-100" />
                   </button>
                 ))}
@@ -392,7 +399,7 @@ function ChangeCropsSection() {
                       className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-foreground/80 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10 hover:text-cyan-100"
                     >
                       <Plus className="size-3" />
-                      {c}
+                      {t(c)}
                     </button>
                   ))}
                 </div>
@@ -417,7 +424,7 @@ function ChangeCropsSection() {
                           : 'border-white/10 bg-white/5 text-muted-foreground hover:border-white/20 hover:text-foreground',
                       )}
                     >
-                      {c}
+                      {t(c)}
                     </button>
                   ))}
                 </div>

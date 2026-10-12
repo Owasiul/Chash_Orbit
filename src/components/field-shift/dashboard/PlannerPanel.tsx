@@ -15,6 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { FullAnalysis } from '@/lib/store';
+import { useTranslation } from '@/lib/i18n';
 
 // ── Score chip ──────────────────────────────────────────────────────────────
 interface ScoreChipProps {
@@ -32,6 +33,7 @@ const CHIP_COLOR: Record<ScoreChipProps['color'], { bg: string; text: string; bo
 };
 
 function ScoreChip({ icon, label, score, color }: ScoreChipProps) {
+  const { t } = useTranslation();
   const c = CHIP_COLOR[color];
   return (
     <div
@@ -43,7 +45,7 @@ function ScoreChip({ icon, label, score, color }: ScoreChipProps) {
       )}
     >
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-3.5' })}
-      <span className="font-mono text-[10px] uppercase tracking-widest">{label}</span>
+      <span className="font-mono text-[10px] uppercase tracking-widest">{t(label)}</span>
       <span className="font-mono text-base font-light tabular-nums">{score}</span>
     </div>
   );
@@ -80,6 +82,7 @@ function YearCard({
   growingDays?: number;
   isLast: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -90,7 +93,7 @@ function YearCard({
       <Card className="border-white/10 bg-card/50 p-4 sm:p-5">
         <div className="mb-2 flex items-center justify-between">
           <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-            Year {year}
+            {t('Year {year}').replace('{year}', String(year))}
           </span>
           <span className="font-mono text-2xl font-light text-amber-300 tabular-nums">
             {score}
@@ -99,20 +102,20 @@ function YearCard({
         <div className="text-xl font-medium text-foreground">{crop}</div>
         {(plantingSeason || harvestSeason) && (
           <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/80">
-            Plant {plantingSeason ?? '—'} · Harvest {harvestSeason ?? '—'}
+            {t('Plant')} {t(plantingSeason ?? '—')} · {t('Harvest')} {t(harvestSeason ?? '—')}
             {growingDays != null ? ` · ~${growingDays}d` : ''}
           </p>
         )}
         {coverCrop && (
           <div className="mt-1 text-xs italic text-muted-foreground">
-            with {coverCrop}
+            {t('with {crop}').replace('{crop}', t(coverCrop))}
           </div>
         )}
         <div className="mt-2">
           {irrigationLevel && (
             <Badge variant="outline" className={cn('capitalize', IRRIGATION_COLOR[irrigationLevel])}>
               <Droplets className="size-3" />
-              {irrigationLevel}
+              {t(irrigationLevel)}
             </Badge>
           )}
         </div>
@@ -135,6 +138,7 @@ function YearCard({
 
 // ── Main panel ──────────────────────────────────────────────────────────────
 export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
+  const { t } = useTranslation();
   const plan = analysis.rotationPlan;
 
   return (
@@ -143,12 +147,12 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Calendar className="size-3" />
-          YOUR FIELD SHIFT PLAN
+          {t('YOUR FIELD SHIFT PLAN')}
         </div>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-              Overall score
+              {t('Overall score')}
             </div>
             <div className="font-mono text-4xl font-light text-amber-300 tabular-nums">
               {plan.overallScore}
@@ -156,7 +160,7 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
             <div className="mt-0.5 text-xs text-muted-foreground">{plan.name}</div>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-            <ScoreChip icon={<Leaf />} label="Soil" score={plan.soilScore} color="emerald" />
+            <ScoreChip icon={<Leaf />} label="Soil health" score={plan.soilScore} color="emerald" />
             <ScoreChip icon={<Droplets />} label="Water" score={plan.waterScore} color="cyan" />
             <ScoreChip icon={<Sun />} label="Climate" score={plan.climateScore} color="amber" />
             <ScoreChip icon={<Coins />} label="Income" score={plan.incomeScore} color="violet" />
@@ -168,7 +172,7 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-4 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Sprout className="size-3" />
-          4-YEAR ROTATION
+          {t('4-YEAR ROTATION')}
         </div>
         {/* Desktop: horizontal flex with connecting line */}
         <div className="relative hidden md:block">
@@ -215,9 +219,9 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
       {/* Rationale */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-          Rationale
+          {t('Rationale')}
         </div>
-        <p className="text-sm italic text-muted-foreground">{plan.rationale}</p>
+        <p className="text-sm italic text-muted-foreground">{t(plan.rationale)}</p>
       </Card>
     </div>
   );

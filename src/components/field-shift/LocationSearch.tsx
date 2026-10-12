@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { Search, Loader2, MapPin, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { GeoResult } from '@/lib/location';
+import { hasBengaliScript, type GeoResult } from '@/lib/location';
+import { useTranslation } from '@/lib/i18n';
 
 interface Props {
   onSelect: (r: GeoResult) => void;
@@ -18,6 +19,7 @@ const panelClass =
   'absolute z-50 mt-2 w-full rounded-2xl border border-white/10 bg-card/95 shadow-2xl backdrop-blur-md';
 
 export function LocationSearch({ onSelect, className, autoFocus }: Props) {
+  const { locale, t } = useTranslation();
   const [q, setQ] = React.useState('');
   const [results, setResults] = React.useState<GeoResult[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -59,9 +61,13 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
 
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/location?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
+        const language = hasBengaliScript(query) ? 'bn' : locale;
+        const res = await fetch(
+          `/api/location?q=${encodeURIComponent(query)}&language=${language}`,
+          {
+            signal: controller.signal,
+          },
+        );
         if (!res.ok) throw new Error(`Location request failed: ${res.status}`);
         const json = (await res.json()) as { results?: GeoResult[] };
         if (controller.signal.aborted) return;
@@ -87,7 +93,7 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
       clearTimeout(t);
       controller.abort();
     };
-  }, [q]);
+  }, [q, locale]);
 
   // Click-outside to close
   React.useEffect(() => {
@@ -154,9 +160,9 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
   };
 
   const statusMessage = error
-    ? "Couldn't load locations. Check your connection and try again."
+    ? t("Couldn't load locations. Check your connection and try again.")
     : searched && !loading && results.length === 0
-      ? 'No locations found. Try a different spelling or a nearby city.'
+      ? t('No locations found. Try a different spelling or a nearby city.')
       : null;
 
   const showList = open && results.length > 0;
@@ -176,9 +182,9 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
           onChange={e => setQ(e.target.value)}
           onKeyDown={handleKey}
           onFocus={() => (results.length > 0 || statusMessage) && setOpen(true)}
-          placeholder="Search your farm, city, district or region..."
+          placeholder={t('Search your farm, city, district or region...')}
           className="w-full rounded-2xl border border-white/10 bg-black/40 px-12 py-4 font-sans text-base text-foreground placeholder:text-muted-foreground/60 backdrop-blur-md outline-none transition-all focus:border-amber-400/40 focus:bg-black/50 focus:ring-2 focus:ring-amber-400/20"
-          aria-label="Search location"
+          aria-label={t('Search location')}
           role="combobox"
           aria-expanded={showList}
           aria-controls={showList ? listId : undefined}
@@ -198,7 +204,7 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
               inputRef.current?.focus();
             }}
             className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
-            aria-label="Clear search"
+            aria-label={t('Clear search')}
           >
             <X className="size-4" />
           </button>

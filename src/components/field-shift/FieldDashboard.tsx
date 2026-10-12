@@ -13,15 +13,17 @@ import {
   ComparePanel,
   LearnPanel,
 } from './dashboard';
+import { useTranslation } from '@/lib/i18n';
 
 export function FieldDashboard() {
+  const { t } = useTranslation();
   const tab = useAppStore(s => s.dashboardTab);
   const analysis = useAppStore(s => s.analysis);
 
   if (!analysis) {
     return (
       <div className="flex min-h-dvh items-center justify-center text-muted-foreground">
-        No analysis available.
+        {t('No analysis available.')}
       </div>
     );
   }
@@ -56,7 +58,7 @@ export function FieldDashboard() {
 
       {/* Sticky footer */}
       <footer className="mt-auto border-t border-white/5 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50 sm:px-6">
-        Chash Orbit · NASA Earth-observation decision system · POWER · SMAP · GPM · MODIS
+        {t('Chash Orbit · NASA Earth-observation decision system · POWER · SMAP · GPM · MODIS')}
       </footer>
     </div>
   );

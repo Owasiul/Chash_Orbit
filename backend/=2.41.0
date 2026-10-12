@@ -1,7 +1,0 @@
-Collecting pydantic-core
-  Downloading pydantic_core-2.49.0-cp314-cp314-win_amd64.whl.metadata (6.7 kB)
-Requirement already satisfied: typing-extensions>=4.16.0 in C:\Users\Owasi\AppData\Local\Programs\Python\Python314\Lib\site-packages (from pydantic-core) (4.16.0)
-Downloading pydantic_core-2.49.0-cp314-cp314-win_amd64.whl (2.1 MB)
-   ---------------------------------------- 2.1/2.1 MB 897.0 kB/s  0:00:02
-Installing collected packages: pydantic-core
-Successfully installed pydantic-core-2.49.0

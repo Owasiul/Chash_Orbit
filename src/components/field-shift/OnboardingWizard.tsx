@@ -14,6 +14,7 @@ import {
   type CropSpec,
 } from '@/lib/crops';
 import { fetchEnvironment } from '@/lib/nasa/environment';
+import { useTranslation } from '@/lib/i18n';
 
 const HolographicGlobe = dynamic(
   () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
@@ -41,6 +42,7 @@ function useCropLibrary() {
 
 // ── Step indicator ──────────────────────────────────────────────────────────
 function StepHeader({ step }: { step: number }) {
+  const { t } = useTranslation();
   const steps = ['What do you grow?', 'Farm information', 'What matters most?'];
   return (
     <div className="mb-8">
@@ -64,7 +66,7 @@ function StepHeader({ step }: { step: number }) {
                   i === step ? 'text-amber-200' : 'text-muted-foreground/60',
                 )}
               >
-                {label}
+                {t(label)}
               </span>
             </div>
             {i < steps.length - 1 && (
@@ -84,6 +86,7 @@ function CropStep({
   selections: CropSelection[];
   setSelections: (s: CropSelection[]) => void;
 }) {
+  const { t } = useTranslation();
   const [custom, setCustom] = React.useState('');
   const allCrops = ONBOARDING_CROP_OPTIONS;
   const selectedNames = new Set(selections.map(s => s.name));
@@ -111,10 +114,9 @@ function CropStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">What do you want to grow?</h2>
+        <h2 className="text-xl font-semibold text-foreground">{t('What do you want to grow?')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pick your primary crops, secondary crops, and any crops you're considering.
-          We'll match each one to your field's signals.
+          {t("Pick your primary crops, secondary crops, and any crops you're considering. We'll match each one to your field's signals.")}
         </p>
       </div>
 
@@ -141,7 +143,7 @@ function CropStep({
                 )}>
                   {active && <Check className="size-3" />}
                 </span>
-                {name}
+                {t(name)}
               </div>
             </button>
           );
@@ -155,7 +157,7 @@ function CropStep({
           value={custom}
           onChange={e => setCustom(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustom())}
-          placeholder="Add another crop..."
+          placeholder={t('Add another crop...')}
           className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-amber-400/40"
         />
         <button
@@ -163,7 +165,7 @@ function CropStep({
           onClick={addCustom}
           className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm hover:bg-amber-400/10 hover:text-amber-200"
         >
-          <Plus className="size-4" /> Add
+          <Plus className="size-4" /> {t('Add')}
         </button>
       </div>
 
@@ -171,12 +173,12 @@ function CropStep({
       {selections.length > 0 && (
         <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
           <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-            Your selected crops ({selections.length})
+            {t('Your selected crops')} ({selections.length})
           </div>
           <div className="space-y-2">
             {selections.map(s => (
               <div key={s.name} className="flex items-center gap-3 rounded-xl bg-white/5 p-2.5">
-                <span className="flex-1 text-sm font-medium text-foreground">{s.name}</span>
+                <span className="flex-1 text-sm font-medium text-foreground">{t(s.name)}</span>
                 <div className="flex gap-1">
                   {(['primary', 'secondary', 'considering'] as CropRole[]).map(role => (
                     <button
@@ -190,7 +192,7 @@ function CropStep({
                           : 'bg-white/5 text-muted-foreground/60 hover:bg-white/10',
                       )}
                     >
-                      {role}
+                      {t(role)}
                     </button>
                   ))}
                 </div>
@@ -198,7 +200,7 @@ function CropStep({
                   type="button"
                   onClick={() => toggle(s.name)}
                   className="rounded-lg p-1 text-muted-foreground/60 hover:bg-rose-500/20 hover:text-rose-300"
-                  aria-label="Remove"
+                  aria-label={t('Remove')}
                 >
                   <X className="size-4" />
                 </button>
@@ -224,6 +226,7 @@ function FarmStep({
   irrigation: Irrigation; setIrrigation: (v: Irrigation) => void;
   soil: Soil; setSoil: (v: Soil) => void;
 }) {
+  const { t } = useTranslation();
   const currentOptions = ['Rice', 'Wheat', 'Maize', 'Vegetables', 'Other', 'None / fallow'];
   const irrigationOptions: { v: Irrigation; label: string; desc: string; icon: React.ReactNode }[] = [
     { v: 'rainfed', label: 'Rainfed', desc: 'No irrigation infrastructure.', icon: <Droplets className="size-4" /> },
@@ -240,15 +243,15 @@ function FarmStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Farm information</h2>
+        <h2 className="text-xl font-semibold text-foreground">{t('Farm information')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          A few details about your land. If you're unsure about soil, we'll infer it from regional signals.
+          {t("A few details about your land. If you're unsure about soil, we'll infer it from regional signals.")}
         </p>
       </div>
 
       {/* Farm size */}
       <div>
-        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Farm size</label>
+        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Farm size')}</label>
         <div className="mt-2 flex gap-2">
           <input
             type="number"
@@ -271,7 +274,7 @@ function FarmStep({
                   areaUnit === u ? 'bg-amber-400/20 text-amber-200' : 'text-muted-foreground/70 hover:text-foreground',
                 )}
               >
-                {u}
+                {t(u)}
               </button>
             ))}
           </div>
@@ -280,7 +283,7 @@ function FarmStep({
 
       {/* Current crop */}
       <div>
-        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Current crop</label>
+        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Current crop')}</label>
         <div className="mt-2 flex flex-wrap gap-2">
           {currentOptions.map(c => (
             <button
@@ -294,7 +297,7 @@ function FarmStep({
                   : 'border-white/10 bg-white/5 text-foreground/80 hover:border-amber-400/30 hover:bg-amber-400/10',
               )}
             >
-              {c}
+              {t(c)}
             </button>
           ))}
         </div>
@@ -302,7 +305,7 @@ function FarmStep({
 
       {/* Irrigation */}
       <div>
-        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Irrigation</label>
+        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Irrigation')}</label>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {irrigationOptions.map(o => (
             <button
@@ -318,9 +321,9 @@ function FarmStep({
             >
               <div className="flex items-center gap-2 text-sm font-medium">
                 <span className={irrigation === o.v ? 'text-amber-300' : 'text-muted-foreground'}>{o.icon}</span>
-                {o.label}
+                {t(o.label)}
               </div>
-              <span className="text-xs text-muted-foreground">{o.desc}</span>
+              <span className="text-xs text-muted-foreground">{t(o.desc)}</span>
             </button>
           ))}
         </div>
@@ -329,9 +332,9 @@ function FarmStep({
       {/* Soil type */}
       <div>
         <div className="flex items-center justify-between">
-          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Soil type</label>
+          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Soil type')}</label>
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
-            <Info className="size-3" /> Not required — we'll infer it if you don't know.
+            <Info className="size-3" /> {t("Not required — we'll infer it if you don't know.")}
           </span>
         </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-4">
@@ -347,8 +350,8 @@ function FarmStep({
                   : 'border-white/10 bg-white/5 text-foreground/80 hover:border-amber-400/30',
               )}
             >
-              <span className="text-sm font-medium">{o.label}</span>
-              <span className="text-[11px] text-muted-foreground">{o.desc}</span>
+              <span className="text-sm font-medium">{t(o.label)}</span>
+              <span className="text-[11px] text-muted-foreground">{t(o.desc)}</span>
             </button>
           ))}
         </div>
@@ -364,6 +367,7 @@ function PrioritiesStep({
   priorities: { soil: number; water: number; climate: number; income: number };
   setPriorities: (p: { soil: number; water: number; climate: number; income: number }) => void;
 }) {
+  const { t } = useTranslation();
   const total = priorities.soil + priorities.water + priorities.climate + priorities.income;
   const ok = total === 100;
 
@@ -391,17 +395,16 @@ function PrioritiesStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">What matters most to you?</h2>
+        <h2 className="text-xl font-semibold text-foreground">{t('What matters most to you?')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Assign a weight to each priority. The total should equal 100%. We weight crop
-          recommendations accordingly.
+          {t('Assign a weight to each priority. The total should equal 100%. We weight crop recommendations accordingly.')}
         </p>
       </div>
 
       {/* 100% meter */}
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">Total</span>
+          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Total')}</span>
           <span className={cn(
             'font-mono text-lg font-semibold tabular-nums',
             ok ? 'text-emerald-300' : 'text-amber-300',
@@ -417,13 +420,13 @@ function PrioritiesStep({
         </div>
         {!ok && (
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-amber-300/80">Total must equal 100% (currently {total}%)</span>
+            <span className="text-xs text-amber-300/80">{t('Total must equal 100% (currently {total}%)').replace('{total}', String(total))}</span>
             <button
               type="button"
               onClick={normalize}
               className="rounded-lg bg-amber-400/15 px-2.5 py-1 text-xs text-amber-200 hover:bg-amber-400/25"
             >
-              Normalize to 100%
+              {t('Normalize to 100%')}
             </button>
           </div>
         )}
@@ -439,9 +442,9 @@ function PrioritiesStep({
                   {it.icon}
                 </span>
                 <div>
-                  <div className="text-sm font-medium text-foreground">{it.label}</div>
+                  <div className="text-sm font-medium text-foreground">{t(it.label)}</div>
                   <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
-                    {priorities[it.key]}% weight
+                    {priorities[it.key]}% {t('weight')}
                   </div>
                 </div>
               </div>
@@ -465,6 +468,7 @@ function PrioritiesStep({
 
 // ── Main wizard ─────────────────────────────────────────────────────────────
 export function OnboardingWizard() {
+  const { locale, t } = useTranslation();
   const selected = useAppStore(s => s.selected);
   const setView = useAppStore(s => s.setView);
   const runAnalysis = useAppStore(s => s.runAnalysis);
@@ -488,7 +492,7 @@ export function OnboardingWizard() {
     return (
       <div className="flex min-h-dvh items-center justify-center text-muted-foreground">
         <button onClick={() => setView('home')} className="text-amber-300 underline">
-          Select a location first.
+          {t('Select a location first.')}
         </button>
       </div>
     );
@@ -529,6 +533,7 @@ export function OnboardingWizard() {
       {
         locationName: [selected.name, selected.admin1, selected.country].filter(Boolean).join(', '),
         country: selected.country || undefined,
+        locale,
       },
     );
 
@@ -552,7 +557,7 @@ export function OnboardingWizard() {
           onClick={back}
           className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
         >
-          <ArrowLeft className="size-4" /> Back
+          <ArrowLeft className="size-4" /> {t('Back')}
         </button>
         <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           {selected.name} · {Math.abs(selected.latitude).toFixed(2)}°{selected.latitude >= 0 ? 'N' : 'S'} {Math.abs(selected.longitude).toFixed(2)}°{selected.longitude >= 0 ? 'E' : 'W'}
@@ -592,7 +597,7 @@ export function OnboardingWizard() {
               className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
             >
               <ArrowLeft className="size-4" />
-              {step === 0 ? 'Globe' : 'Back'}
+              {t(step === 0 ? 'Globe' : 'Back')}
             </button>
             <button
               type="button"
@@ -608,11 +613,11 @@ export function OnboardingWizard() {
               {step === 2 ? (
                 <>
                   <ShieldCheck className="size-4" />
-                  Analyze my field
+                  {t('Analyze my field')}
                 </>
               ) : (
                 <>
-                  Continue
+                  {t('Continue')}
                   <ArrowRight className="size-4" />
                 </>
               )}
