@@ -1,21 +1,21 @@
 "use client";
 
-import * as React from 'react';
-import dynamic from 'next/dynamic';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Satellite, Sparkles, Globe2, Play } from 'lucide-react';
-import { useAppStore } from '@/lib/store';
-import { LocationSearch } from './LocationSearch';
-import { SAMPLE_FARMS } from '@/lib/location';
-import { cn } from '@/lib/utils';
-import { useTranslation } from '@/lib/i18n';
+import * as React from "react";
+import dynamic from "next/dynamic";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, Satellite, Sparkles, Globe2, Play } from "lucide-react";
+import { useAppStore } from "@/lib/store";
+import { LocationSearch } from "./LocationSearch";
+import { SAMPLE_FARMS } from "@/lib/location";
+import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 const HolographicGlobe = dynamic(
-  () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
-  {
-    ssr: false,
-    loading: () => <GlobeLoading />,
-  },
+  () =>
+    import("@/components/globe/HolographicGlobe").then(
+      (m) => m.HolographicGlobe,
+    ),
+  { ssr: false, loading: () => <GlobeLoading /> },
 );
 
 function GlobeLoading() {
@@ -23,7 +23,9 @@ function GlobeLoading() {
     <div className="flex h-full w-full items-center justify-center">
       <div className="flex flex-col items-center gap-3 text-muted-foreground/70">
         <div className="size-12 animate-spin rounded-full border-2 border-amber-400/30 border-t-amber-300" />
-        <span className="font-mono text-xs tracking-widest">INITIALIZING EARTH OBSERVATION SYSTEM</span>
+        <span className="font-mono text-xs tracking-widest">
+          INITIALIZING EARTH OBSERVATION SYSTEM
+        </span>
       </div>
     </div>
   );
@@ -31,21 +33,21 @@ function GlobeLoading() {
 
 export function HomeScreen() {
   const { locale, t } = useTranslation();
-  const setSelected = useAppStore(s => s.setSelected);
-  const selected = useAppStore(s => s.selected);
-  const setView = useAppStore(s => s.setView);
-  const runAnalysis = useAppStore(s => s.runAnalysis);
+  const setSelected = useAppStore((s) => s.setSelected);
+  const selected = useAppStore((s) => s.selected);
+  const setView = useAppStore((s) => s.setView);
+  const runAnalysis = useAppStore((s) => s.runAnalysis);
   const [globeReady, setGlobeReady] = React.useState(false);
 
   const handleSelect = React.useCallback(
-    (r: import('@/lib/location').GeoResult) => {
+    (r: import("@/lib/location").GeoResult) => {
       setSelected(r);
     },
     [setSelected],
   );
 
   const handleSample = (id: string) => {
-    const s = SAMPLE_FARMS.find(f => f.id === id);
+    const s = SAMPLE_FARMS.find((f) => f.id === id);
     if (!s) return;
     handleSelect({
       id: 0,
@@ -53,26 +55,26 @@ export function HomeScreen() {
       latitude: s.latitude,
       longitude: s.longitude,
       country: s.country,
-      countryCode: '',
-      featureCode: 'PCLI',
+      countryCode: "",
+      featureCode: "PCLI",
     });
   };
 
   // One-click walkthrough: a Rajshahi Boro-rice farmer facing dry-season water
   // stress, skipping onboarding. Its NASA data is pre-warmed by warm-cache.
   const runDemo = () => {
-    const s = SAMPLE_FARMS.find(f => f.id === 'rajshahi')!;
+    const s = SAMPLE_FARMS.find((f) => f.id === "rajshahi")!;
     handleSample(s.id);
     runAnalysis(
       {
         latitude: s.latitude,
         longitude: s.longitude,
         area: 2,
-        areaUnit: 'acres',
-        currentCrop: 'Rice',
-        desiredCrops: ['Wheat', 'Chickpea', 'Lentil', 'Maize', 'Potato'],
-        irrigation: 'limited',
-        soilType: 'unknown',
+        areaUnit: "acres",
+        currentCrop: "Rice",
+        desiredCrops: ["Wheat", "Chickpea", "Lentil", "Maize", "Potato"],
+        irrigation: "limited",
+        soilType: "unknown",
         priorities: { soil: 25, water: 35, climate: 20, income: 20 },
       },
       { locationName: s.fullName, country: s.country, locale },
@@ -84,12 +86,12 @@ export function HomeScreen() {
       {/* Globe background — fills viewport */}
       <div className="absolute inset-0 z-0">
         <HolographicGlobe
+          size="hero"
+          enableZoom
           selectedLat={selected?.latitude ?? null}
           selectedLng={selected?.longitude ?? null}
           locationName={selected?.name ?? null}
-          onReady={() => setGlobeReady(true)}
-          size="hero"
-          autoRotate
+          autoRotate={!selected}
         />
       </div>
 
@@ -97,11 +99,13 @@ export function HomeScreen() {
       <header className="relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
         <div className="flex items-center gap-2">
           <Satellite className="size-5 text-amber-300" />
-          <span className="font-mono text-xs tracking-[0.3em] text-amber-200/90">Chash Orbit</span>
+          <span className="font-mono text-xs tracking-[0.3em] text-amber-200/90">
+            Chash Orbit
+          </span>
         </div>
         <div className="mr-24 hidden items-center gap-2 font-mono text-[10px] tracking-widest text-muted-foreground/70 sm:flex">
           <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-          {t('EARTH OBSERVATION INTERFACE · v1.0')}
+          {t("EARTH OBSERVATION INTERFACE · v1.0")}
         </div>
       </header>
 
@@ -114,10 +118,12 @@ export function HomeScreen() {
           className="max-w-3xl"
         >
           <h1 className="font-sans text-4xl font-light tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            {t('Where is your field?')}
+            {t("Where is your field?")}
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground/80 sm:text-base">
-            {t('Tell us where your farm is. We analyze NASA Earth-observation data — temperature, rainfall, soil moisture, vegetation — and turn it into a transparent 4-year crop rotation plan.')}
+            {t(
+              "Tell us where your farm is. We analyze NASA Earth-observation data — temperature, rainfall, soil moisture, vegetation — and turn it into a transparent 4-year crop rotation plan.",
+            )}
           </p>
         </motion.div>
 
@@ -138,18 +144,18 @@ export function HomeScreen() {
           className="mt-5 flex flex-wrap items-center justify-center gap-2"
         >
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
-            {t('Quick pick')}
+            {t("Quick pick")}
           </span>
-          {SAMPLE_FARMS.map(f => (
+          {SAMPLE_FARMS.map((f) => (
             <button
               key={f.id}
               type="button"
               onClick={() => handleSample(f.id)}
               className={cn(
-                'group rounded-full border px-3 py-1 text-xs transition-all',
+                "group rounded-full border px-3 py-1 text-xs transition-all",
                 selected?.name === f.name
-                  ? 'border-amber-400/50 bg-amber-400/15 text-amber-200'
-                  : 'border-white/10 bg-white/5 text-muted-foreground hover:border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-200',
+                  ? "border-amber-400/50 bg-amber-400/15 text-amber-200"
+                  : "border-white/10 bg-white/5 text-muted-foreground hover:border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-200",
               )}
             >
               <span className="mr-1.5 inline-block size-1.5 rounded-full bg-amber-400/60 group-hover:bg-amber-300" />
@@ -167,7 +173,7 @@ export function HomeScreen() {
           className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-xs text-emerald-200 transition-colors hover:border-emerald-300/50 hover:bg-emerald-400/20"
         >
           <Play className="size-3" />
-          {t('See a demo: rice farmer in Rajshahi, Bangladesh')}
+          {t("See a demo: rice farmer in Rajshahi, Bangladesh")}
         </motion.button>
       </section>
 
@@ -178,7 +184,7 @@ export function HomeScreen() {
             initial={{ opacity: 0, y: 24, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+            transition={{ type: "spring", stiffness: 220, damping: 24 }}
             className="absolute inset-x-0 bottom-0 z-20 px-4 pb-6 sm:px-6 sm:pb-8"
           >
             <div className="glass-panel scanline mx-auto flex max-w-2xl flex-col gap-4 rounded-3xl p-5 sm:p-6">
@@ -189,36 +195,40 @@ export function HomeScreen() {
                   </div>
                   <div>
                     <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-                      {t('Selected Field')}
+                      {t("Selected Field")}
                     </div>
                     <div className="text-lg font-semibold text-foreground">
-                      {[selected.name, selected.admin1, selected.country].filter(Boolean).join(', ')}
+                      {[selected.name, selected.admin1, selected.country]
+                        .filter(Boolean)
+                        .join(", ")}
                     </div>
                     <div className="mt-1 font-mono text-xs text-muted-foreground">
-                      {Math.abs(selected.latitude).toFixed(4)}° {selected.latitude >= 0 ? 'N' : 'S'}
-                      {' · '}
-                      {Math.abs(selected.longitude).toFixed(4)}° {selected.longitude >= 0 ? 'E' : 'W'}
+                      {Math.abs(selected.latitude).toFixed(4)}°{" "}
+                      {selected.latitude >= 0 ? "N" : "S"}
+                      {" · "}
+                      {Math.abs(selected.longitude).toFixed(4)}°{" "}
+                      {selected.longitude >= 0 ? "E" : "W"}
                     </div>
                   </div>
                 </div>
                 <div className="hidden shrink-0 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-300 sm:block">
-                  ◦ {t('Awaiting farmer profile')}
+                  ◦ {t("Awaiting farmer profile")}
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => setView('onboarding')}
+                onClick={() => setView("onboarding")}
                 className="group flex w-full items-center justify-between rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-5 py-3.5 text-left transition-all hover:border-amber-300/60 hover:from-amber-400/30 hover:to-amber-400/30"
               >
                 <div className="flex items-center gap-3">
                   <Sparkles className="size-5 text-amber-300" />
                   <div>
                     <div className="font-sans text-base font-medium text-amber-100">
-                      {t('Analyze this area')}
+                      {t("Analyze this area")}
                     </div>
                     <div className="text-xs text-amber-200/60">
-                      {t('Tell us what you grow · 90-second onboarding')}
+                      {t("Tell us what you grow · 90-second onboarding")}
                     </div>
                   </div>
                 </div>
