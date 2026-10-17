@@ -16,6 +16,8 @@ import {
 import { fetchEnvironment } from '@/lib/nasa/environment';
 import { useTranslation } from '@/lib/i18n';
 
+const FieldMap = dynamic(() => import('@/components/field-shift/FieldMap'), { ssr: false });
+
 const HolographicGlobe = dynamic(
   () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
   { ssr: false },
@@ -471,6 +473,7 @@ export function OnboardingWizard() {
   const { locale, t } = useTranslation();
   const selected = useAppStore(s => s.selected);
   const setView = useAppStore(s => s.setView);
+  const setSelected = useAppStore(s => s.setSelected);
   const runAnalysis = useAppStore(s => s.runAnalysis);
 
   const crops = useCropLibrary();
@@ -578,13 +581,20 @@ export function OnboardingWizard() {
             >
               {step === 0 && <CropStep selections={cropSelections} setSelections={setCropSelections} />}
               {step === 1 && (
-                <FarmStep
-                  area={area} setArea={setArea}
-                  areaUnit={areaUnit} setAreaUnit={setAreaUnit}
-                  currentCrop={currentCrop} setCurrentCrop={setCurrentCrop}
-                  irrigation={irrigation} setIrrigation={setIrrigation}
-                  soil={soil} setSoil={setSoil}
-                />
+                <div className="space-y-5">
+                  <FarmStep
+                    area={area} setArea={setArea}
+                    areaUnit={areaUnit} setAreaUnit={setAreaUnit}
+                    currentCrop={currentCrop} setCurrentCrop={setCurrentCrop}
+                    irrigation={irrigation} setIrrigation={setIrrigation}
+                    soil={soil} setSoil={setSoil}
+                  />
+                  <div>
+                    <p className="mb-2 text-xs text-muted-foreground">Tap the map to refine your field location. Environmental analysis uses this pin.</p>
+                    <FieldMap latitude={selected.latitude} longitude={selected.longitude} height={280}
+                      onPick={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })} />
+                  </div>
+                </div>
               )}
               {step === 2 && <PrioritiesStep priorities={priorities} setPriorities={setPriorities} />}
             </motion.div>
