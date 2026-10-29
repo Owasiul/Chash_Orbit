@@ -33,11 +33,13 @@ export default function FieldMap({
   longitude = 88.6042,
   onPick,
   height = 360,
+  className,
 }: {
   latitude?: number;
   longitude?: number;
   onPick?: (point: { latitude: number; longitude: number }) => void;
-  height?: number;
+  height?: number | string;
+  className?: string;
 }) {
   const [layer, setLayer] = React.useState<MapLayer>('streets');
   const point: [number, number] = [latitude, longitude];
@@ -52,7 +54,7 @@ export default function FieldMap({
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   }), []);
-  return <div className="relative overflow-hidden rounded-2xl border border-white/10" style={{ height }}>
+  return <div className={`relative overflow-hidden rounded-2xl border border-white/10 ${className ?? ''}`} style={{ height }}>
     <div className="absolute right-3 top-3 z-[1000] flex gap-1 rounded-xl border border-white/10 bg-black/80 p-1">
       {(['streets', 'satellite', 'ndvi'] as MapLayer[]).map(value => <button key={value} onClick={() => setLayer(value)} className={`rounded-lg px-3 py-1.5 text-xs capitalize ${layer === value ? 'bg-amber-300 text-black' : 'text-white'}`}>{value === 'ndvi' ? 'Vegetation' : value}</button>)}
     </div>

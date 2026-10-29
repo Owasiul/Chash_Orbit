@@ -10,7 +10,11 @@ export async function GET(req: Request) {
   try {
     const results = await searchLocation(q, hasBengaliScript(q) ? 'bn' : language);
     return NextResponse.json({ results });
-  } catch {
-    return NextResponse.json({ results: [] }, { status: 200 });
+  } catch (error) {
+    console.error('[location] Search provider request failed:', error);
+    return NextResponse.json(
+      { error: 'Location search is temporarily unavailable. Please try again shortly.' },
+      { status: 503 },
+    );
   }
 }

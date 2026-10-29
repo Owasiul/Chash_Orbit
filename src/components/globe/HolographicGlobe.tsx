@@ -27,6 +27,7 @@ import * as React from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Stars, useTexture } from "@react-three/drei";
+import type { CountryCenter, GeoBounds } from "@/lib/location-geocoding";
 
 /* ---------------------------------------------------------------------- */
 /* Public API (identical to the react-globe.gl version)                   */
@@ -39,6 +40,14 @@ export interface HolographicGlobeProps {
   selectedLng?: number | null;
   /** Optional human-readable location name shown next to the coordinate readout. */
   locationName?: string | null;
+  /** Country destination for the first leg of a location search flight. */
+  countryCenter?: CountryCenter | null;
+  /** Geocoder bounds are used to choose a useful final camera distance. */
+  selectedBounds?: GeoBounds | null;
+  /** Country searches use a broader final view than villages or cities. */
+  selectedIsCountry?: boolean;
+  /** Called once the final camera flight to the selected location has ended. */
+  onNavigationComplete?: () => void;
   /**
    * Called once, the first time the globe finishes initializing. Also called
    * (once) if the globe falls back to its static message, so a parent that
@@ -100,6 +109,7 @@ const Z_AXIS = new THREE.Vector3(0, 0, 1);
 
 /** Largest per-frame time step we honour (s). A backgrounded tab can report multi-second deltas. */
 const MAX_DELTA = 0.1;
+const COUNTRY_STAGE_PAUSE_MS = 280;
 
 /* ---------------------------------------------------------------------- */
 /* Helpers                                                                */
@@ -199,6 +209,38 @@ function stepCameraToward(
   s.dir.applyQuaternion(s.qStep);
   position.copy(s.dir).multiplyScalar(THREE.MathUtils.lerp(dist, targetDist, k));
   return false;
+}
+
+function longitudeSpan(west: number, east: number): number {
+  const raw = Math.abs(east - west);
+  return raw > 180 ? 360 - raw : raw;
+}
+
+function boundsSpan(bounds?: GeoBounds): number | undefined {
+  if (!bounds) return undefined;
+  return Math.max(
+    Math.abs(bounds.north - bounds.south),
+    longitudeSpan(bounds.west, bounds.east),
+  );
+}
+
+function countryAltitude(bounds?: GeoBounds): number {
+  const span = boundsSpan(bounds);
+  return span === undefined
+    ? 1.55
+    : THREE.MathUtils.clamp(1.15 + (span / 55) * 0.9, 1.25, 2.25);
+}
+
+function locationAltitude(bounds: GeoBounds | null, isCountry: boolean): number {
+  const span = boundsSpan(bounds ?? undefined);
+  if (isCountry) {
+    return span === undefined
+      ? 1.15
+      : THREE.MathUtils.clamp((span / 50) * 1.2, 0.12, 1.45);
+  }
+  return span === undefined
+    ? 0.055
+    : THREE.MathUtils.clamp((span / 48) * 1.05, 0.018, 0.42);
 }
 
 /* ---------------------------------------------------------------------- */
@@ -424,10 +466,14 @@ function Marker({
 
 interface SceneProps {
   coords: Coords | null;
+  countryCenter: CountryCenter | null;
+  selectedBounds: GeoBounds | null;
+  selectedIsCountry: boolean;
   spinEnabled: boolean;
   isHero: boolean;
   enableZoom: boolean;
   onReady?: () => void;
+  onNavigationComplete?: () => void;
 }
 
 interface FlightTarget {
@@ -439,10 +485,14 @@ interface FlightTarget {
 
 function SceneContents({
   coords,
+  countryCenter,
+  selectedBounds,
+  selectedIsCountry,
   spinEnabled,
   isHero,
   enableZoom,
   onReady,
+  onNavigationComplete,
 }: SceneProps) {
   const camera = useThree((s) => s.camera);
   const spinRef = React.useRef<THREE.Group>(null);
@@ -459,7 +509,16 @@ function SceneContents({
   const pausedRef = React.useRef(false); // spin paused (interaction or flight)
   const draggingRef = React.useRef(false);
   const resumeTimerRef = React.useRef<number | undefined>(undefined);
+  const countryPauseRef = React.useRef<number | undefined>(undefined);
   const flyRef = React.useRef<FlightTarget | null>(null);
+  const queuedFlightsRef = React.useRef<
+    { lat: number; lng: number; altitude: number }[]
+  >([]);
+  const onNavigationCompleteRef = React.useRef(onNavigationComplete);
+
+  React.useEffect(() => {
+    onNavigationCompleteRef.current = onNavigationComplete;
+  }, [onNavigationComplete]);
 
   // Per-instance scratch for the camera flight — no module-level sharing.
   const scratchRef = React.useRef<FlightScratch>({
@@ -489,22 +548,41 @@ function SceneContents({
     }, 2200);
   }, []);
 
-  React.useEffect(
-    () => () => {
-      if (resumeTimerRef.current) window.clearTimeout(resumeTimerRef.current);
+  const beginFlight = React.useCallback(
+    (lat: number, lng: number, altitude: number) => {
+      const g = spinRef.current;
+      if (!g) return;
+      const dir = latLngToVec3(lat, lng, 1)
+        .applyAxisAngle(UP, g.rotation.y)
+        .applyAxisAngle(Z_AXIS, TILT)
+        .normalize();
+      flyRef.current = {
+        dir,
+        dist: THREE.MathUtils.clamp(1 + altitude, 1.48, 5),
+      };
     },
     [],
   );
 
-  // Fly the camera above a newly selected location. The globe pauses while
-  // flying so the marker's world position stays put. Waits for `ready` so we
-  // don't glide the camera toward an empty scene while the Earth loads.
+  React.useEffect(
+    () => () => {
+      if (resumeTimerRef.current) window.clearTimeout(resumeTimerRef.current);
+      if (countryPauseRef.current) window.clearTimeout(countryPauseRef.current);
+    },
+    [],
+  );
+
+  // Center the country first, then resolve the final leg to the exact place.
+  // A place already in view skips the country detour.
   React.useEffect(() => {
     if (!ready) return;
+    if (countryPauseRef.current) {
+      window.clearTimeout(countryPauseRef.current);
+      countryPauseRef.current = undefined;
+    }
+    queuedFlightsRef.current = [];
     if (!coords) {
       flyRef.current = null;
-      // Selection cleared mid-flight: the pause that flight started would
-      // otherwise never be lifted (no flight end → no resume timer).
       if (pausedRef.current && !draggingRef.current) scheduleResume();
       return;
     }
@@ -512,14 +590,43 @@ function SceneContents({
     if (!g) return;
 
     pauseSpin();
-    const world = latLngToVec3(coords.lat, coords.lng, 1)
-      .applyAxisAngle(UP, g.rotation.y) // current spin
-      .applyAxisAngle(Z_AXIS, TILT); // parent group's axial tilt
-    flyRef.current = {
-      dir: world.normalize(),
-      dist: THREE.MathUtils.clamp(camera.position.length(), 1.9, 3.0),
-    };
-  }, [coords, ready, camera, pauseSpin, scheduleResume]);
+    const targetDir = latLngToVec3(coords.lat, coords.lng, 1)
+      .applyAxisAngle(UP, g.rotation.y)
+      .applyAxisAngle(Z_AXIS, TILT)
+      .normalize();
+    const alreadyVisible =
+      camera.position.clone().normalize().angleTo(targetDir) <
+      THREE.MathUtils.degToRad(20);
+
+    if (countryCenter && !alreadyVisible) {
+      queuedFlightsRef.current.push({
+        lat: coords.lat,
+        lng: coords.lng,
+        altitude: locationAltitude(selectedBounds, selectedIsCountry),
+      });
+      beginFlight(
+        countryCenter.lat,
+        countryCenter.lng,
+        countryAltitude(countryCenter.bounds),
+      );
+    } else {
+      beginFlight(
+        coords.lat,
+        coords.lng,
+        locationAltitude(selectedBounds, selectedIsCountry),
+      );
+    }
+  }, [
+    coords,
+    countryCenter,
+    selectedBounds,
+    selectedIsCountry,
+    ready,
+    camera,
+    pauseSpin,
+    scheduleResume,
+    beginFlight,
+  ]);
 
   // One frame loop drives both the camera flight and the auto-rotation.
   useFrame((state, delta) => {
@@ -540,7 +647,18 @@ function SceneContents({
       state.camera.lookAt(0, 0, 0);
       if (arrived) {
         flyRef.current = null;
-        scheduleResume();
+        const next = queuedFlightsRef.current.shift();
+        if (next) {
+          countryPauseRef.current = window.setTimeout(() => {
+            countryPauseRef.current = undefined;
+            if (!draggingRef.current) {
+              beginFlight(next.lat, next.lng, next.altitude);
+            }
+          }, COUNTRY_STAGE_PAUSE_MS);
+        } else {
+          scheduleResume();
+          onNavigationCompleteRef.current?.();
+        }
       }
       return;
     }
@@ -556,6 +674,11 @@ function SceneContents({
   const handleControlsStart = React.useCallback(() => {
     draggingRef.current = true;
     flyRef.current = null; // grabbing the globe cancels the flight
+    queuedFlightsRef.current = [];
+    if (countryPauseRef.current) {
+      window.clearTimeout(countryPauseRef.current);
+      countryPauseRef.current = undefined;
+    }
     pauseSpin();
   }, [pauseSpin]);
 
@@ -657,6 +780,10 @@ export function HolographicGlobe({
   selectedLat = null,
   selectedLng = null,
   locationName = null,
+  countryCenter = null,
+  selectedBounds = null,
+  selectedIsCountry = false,
+  onNavigationComplete,
   onReady,
   size = "hero",
   autoRotate = true,
@@ -774,10 +901,14 @@ export function HolographicGlobe({
         >
           <SceneContents
             coords={coords}
+            countryCenter={countryCenter}
+            selectedBounds={selectedBounds}
+            selectedIsCountry={selectedIsCountry}
             spinEnabled={spin}
             isHero={isHero}
             enableZoom={zoom}
             onReady={notifyReady}
+            onNavigationComplete={onNavigationComplete}
           />
         </Canvas>
       </GlobeErrorBoundary>

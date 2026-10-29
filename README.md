@@ -29,6 +29,15 @@ planting decision.
 Try the one-click demo on the home screen: **"See a demo: rice farmer in
 Rajshahi, Bangladesh."**
 
+Location search uses Open-Meteo for suggestions and OpenStreetMap Nominatim to
+resolve the selected place, its country, and administrative bounds. The globe
+flies to the country first, then zooms to the resolved coordinates; if country
+details are unavailable, it flies directly to the matched coordinates. No API
+key or additional environment variable is required. For production use, follow
+the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/)
+or provide a compatible endpoint through the `baseUrl` option to
+`geocodeLocation`.
+
 ## NASA data — what's live and what's derived
 
 We label every number in the UI with its source (LIVE · CACHED · DERIVED ·

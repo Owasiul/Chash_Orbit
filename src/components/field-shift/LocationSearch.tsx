@@ -10,15 +10,25 @@ interface Props {
   onSelect: (r: GeoResult) => void;
   className?: string;
   autoFocus?: boolean;
+  resolving?: boolean;
+  selectionError?: string | null;
+  onQueryChange?: () => void;
 }
 
 const DEBOUNCE_MS = 250;
 const MIN_CHARS = 2;
 
 const panelClass =
-  'absolute z-50 mt-2 w-full rounded-2xl border border-white/10 bg-card/95 shadow-2xl backdrop-blur-md';
+  'absolute bottom-full z-50 mb-2 w-full rounded-2xl border border-white/10 bg-card/95 shadow-2xl backdrop-blur-md';
 
-export function LocationSearch({ onSelect, className, autoFocus }: Props) {
+export function LocationSearch({
+  onSelect,
+  className,
+  autoFocus,
+  resolving = false,
+  selectionError,
+  onQueryChange,
+}: Props) {
   const { locale, t } = useTranslation();
   const [q, setQ] = React.useState('');
   const [results, setResults] = React.useState<GeoResult[]>([]);
@@ -179,7 +189,10 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
           autoComplete="off"
           spellCheck={false}
           value={q}
-          onChange={e => setQ(e.target.value)}
+          onChange={e => {
+            onQueryChange?.();
+            setQ(e.target.value);
+          }}
           onKeyDown={handleKey}
           onFocus={() => (results.length > 0 || statusMessage) && setOpen(true)}
           placeholder={t('Search your farm, city, district or region...')}
@@ -191,10 +204,10 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
           aria-activedescendant={showList && active >= 0 ? optionId(active) : undefined}
           aria-autocomplete="list"
         />
-        {loading && (
+        {(loading || resolving) && (
           <Loader2 className="absolute right-4 top-1/2 size-5 -translate-y-1/2 animate-spin text-muted-foreground/70" />
         )}
-        {!loading && q && (
+        {!loading && !resolving && q && (
           <button
             type="button"
             onClick={() => {
@@ -262,6 +275,25 @@ export function LocationSearch({ onSelect, className, autoFocus }: Props) {
           )}
         >
           {statusMessage}
+        </div>
+      )}
+
+      {resolving && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(panelClass, 'px-4 py-3 text-sm text-muted-foreground')}
+        >
+          {t('Finding exact coordinates and country...')}
+        </div>
+      )}
+      {!resolving && selectionError && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(panelClass, 'px-4 py-3 text-sm text-amber-200')}
+        >
+          {t(selectionError)}
         </div>
       )}
     </div>

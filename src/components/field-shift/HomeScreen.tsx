@@ -9,6 +9,12 @@ import { LocationSearch } from "./LocationSearch";
 import { SAMPLE_FARMS } from "@/lib/location";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
+import { geocodeLocation, type ResolvedLocation } from "@/lib/location-geocoding";
+import type { GeoResult } from "@/lib/location";
+
+const FieldMap = dynamic(() => import("@/components/field-shift/FieldMap"), {
+  ssr: false,
+});
 
 const HolographicGlobe = dynamic(
   () =>
@@ -37,13 +43,83 @@ export function HomeScreen() {
   const selected = useAppStore((s) => s.selected);
   const setView = useAppStore((s) => s.setView);
   const runAnalysis = useAppStore((s) => s.runAnalysis);
-  const [globeReady, setGlobeReady] = React.useState(false);
+  const [navigationLocation, setNavigationLocation] =
+    React.useState<ResolvedLocation | null>(null);
+  const [locationLookupLoading, setLocationLookupLoading] = React.useState(false);
+  const [locationLookupError, setLocationLookupError] = React.useState<string | null>(null);
+  const [showLocationMap, setShowLocationMap] = React.useState(false);
+  const locationLookupController = React.useRef<AbortController | null>(null);
+  const showMapAfterNavigation = React.useCallback(() => {
+    setShowLocationMap(true);
+  }, []);
 
   const handleSelect = React.useCallback(
-    (r: import("@/lib/location").GeoResult) => {
-      setSelected(r);
+    async (r: GeoResult) => {
+      setShowLocationMap(false);
+      locationLookupController.current?.abort();
+      const controller = new AbortController();
+      locationLookupController.current = controller;
+      setLocationLookupLoading(true);
+      setLocationLookupError(null);
+
+      const query = [r.name, r.admin2, r.admin1, r.country]
+        .filter(Boolean)
+        .join(", ");
+
+      try {
+        const location = await geocodeLocation(query, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+
+        const resolvedResult: GeoResult = {
+          ...r,
+          name: location.name || r.name,
+          latitude: location.lat,
+          longitude: location.lng,
+          country: location.country || r.country,
+          countryCode: location.countryCode?.toUpperCase() || r.countryCode,
+        };
+        setSelected(resolvedResult);
+        setNavigationLocation(location);
+        if (!location.countryCenter && !location.isCountry) {
+          setLocationLookupError(
+            "Country center could not be resolved. Navigating directly to the matched location.",
+          );
+        }
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        // The existing search result already contains usable coordinates. If the
+        // optional country lookup is unavailable, keep navigation working and
+        // let the globe fly directly to those coordinates.
+        const location: ResolvedLocation = {
+          query,
+          name: r.name,
+          displayName: [r.name, r.admin2, r.admin1, r.country].filter(Boolean).join(", "),
+          lat: r.latitude,
+          lng: r.longitude,
+          country: r.country,
+          countryCode: r.countryCode?.toLowerCase() ?? "",
+          isCountry: r.featureCode === "PCLI",
+        };
+        setSelected(r);
+        setNavigationLocation(location);
+        setLocationLookupError(
+          "Country details could not be loaded. Navigating directly to the matched location.",
+        );
+        console.warn("[HomeScreen] country-aware location lookup failed:", error);
+      } finally {
+        if (locationLookupController.current === controller) {
+          locationLookupController.current = null;
+          setLocationLookupLoading(false);
+        }
+      }
     },
     [setSelected],
+  );
+
+  React.useEffect(
+    () => () => locationLookupController.current?.abort(),
+    [],
   );
 
   const handleSample = (id: string) => {
@@ -56,7 +132,7 @@ export function HomeScreen() {
       longitude: s.longitude,
       country: s.country,
       countryCode: "",
-      featureCode: "PCLI",
+      featureCode: "PPL",
     });
   };
 
@@ -83,17 +159,43 @@ export function HomeScreen() {
 
   return (
     <main className="relative min-h-dvh w-full overflow-hidden">
-      {/* Globe background — fills viewport */}
-      <div className="absolute inset-0 z-0">
-        <HolographicGlobe
-          size="hero"
-          enableZoom
-          selectedLat={selected?.latitude ?? null}
-          selectedLng={selected?.longitude ?? null}
-          locationName={selected?.name ?? null}
-          autoRotate={!selected}
-        />
-      </div>
+      {!showLocationMap && (
+        <div className="absolute inset-0 z-0">
+          <HolographicGlobe
+            size="hero"
+            enableZoom
+            selectedLat={navigationLocation?.lat ?? selected?.latitude ?? null}
+            selectedLng={navigationLocation?.lng ?? selected?.longitude ?? null}
+            locationName={navigationLocation?.name ?? selected?.name ?? null}
+            countryCenter={navigationLocation?.countryCenter}
+            selectedBounds={navigationLocation?.bounds}
+            selectedIsCountry={navigationLocation?.isCountry}
+            onNavigationComplete={showMapAfterNavigation}
+            autoRotate={!selected}
+          />
+        </div>
+      )}
+      <AnimatePresence>
+        {showLocationMap && selected && (
+          <motion.div
+            key="selected-location-map"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.65 }}
+            className="absolute inset-0 z-[5]"
+            aria-label={`Map centered on ${selected.name}`}
+          >
+            <FieldMap
+              key={`${selected.latitude},${selected.longitude}`}
+              latitude={selected.latitude}
+              longitude={selected.longitude}
+              height="100%"
+              className="h-full rounded-none border-0"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top — brand + mission tag */}
       <header className="relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
@@ -109,100 +211,27 @@ export function HomeScreen() {
         </div>
       </header>
 
-      {/* Center — headline + search */}
-      <section className="relative z-10 flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center px-4 py-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-3xl"
-        >
-          <h1 className="font-sans text-4xl font-light tracking-tight text-foreground sm:text-5xl md:text-6xl">
-            {t("Where is your field?")}
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground/80 sm:text-base">
-            {t(
-              "Tell us where your farm is. We analyze NASA Earth-observation data — temperature, rainfall, soil moisture, vegetation — and turn it into a transparent 4-year crop rotation plan.",
-            )}
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-          className="mt-8 w-full max-w-2xl"
-        >
-          <LocationSearch onSelect={handleSelect} autoFocus />
-        </motion.div>
-
-        {/* Sample farms */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mt-5 flex flex-wrap items-center justify-center gap-2"
-        >
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
-            {t("Quick pick")}
-          </span>
-          {SAMPLE_FARMS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => handleSample(f.id)}
-              className={cn(
-                "group rounded-full border px-3 py-1 text-xs transition-all",
-                selected?.name === f.name
-                  ? "border-amber-400/50 bg-amber-400/15 text-amber-200"
-                  : "border-white/10 bg-white/5 text-muted-foreground hover:border-amber-400/30 hover:bg-amber-400/10 hover:text-amber-200",
-              )}
-            >
-              <span className="mr-1.5 inline-block size-1.5 rounded-full bg-amber-400/60 group-hover:bg-amber-300" />
-              {f.name}
-            </button>
-          ))}
-        </motion.div>
-
-        <motion.button
-          type="button"
-          onClick={runDemo}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.45 }}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-1.5 text-xs text-emerald-200 transition-colors hover:border-emerald-300/50 hover:bg-emerald-400/20"
-        >
-          <Play className="size-3" />
-          {t("See a demo: rice farmer in Rajshahi, Bangladesh")}
-        </motion.button>
-      </section>
-
-      {/* Bottom — selected location card + Analyze this area CTA */}
-      <AnimatePresence>
-        {selected && (
-          <motion.div
-            initial={{ opacity: 0, y: 24, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 220, damping: 24 }}
-            className="absolute inset-x-0 bottom-0 z-20 px-4 pb-6 sm:px-6 sm:pb-8"
-          >
-            <div className="glass-panel scanline mx-auto flex max-w-2xl flex-col gap-4 rounded-3xl p-5 sm:p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-amber-400/15">
-                    <Globe2 className="size-5 text-amber-300" />
-                  </div>
-                  <div>
-                    <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-                      {t("Selected Field")}
-                    </div>
-                    <div className="text-lg font-semibold text-foreground">
+      <section className="absolute inset-x-0 bottom-0 z-20 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-8 sm:px-6">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-full bg-gradient-to-t from-black/85 via-black/55 to-transparent" />
+        <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-3">
+          <AnimatePresence>
+            {selected && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{ duration: 0.25 }}
+                className="glass-panel scanline flex flex-col gap-3 rounded-2xl p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <Globe2 className="size-5 shrink-0 text-amber-300" />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-foreground">
                       {[selected.name, selected.admin1, selected.country]
                         .filter(Boolean)
                         .join(", ")}
                     </div>
-                    <div className="mt-1 font-mono text-xs text-muted-foreground">
+                    <div className="font-mono text-[10px] text-muted-foreground">
                       {Math.abs(selected.latitude).toFixed(4)}°{" "}
                       {selected.latitude >= 0 ? "N" : "S"}
                       {" · "}
@@ -211,33 +240,61 @@ export function HomeScreen() {
                     </div>
                   </div>
                 </div>
-                <div className="hidden shrink-0 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-emerald-300 sm:block">
-                  ◦ {t("Awaiting farmer profile")}
-                </div>
-              </div>
+                <button
+                  type="button"
+                  onClick={() => setView("onboarding")}
+                  className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-linear-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-left transition-all hover:border-amber-300/60 hover:from-amber-400/30 hover:to-amber-400/30"
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="size-4 text-amber-300" />
+                    <span className="text-sm font-medium text-amber-100">
+                      {t("Analyze this area")}
+                    </span>
+                  </span>
+                  <ArrowRight className="size-4 text-amber-300 transition-transform group-hover:translate-x-1" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
+          {!selected && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-white/60">
+                {t("Quick pick")}
+              </span>
+              {SAMPLE_FARMS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => handleSample(f.id)}
+                  className={cn(
+                    "shrink-0 rounded-full border px-3 py-1 text-xs transition-all",
+                    "border-white/15 bg-black/40 text-white/80 hover:border-amber-400/40 hover:text-amber-200",
+                  )}
+                >
+                  {f.name}
+                </button>
+              ))}
               <button
                 type="button"
-                onClick={() => setView("onboarding")}
-                className="group flex w-full items-center justify-between rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-5 py-3.5 text-left transition-all hover:border-amber-300/60 hover:from-amber-400/30 hover:to-amber-400/30"
+                onClick={runDemo}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200"
               >
-                <div className="flex items-center gap-3">
-                  <Sparkles className="size-5 text-amber-300" />
-                  <div>
-                    <div className="font-sans text-base font-medium text-amber-100">
-                      {t("Analyze this area")}
-                    </div>
-                    <div className="text-xs text-amber-200/60">
-                      {t("Tell us what you grow · 90-second onboarding")}
-                    </div>
-                  </div>
-                </div>
-                <ArrowRight className="size-5 text-amber-300 transition-transform group-hover:translate-x-1" />
+                <Play className="size-3" />
+                {t("See demo")}
               </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+
+          <LocationSearch
+            onSelect={handleSelect}
+            autoFocus
+            resolving={locationLookupLoading}
+            selectionError={locationLookupError}
+            onQueryChange={() => setLocationLookupError(null)}
+          />
+        </div>
+      </section>
     </main>
   );
 }

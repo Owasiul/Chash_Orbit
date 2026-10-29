@@ -27,18 +27,14 @@ export async function searchLocation(query: string, language: 'en' | 'bn' = 'en'
   if (!q) return [];
   const resultLanguage = hasBengaliScript(q) ? 'bn' : language;
   const url = `${GEOCODE_URL}?name=${encodeURIComponent(q)}&count=10&language=${resultLanguage}&format=json`;
-  try {
-    const res = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(8000),
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { results?: GeoResult[] };
-    return json.results ?? [];
-  } catch {
-    return [];
-  }
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(8000),
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error(`Location provider returned ${res.status}.`);
+  const json = (await res.json()) as { results?: GeoResult[] };
+  return json.results ?? [];
 }
 
 // Curated sample farms (mentioned in the prompt).

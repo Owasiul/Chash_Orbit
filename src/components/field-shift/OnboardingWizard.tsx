@@ -478,6 +478,10 @@ export function OnboardingWizard() {
 
   const crops = useCropLibrary();
   const [step, setStep] = React.useState(0);
+  const [showLocationMap, setShowLocationMap] = React.useState(false);
+  const showMapAfterNavigation = React.useCallback(() => {
+    setShowLocationMap(true);
+  }, []);
 
   // Step 1
   const [cropSelections, setCropSelections] = React.useState<CropSelection[]>([]);
@@ -542,16 +546,38 @@ export function OnboardingWizard() {
 
   return (
     <div className="relative min-h-dvh w-full overflow-hidden">
-      {/* Compact globe in background */}
-      <div className="pointer-events-none absolute inset-0 z-0 opacity-50">
-        <HolographicGlobe
-          selectedLat={selected.latitude}
-          selectedLng={selected.longitude}
-          locationName={selected.name}
-          size="compact"
-          autoRotate
-        />
-      </div>
+      {!showLocationMap && (
+        <div className="pointer-events-none absolute inset-0 z-0 opacity-50">
+          <HolographicGlobe
+            selectedLat={selected.latitude}
+            selectedLng={selected.longitude}
+            locationName={selected.name}
+            onNavigationComplete={showMapAfterNavigation}
+            size="compact"
+          />
+        </div>
+      )}
+      <AnimatePresence>
+        {showLocationMap && (
+          <motion.div
+            key="onboarding-location-map"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.65 }}
+            className="pointer-events-none absolute inset-0 z-[1]"
+            aria-label={`Map centered on ${selected.name}`}
+          >
+            <FieldMap
+              key={`${selected.latitude},${selected.longitude}`}
+              latitude={selected.latitude}
+              longitude={selected.longitude}
+              height="100%"
+              className="h-full rounded-none border-0"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top bar */}
       <header className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
