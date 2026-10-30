@@ -17,7 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { FullAnalysis } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 // ── Derive the "current rotation" baseline ─────────────────────────────────
 // If the field's currentCrop is Rice or Wheat (rice-wheat system), produce the
@@ -80,13 +80,13 @@ function estimateCurrentScores(
 
 // ── Sub-score badge ──────────────────────────────────────────────────────────
 function SubScore({ label, value, color }: { label: string; value: number; color: string }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   return (
     <div className="flex items-center justify-between py-1.5 text-xs">
       <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
         {t(label)}
       </span>
-      <span className={cn('font-mono font-light tabular-nums', color)}>{value}</span>
+      <span className={cn('font-mono font-light tabular-nums', color)}>{number(value)}</span>
     </div>
   );
 }
@@ -107,11 +107,11 @@ function YearRow({
   plantingSeason?: string;
   harvestSeason?: string;
 }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   return (
     <div className="flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.03] px-3 py-2">
       <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-        {t('Year {year}').replace('{year}', String(year))}
+        {t('Year {year}', { year })}
       </span>
       <Sprout className="size-3.5 text-amber-300/80" />
       <div className="flex-1">
@@ -122,11 +122,11 @@ function YearRow({
           </div>
         )}
         {coverCrop && (
-          <div className="text-[11px] italic text-emerald-300/70">+ {coverCrop}</div>
+          <div className="text-[11px] italic text-emerald-300/70">+ {t(coverCrop)}</div>
         )}
       </div>
       {score != null && (
-        <span className="font-mono text-sm font-light text-amber-300 tabular-nums">{score}</span>
+        <span className="font-mono text-sm font-light text-amber-300 tabular-nums">{number(score)}</span>
       )}
     </div>
   );
@@ -134,7 +134,7 @@ function YearRow({
 
 // ── Bar chart tooltip ──────────────────────────────────────────────────────
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string; color: string }[]; label?: string }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   if (!active || !payload || !payload.length) return null;
   return (
     <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-[10px] text-foreground backdrop-blur">
@@ -143,7 +143,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
         <div key={i} className="flex items-center gap-1.5">
           <span className="size-2 rounded-full" style={{ background: p.color }} />
           <span className="text-foreground/80">{t(p.name)}:</span>
-          <span className="font-medium">{p.value}</span>
+          <span className="font-medium">{number(p.value)}</span>
         </div>
       ))}
     </div>
@@ -152,7 +152,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 
 // ── Main panel ──────────────────────────────────────────────────────────────
 export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   const plan = analysis.rotationPlan;
   const currentCrop = analysis.field.currentCrop;
   const currentRot = React.useMemo(() => deriveCurrentRotation(currentCrop), [currentCrop]);
@@ -180,9 +180,9 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
   return (
     <div className="space-y-4">
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <h2 className="text-xl font-light text-foreground sm:text-2xl">Compare rotations</h2>
+        <h2 className="text-xl font-light text-foreground sm:text-2xl">{t('Compare rotations')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          See how the Chash Orbit recommended rotation outperforms the current rotation.
+          {t('See how the Chash Orbit recommended rotation outperforms the current rotation.')}
         </p>
       </Card>
 
@@ -192,7 +192,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
         <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
           <div className="mb-3 flex items-center justify-between">
             <span className="font-mono text-[10px] uppercase tracking-widest text-rose-200/80">
-              Current rotation
+              {t('Current rotation')}
             </span>
             <Badge variant="outline" className="border-rose-400/30 bg-rose-400/10 text-rose-200">
               {t(currentRot.name)}
@@ -210,10 +210,10 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
             <SubScore label="Income" value={currentScores.income} color="text-violet-300/80" />
             <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
-                Overall
+                {t('Overall')}
               </span>
               <span className="font-mono text-2xl font-light text-rose-200/90 tabular-nums">
-                {currentScores.overall}
+                {number(currentScores.overall)}
               </span>
             </div>
           </div>
@@ -223,7 +223,7 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
         <Card className="border-amber-400/30 bg-amber-400/[0.04] p-4 sm:p-6">
           <div className="mb-3 flex items-center justify-between">
             <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-              Chash Orbit plan
+              {t('Chash Orbit plan')}
             </span>
             <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200">
               {t(plan.name)}
@@ -249,10 +249,10 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
             <SubScore label="Income" value={plan.incomeScore} color="text-violet-300" />
             <div className="mt-2 flex items-center justify-between border-t border-amber-400/20 pt-2">
               <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-                Overall
+                {t('Overall')}
               </span>
               <span className="font-mono text-2xl font-light text-amber-300 tabular-nums">
-                {plan.overallScore}
+                {number(plan.overallScore)}
               </span>
             </div>
           </div>
@@ -263,13 +263,13 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Calendar className="size-3" />
-          SUB-SCORE COMPARISON
+          {t('SUB-SCORE COMPARISON')}
         </div>
         <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }} barGap={4}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-              <XAxis dataKey="dimension" tick={{ fontSize: 11, fill: 'currentColor' }} className="text-muted-foreground" />
+              <XAxis dataKey="dimension" tickFormatter={value => t(String(value))} tick={{ fontSize: 11, fill: 'currentColor' }} className="text-muted-foreground" />
               <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: 'currentColor' }} className="text-muted-foreground" />
               <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
               <Legend
@@ -290,8 +290,10 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
       >
         <Card className="border-amber-400/30 bg-amber-400/[0.06] p-4 sm:p-6">
           <p className="text-sm text-foreground/90">
-            Chash Orbit plan scores <span className="font-mono text-amber-300">{plan.overallScore}</span>{' '}
-            vs current <span className="font-mono text-rose-300">{currentScores.overall}</span> —{' '}
+            {t('Chash Orbit plan scores {plan} vs current {current} —', {
+              plan: plan.overallScore,
+              current: currentScores.overall,
+            })}{' '}
             <span className="inline-flex items-center gap-1 font-mono text-amber-300">
               {delta > 0 ? (
                 <>
@@ -313,16 +315,16 @@ export function ComparePanel({ analysis }: { analysis: FullAnalysis }) {
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <Leaf className="size-3 text-emerald-300" /> {t('Soil health')} {analysis.field.priorities.soil}%
+              <Leaf className="size-3 text-emerald-300" /> {t('Soil health')} {number(analysis.field.priorities.soil)}%
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Droplets className="size-3 text-cyan-300" /> Water {analysis.field.priorities.water}%
+              <Droplets className="size-3 text-cyan-300" /> {t('Water')} {number(analysis.field.priorities.water)}%
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Sun className="size-3 text-amber-300" /> Climate {analysis.field.priorities.climate}%
+              <Sun className="size-3 text-amber-300" /> {t('Climate')} {number(analysis.field.priorities.climate)}%
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Coins className="size-3 text-violet-300" /> Income {analysis.field.priorities.income}%
+              <Coins className="size-3 text-violet-300" /> {t('Income')} {number(analysis.field.priorities.income)}%
             </span>
           </div>
         </Card>

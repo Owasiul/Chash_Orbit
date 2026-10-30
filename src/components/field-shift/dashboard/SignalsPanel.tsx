@@ -32,7 +32,7 @@ import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
 import type { FullAnalysis } from '@/lib/store';
 import type { Environment } from '@/lib/nasa/environment';
 import type { PowerAnalysis } from '@/lib/nasa/power';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function trendArrow(trend: number): { icon: React.ReactNode; label: string; color: string } {
@@ -155,14 +155,14 @@ function soilBadgeTone(v: SoilMetric): { label: string; cls: string } {
 
 // ── Chart tooltip ────────────────────────────────────────────────────────────
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string }[]; label?: string }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   if (!active || !payload || !payload.length) return null;
   return (
     <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-[10px] text-foreground backdrop-blur">
       <div className="text-muted-foreground/80">{label ? t(label) : ''}</div>
       {payload.map((p, i) => (
         <div key={i} className="text-amber-200">
-          {payload.length > 1 ? `${t(p.name)}: ` : ''}{p.value}
+          {payload.length > 1 ? `${t(p.name)}: ` : ''}{number(p.value)}
         </div>
       ))}
     </div>
@@ -205,7 +205,7 @@ function deriveSoilCondition(env: Environment, currentCrop: string | null) {
 
 // ── Main panel ──────────────────────────────────────────────────────────────
 export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
-  const { t } = useTranslation();
+  const { t, number, date } = useTranslation();
   const { environment, field } = analysis;
   const temp = environment.temperature;
   const rain = environment.rainfall;
@@ -232,32 +232,32 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Temperature */}
         <NasaCard
-          title="Temperature"
+          title={t('Temperature')}
           icon={<Thermometer />}
           source={temp.source}
           attribution={temp.attribution}
-          big={`${temp.current.toFixed(1)}`}
-          bigUnit="°C (90d mean)"
+          big={number(temp.current, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+          bigUnit={t('°C (90d mean)')}
         >
-          <StatRow label="Current max" value={`${temp.currentMax.toFixed(1)} °C`} />
-          <StatRow label="Growing-season avg" value={`${temp.growingSeasonAvg.toFixed(1)} °C`} />
+          <StatRow label="Current max" value={`${number(temp.currentMax, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`} />
+          <StatRow label="Growing-season avg" value={`${number(temp.growingSeasonAvg, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`} />
           <StatRow
             label="Heat-stress days (90d)"
-            value={`${temp.heatStressDays} d`}
+            value={`${number(temp.heatStressDays)} ${t('d')}`}
             tone={temp.heatStressDays > 20 ? 'risk' : temp.heatStressDays > 10 ? 'warn' : 'good'}
           />
           <div className="flex items-center justify-between py-1 text-xs">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('10y trend')}</span>
             <span className={cn('flex items-center gap-1 font-medium', tempTrend.color)}>
               {tempTrend.icon}
-              {Math.abs(temp.tenYearTrend).toFixed(3)} °C/yr
+              {number(Math.abs(temp.tenYearTrend), { minimumFractionDigits: 3, maximumFractionDigits: 3 })} °C/yr
             </span>
           </div>
           {tempSeries && (
             <div className="mt-2 h-20 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={tempSeries} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <XAxis dataKey="month" tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
+                  <XAxis dataKey="month" tickFormatter={value => t(String(value))} tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
                   <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" domain={['dataMin - 2', 'dataMax + 2']} />
                   <Tooltip content={<ChartTooltip />} />
                   <Line type="monotone" dataKey="t" stroke="#fbbf24" strokeWidth={2} dot={false} />
@@ -269,23 +269,23 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
 
         {/* Rainfall */}
         <NasaCard
-          title="Rainfall"
+          title={t('Rainfall')}
           icon={<CloudRain />}
           source={rain.source === 'live' ? 'live' : rain.source === 'cached' ? 'cached' : 'demo'}
           attribution={rain.attribution}
-          big={`${Math.round(rain.annualRainfall)}`}
-          bigUnit="mm / year"
+          big={number(Math.round(rain.annualRainfall))}
+          bigUnit={t('mm / year')}
         >
-          <StatRow label="Growing-season (90d)" value={`${Math.round(rain.growingSeasonRainfall)} mm`} />
+          <StatRow label="Growing-season (90d)" value={`${number(Math.round(rain.growingSeasonRainfall))} mm`} />
           <StatRow
             label="Anomaly vs climatology"
-            value={`${rain.anomalyPct > 0 ? '+' : ''}${rain.anomalyPct}%`}
+            value={`${rain.anomalyPct > 0 ? '+' : ''}${number(rain.anomalyPct)}%`}
             tone={Math.abs(rain.anomalyPct) > 25 ? 'warn' : 'neutral'}
           />
-          <StatRow label="Variability (σ)" value={`${rain.variability.toFixed(2)} mm/d`} />
+          <StatRow label="Variability (σ)" value={`${number(rain.variability, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mm/d`} />
           <StatRow
             label="Dry spells (90d)"
-            value={`${rain.drySpells}`}
+            value={number(rain.drySpells)}
             tone={rain.drySpells > 4 ? 'risk' : rain.drySpells > 2 ? 'warn' : 'good'}
           />
           {rainSeries.length > 0 && (
@@ -293,7 +293,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rainSeries} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
+                  <XAxis dataKey="month" tickFormatter={value => t(String(value))} tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
                   <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
                   <Bar dataKey="mm" radius={[2, 2, 0, 0]}>
@@ -309,35 +309,35 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
 
         {/* Soil moisture */}
         <NasaCard
-          title="Soil moisture"
+          title={t('Soil moisture')}
           icon={<Droplets />}
           source={sm.source === 'derived' ? 'derived' : 'demo'}
           attribution={sm.attribution}
-          big={`${sm.currentMm.toFixed(0)}`}
-          bigUnit="mm (top ~1m)"
+          big={number(sm.currentMm, { maximumFractionDigits: 0 })}
+          bigUnit={t('mm (top ~1m)')}
         >
           <StatRow
             label="Current (% capacity)"
-            value={`${sm.currentPct.toFixed(0)}%`}
+            value={`${number(sm.currentPct, { maximumFractionDigits: 0 })}%`}
             tone={sm.currentPct < 30 ? 'risk' : sm.currentPct > 70 ? 'good' : 'neutral'}
           />
           <StatRow
             label="Seasonal deficit (90d)"
-            value={`${sm.seasonalDeficit.toFixed(0)} mm`}
+            value={`${number(sm.seasonalDeficit, { maximumFractionDigits: 0 })} mm`}
             tone={sm.seasonalDeficit > 80 ? 'risk' : sm.seasonalDeficit > 40 ? 'warn' : 'good'}
           />
           <div className="flex items-center justify-between py-1 text-xs">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('10y trend')}</span>
             <span className={cn('flex items-center gap-1 font-medium', smTrend.color)}>
               {smTrend.icon}
-              {Math.abs(sm.tenYearTrend).toFixed(3)} %/yr
+              {number(Math.abs(sm.tenYearTrend), { minimumFractionDigits: 3, maximumFractionDigits: 3 })} %/yr
             </span>
           </div>
           {/* Horizontal bar: current vs 100% */}
           <div className="mt-3">
             <div className="mb-1 flex items-center justify-between font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
               <span>{t('Field capacity')}</span>
-              <span>{sm.currentPct.toFixed(0)} / 100%</span>
+              <span>{number(sm.currentPct, { maximumFractionDigits: 0 })} / {number(100)}%</span>
             </div>
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/5">
               <div
@@ -353,12 +353,12 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
 
         {/* Vegetation NDVI */}
         <NasaCard
-          title="Vegetation (NDVI)"
+          title={t('Vegetation (NDVI)')}
           icon={<Leaf />}
           source={veg.source}
           attribution={veg.attribution}
-          big={veg.ndvi.toFixed(2)}
-          bigUnit={veg.observedDate ? `NDVI · MODIS ${veg.observedDate}` : 'NDVI'}
+          big={number(veg.ndvi, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          bigUnit={veg.observedDate ? `NDVI · MODIS ${date(veg.observedDate)}` : 'NDVI'}
         >
           <StatRow
             label="Health"
@@ -369,7 +369,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Recent trend')}</span>
             <span className={cn('flex items-center gap-1 font-medium', vegTrend.color)}>
               {vegTrend.icon}
-              {Math.abs(veg.recentTrend).toFixed(3)} /yr
+              {number(Math.abs(veg.recentTrend), { minimumFractionDigits: 3, maximumFractionDigits: 3 })} /yr
             </span>
           </div>
           {vegSeries.length > 0 && (
@@ -377,7 +377,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={vegSeries} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
+                  <XAxis dataKey="month" tickFormatter={value => t(String(value))} tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
                   <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" domain={[0, 1]} />
                   <Tooltip content={<ChartTooltip />} />
                   {vegObserved && (
@@ -390,8 +390,8 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           )}
           {vegObserved && (
             <div className="mt-1 flex items-center gap-3 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
-              <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-emerald-400" />MODIS observed</span>
-              <span className="flex items-center gap-1"><span className="h-0 w-3 border-t border-dashed border-slate-400" />POWER-driven model</span>
+              <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-emerald-400" />{t('MODIS observed')}</span>
+              <span className="flex items-center gap-1"><span className="h-0 w-3 border-t border-dashed border-slate-400" />{t('POWER-driven model')}</span>
             </div>
           )}
         </NasaCard>
@@ -402,14 +402,12 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
         <div className="flex items-start justify-between gap-3">
           <SectionLabel icon={<FlaskConical />}>Soil condition</SectionLabel>
           <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
-            NASA observation + derived model estimate
+            {t('NASA observation + derived model estimate')}
           </span>
         </div>
         <Separator className="my-3 bg-white/10" />
         <p className="mb-3 text-xs text-muted-foreground italic">
-          Soil moisture is derived from NASA POWER precipitation + a water-balance model. Other soil
-          metrics are derived from regional signals and farmer-reported texture. NASA does not
-          directly measure every soil-health metric.
+          {t('Soil moisture is derived from NASA POWER precipitation + a water-balance model. Other soil metrics are derived from regional signals and farmer-reported texture. NASA does not directly measure every soil-health metric.')}
         </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <SoilMetricRow label="Soil texture" valueText={soilCond.texture} />
@@ -422,10 +420,10 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
         <div className="mt-4 flex items-start gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs text-cyan-100/80">
           <Info className="mt-0.5 size-3.5 shrink-0 text-cyan-300" />
           <span>
-            <strong className="font-medium text-cyan-200">NASA observation:</strong> soil moisture
-            derived from POWER precipitation (GPM-corrected).{' '}
-            <strong className="font-medium text-amber-200">Derived/model estimate:</strong> texture,
-            organic matter, nitrogen balance, erosion risk, water retention.
+            <strong className="font-medium text-cyan-200">{t('NASA observation:')}</strong>{' '}
+            {t('Soil moisture uses POWER precipitation (GPM-corrected).')}{' '}
+            <strong className="font-medium text-amber-200">{t('Derived/model estimate:')}</strong>{' '}
+            {t('Soil texture, organic matter, nitrogen balance, erosion risk, and water retention.')}
           </span>
         </div>
       </Card>

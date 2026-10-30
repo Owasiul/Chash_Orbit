@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from '@/lib/utils';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 // 'derived' = computed from a NASA source via a model (e.g. soil moisture
 // derived from POWER precipitation + water-balance). This is distinct from

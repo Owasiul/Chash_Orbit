@@ -1,0 +1,23 @@
+{
+  "couldn-t-load-locations-check-your-connectio": "Couldn't load locations. Check your connection and try again.",
+  "analysis-failed": "Analysis failed",
+  "re-analysis-failed": "Re-analysis failed: ",
+  "error": "Error",
+  "an-error-occurred-please-try-again": "An error occurred. Please try again.",
+  "country-center-could-not-be-resolved-navigat": "Country center could not be resolved. Navigating directly to the matched location.",
+  "country-details-could-not-be-loaded-navigati": "Country details could not be loaded. Navigating directly to the matched location.",
+  "globe-unavailable-showing-reduced-experience": "Globe unavailable — showing reduced experience",
+  "could-not-read-the-saved-language-preference": "Could not read the saved language preference:",
+  "llm-api-key-is-not-configured": "LLM API key is not configured",
+  "failed-to-process-chat-message": "Failed to process chat message",
+  "failed-to-generate-explanation": "Failed to generate explanation",
+  "failed-to-persist-farm": "Failed to persist farm.",
+  "location-search-is-temporarily-unavailable-p": "Location search is temporarily unavailable. Please try again shortly.",
+  "farm-not-found": "Farm not found",
+  "the-selected-language-could-not-be-saved": "The selected language could not be saved.",
+  "not-found": "Page not found",
+  "page-not-found-description": "The page you requested does not exist or may have moved.",
+  "something-went-wrong": "Something went wrong",
+  "unexpected-error-description": "An unexpected error occurred. Please try again.",
+  "request-failed": "The request could not be completed. Please try again."
+}

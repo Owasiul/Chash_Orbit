@@ -9,6 +9,7 @@ import {
   type IrrigationType,
   type SoilType,
 } from '@/lib/crops';
+import { translateMessage, type Locale } from '@/lib/i18n';
 
 // ── Request / response types ─────────────────────────────────────────────────
 interface AnalyzeBody {
@@ -19,36 +20,45 @@ interface AnalyzeBody {
   area?: number;
   areaUnit?: 'acres' | 'hectares';
   currentCrop?: string | null;
+  locale?: Locale;
   desiredCrops: string[];
   irrigation: IrrigationType | 'rainfed' | 'limited' | 'reliable';
   soilType?: SoilType;
   priorities: FarmerPriorities;
 }
 
-function bad(msg: string, status = 400) {
-  return NextResponse.json({ error: msg }, { status });
+function requestLocale(req: Request): Locale {
+  return req.headers.get('accept-language')?.toLowerCase().startsWith('bn')
+    ? 'bn-BD'
+    : 'en';
+}
+
+function bad(msg: string, status = 400, locale: Locale = 'en') {
+  return NextResponse.json({ error: translateMessage(locale, msg) }, { status });
 }
 
 export async function POST(req: Request) {
   let body: AnalyzeBody;
+  let locale = requestLocale(req);
   try {
     body = (await req.json()) as AnalyzeBody;
+    if (body.locale === 'bn-BD') locale = 'bn-BD';
   } catch {
-    return bad('Invalid JSON body.');
+    return bad('Invalid JSON body.', 400, locale);
   }
 
   // Validate
   const { latitude, longitude, desiredCrops, priorities, irrigation } = body;
-  if (typeof latitude !== 'number' || typeof longitude !== 'number') return bad('latitude and longitude are required.');
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return bad('latitude and longitude are required.', 400, locale);
   if (!Number.isFinite(latitude) || Math.abs(latitude) > 90 || !Number.isFinite(longitude) || Math.abs(longitude) > 180) {
-    return bad('latitude must be within ±90 and longitude within ±180.');
+    return bad('latitude must be within ±90 and longitude within ±180.', 400, locale);
   }
-  if (!Array.isArray(desiredCrops) || desiredCrops.length === 0) return bad('desiredCrops must be a non-empty array.');
-  if (desiredCrops.length > 20 || !desiredCrops.every(c => typeof c === 'string')) return bad('desiredCrops must be at most 20 crop names.');
+  if (!Array.isArray(desiredCrops) || desiredCrops.length === 0) return bad('desiredCrops must be a non-empty array.', 400, locale);
+  if (desiredCrops.length > 20 || !desiredCrops.every(c => typeof c === 'string')) return bad('desiredCrops must be at most 20 crop names.', 400, locale);
   if (!priorities || typeof priorities.soil !== 'number' || typeof priorities.water !== 'number' || typeof priorities.climate !== 'number' || typeof priorities.income !== 'number') {
-    return bad('priorities (soil, water, climate, income) are required.');
+    return bad('priorities (soil, water, climate, income) are required.', 400, locale);
   }
-  if (!['rainfed', 'limited', 'reliable'].includes(irrigation)) return bad('irrigation must be rainfed | limited | reliable.');
+  if (!['rainfed', 'limited', 'reliable'].includes(irrigation)) return bad('irrigation must be rainfed | limited | reliable.', 400, locale);
 
   // Ensure crop library is seeded (idempotent).
   try {
@@ -101,7 +111,7 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error('Failed to persist farm:', e);
-    return bad('Failed to persist farm.', 500);
+    return bad('Failed to persist farm.', 500, locale);
   }
 
   // ── Step 2: Save farmer preferences (replace existing) ─────────────────

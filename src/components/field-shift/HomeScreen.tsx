@@ -8,9 +8,14 @@ import { useAppStore } from "@/lib/store";
 import { LocationSearch } from "./LocationSearch";
 import { SAMPLE_FARMS } from "@/lib/location";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "@/lib/i18n";
-import { geocodeLocation, type ResolvedLocation } from "@/lib/location-geocoding";
+import { useTranslation } from "@/lib/locale";
+import { toast } from "@/hooks/use-toast";
+import {
+  geocodeLocation,
+  type ResolvedLocation,
+} from "@/lib/location-geocoding";
 import type { GeoResult } from "@/lib/location";
+import Image from "next/image";
 
 const FieldMap = dynamic(() => import("@/components/field-shift/FieldMap"), {
   ssr: false,
@@ -38,15 +43,18 @@ function GlobeLoading() {
 }
 
 export function HomeScreen() {
-  const { locale, t } = useTranslation();
+  const { locale, t, number } = useTranslation();
   const setSelected = useAppStore((s) => s.setSelected);
   const selected = useAppStore((s) => s.selected);
   const setView = useAppStore((s) => s.setView);
   const runAnalysis = useAppStore((s) => s.runAnalysis);
   const [navigationLocation, setNavigationLocation] =
     React.useState<ResolvedLocation | null>(null);
-  const [locationLookupLoading, setLocationLookupLoading] = React.useState(false);
-  const [locationLookupError, setLocationLookupError] = React.useState<string | null>(null);
+  const [locationLookupLoading, setLocationLookupLoading] =
+    React.useState(false);
+  const [locationLookupError, setLocationLookupError] = React.useState<
+    string | null
+  >(null);
   const [showLocationMap, setShowLocationMap] = React.useState(false);
   const locationLookupController = React.useRef<AbortController | null>(null);
   const showMapAfterNavigation = React.useCallback(() => {
@@ -67,7 +75,9 @@ export function HomeScreen() {
         .join(", ");
 
       try {
-        const location = await geocodeLocation(query, { signal: controller.signal });
+        const location = await geocodeLocation(query, {
+          signal: controller.signal,
+        });
         if (controller.signal.aborted) return;
 
         const resolvedResult: GeoResult = {
@@ -94,7 +104,9 @@ export function HomeScreen() {
         const location: ResolvedLocation = {
           query,
           name: r.name,
-          displayName: [r.name, r.admin2, r.admin1, r.country].filter(Boolean).join(", "),
+          displayName: [r.name, r.admin2, r.admin1, r.country]
+            .filter(Boolean)
+            .join(", "),
           lat: r.latitude,
           lng: r.longitude,
           country: r.country,
@@ -103,10 +115,16 @@ export function HomeScreen() {
         };
         setSelected(r);
         setNavigationLocation(location);
-        setLocationLookupError(
-          "Country details could not be loaded. Navigating directly to the matched location.",
+        toast({
+          description: t(
+            "Country details could not be loaded. Navigating directly to the matched location.",
+          ),
+          variant: "destructive",
+        });
+        console.warn(
+          "[HomeScreen] country-aware location lookup failed:",
+          error,
         );
-        console.warn("[HomeScreen] country-aware location lookup failed:", error);
       } finally {
         if (locationLookupController.current === controller) {
           locationLookupController.current = null;
@@ -114,13 +132,10 @@ export function HomeScreen() {
         }
       }
     },
-    [setSelected],
+    [setSelected, t],
   );
 
-  React.useEffect(
-    () => () => locationLookupController.current?.abort(),
-    [],
-  );
+  React.useEffect(() => () => locationLookupController.current?.abort(), []);
 
   const handleSample = (id: string) => {
     const s = SAMPLE_FARMS.find((f) => f.id === id);
@@ -184,7 +199,7 @@ export function HomeScreen() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.65 }}
             className="absolute inset-0 z-[5]"
-            aria-label={`Map centered on ${selected.name}`}
+            aria-label={t(`Map centered on ${selected.name}`)}
           >
             <FieldMap
               key={`${selected.latitude},${selected.longitude}`}
@@ -198,16 +213,15 @@ export function HomeScreen() {
       </AnimatePresence>
 
       {/* Top — brand + mission tag */}
-      <header className="relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
+      <header className="pointer-events-none relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
         <div className="flex items-center gap-2">
-          <Satellite className="size-5 text-amber-300" />
-          <span className="font-mono text-xs tracking-[0.3em] text-amber-200/90">
-            Chash Orbit
-          </span>
-        </div>
-        <div className="mr-24 hidden items-center gap-2 font-mono text-[10px] tracking-widest text-muted-foreground/70 sm:flex">
-          <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
-          {t("EARTH OBSERVATION INTERFACE · v1.0")}
+          <Image
+            src="/Logo.webp"
+            alt="Logo"
+            width={50}
+            height={50}
+            priority
+          />
         </div>
       </header>
 
@@ -223,7 +237,7 @@ export function HomeScreen() {
                 transition={{ duration: 0.25 }}
                 className="glass-panel scanline flex flex-col gap-3 rounded-2xl p-4"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex -translate-x-2 items-center gap-3">
                   <Globe2 className="size-5 shrink-0 text-amber-300" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold text-foreground">
@@ -232,11 +246,19 @@ export function HomeScreen() {
                         .join(", ")}
                     </div>
                     <div className="font-mono text-[10px] text-muted-foreground">
-                      {Math.abs(selected.latitude).toFixed(4)}°{" "}
-                      {selected.latitude >= 0 ? "N" : "S"}
+                      {number(Math.abs(selected.latitude), {
+                        minimumFractionDigits: 4,
+                        maximumFractionDigits: 4,
+                        useGrouping: false,
+                      })}
+                      ° {selected.latitude >= 0 ? "N" : "S"}
                       {" · "}
-                      {Math.abs(selected.longitude).toFixed(4)}°{" "}
-                      {selected.longitude >= 0 ? "E" : "W"}
+                      {number(Math.abs(selected.longitude), {
+                        minimumFractionDigits: 4,
+                        maximumFractionDigits: 4,
+                        useGrouping: false,
+                      })}
+                      ° {selected.longitude >= 0 ? "E" : "W"}
                     </div>
                   </div>
                 </div>
@@ -248,7 +270,7 @@ export function HomeScreen() {
                   <span className="flex items-center gap-2">
                     <Sparkles className="size-4 text-amber-300" />
                     <span className="text-sm font-medium text-amber-100">
-                      {t("Analyze this area")}
+                      {t("common.analyze-this-area")}
                     </span>
                   </span>
                   <ArrowRight className="size-4 text-amber-300 transition-transform group-hover:translate-x-1" />
@@ -260,7 +282,7 @@ export function HomeScreen() {
           {!selected && (
             <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
               <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-white/60">
-                {t("Quick pick")}
+                {t("common.quick-pick")}
               </span>
               {SAMPLE_FARMS.map((f) => (
                 <button
@@ -281,7 +303,7 @@ export function HomeScreen() {
                 className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200"
               >
                 <Play className="size-3" />
-                {t("See demo")}
+                {t("common.see-demo")}
               </button>
             </div>
           )}

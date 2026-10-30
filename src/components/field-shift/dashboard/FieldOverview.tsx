@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { formatLatLng } from '@/lib/location';
 import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
 import type { FullAnalysis } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 // Dynamically import the holographic globe (ssr:false so three.js never runs
 // on the server).

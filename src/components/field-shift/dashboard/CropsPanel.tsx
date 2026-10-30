@@ -34,17 +34,17 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAppStore, type FullAnalysis } from '@/lib/store';
 import type { FarmerInputs } from '@/lib/decision/engine';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 // ── Mini-fit-bar ────────────────────────────────────────────────────────────
 function FitBar({ label, value }: { label: string; value: number }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   const color =
     value >= 75 ? 'bg-emerald-400' : value >= 50 ? 'bg-amber-400' : 'bg-rose-400';
   return (
     <div className="flex flex-col gap-1">
       <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
-        {t(label)} {value}
+        {t(label)} {number(value)}
       </span>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/5">
         <div
@@ -69,12 +69,12 @@ function SectionLabel({ icon, children }: { icon: React.ReactNode; children: Rea
 
 // ── Section 1: Your crops ────────────────────────────────────────────────────
 function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   return (
     <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
       <SectionLabel icon={<Sprout />}>Your crops</SectionLabel>
       <p className="mb-3 text-xs text-muted-foreground">
-        Compatibility scores for the crops you're considering, weighted by your priorities.
+        {t('validation.compatibility-scores-for-the-crops-you-re-co')}
       </p>
       <Accordion type="multiple" className="w-full">
         {analysis.cropCompatibility.map((c, i) => (
@@ -91,7 +91,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                 <span className="text-sm font-medium text-foreground">{t(c.crop)}</span>
                 {i === 0 && (
                   <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200">
-                    Top fit
+                    {t('Top fit')}
                   </Badge>
                 )}
                 <div className="ml-auto flex items-center gap-3">
@@ -103,7 +103,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                     <FitBar label="Rotation" value={c.rotationFit} />
                   </div>
                   <span className="font-mono text-xl font-light text-amber-300 tabular-nums">
-                    {c.overallFit}
+                    {number(c.overallFit)}
                   </span>
                 </div>
               </div>
@@ -126,17 +126,17 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                   </Badge>
                   {c.isPlantableNow ? (
                     <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-emerald-200">
-                      Plantable now
+                      {t('Plantable now')}
                     </Badge>
                   ) : c.monthsUntilPlant > 0 ? (
                     <Badge variant="outline" className="border-amber-400/30 text-amber-200/90">
-                      {t('Next plant in {months} mo').replace('{months}', String(c.monthsUntilPlant))}
+                      {t('Next plant in {months} mo', { months: c.monthsUntilPlant })}
                     </Badge>
                   ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                    Why this score
+                    {t('Why this score')}
                   </span>
                   {c.reasons.length > 0 ? (
                     <ul className="space-y-1.5">
@@ -149,7 +149,7 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
                     </ul>
                   ) : (
                     <p className="text-xs text-muted-foreground italic">
-                      No specific signal flags this crop — scores are moderate across all dimensions.
+                      {t('No specific signal flags this crop — scores are moderate across all dimensions.')}
                     </p>
                   )}
                 </div>
@@ -164,12 +164,12 @@ function CompatibilitySection({ analysis }: { analysis: FullAnalysis }) {
 
 // ── Section 2: What could grow well here? ────────────────────────────────────
 function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   return (
     <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
       <SectionLabel icon={<Sparkles />}>What could grow well here?</SectionLabel>
       <p className="mb-3 text-xs text-muted-foreground">
-        Top six candidates outside of your current crop, ranked by Chash Orbit's overall fit score.
+        {t('dashboard.top-six-candidates-outside-of-your-current-c')}
       </p>
       <ol className="space-y-2.5">
         {analysis.recommendations.map((r, i) => {
@@ -193,7 +193,7 @@ function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
                   isTop ? 'text-lg text-amber-300' : 'text-base text-muted-foreground/80',
                 )}
               >
-                {String(r.rank).padStart(2, '0')}
+                {number(r.rank, { minimumIntegerDigits: 2, useGrouping: false })}
               </span>
               <div className="flex-1">
                 <div className="flex items-baseline justify-between gap-2">
@@ -206,7 +206,7 @@ function RecommendationsSection({ analysis }: { analysis: FullAnalysis }) {
                       isTop ? 'text-2xl text-amber-300' : 'text-lg text-amber-300/80',
                     )}
                   >
-                    {r.score}
+                    {number(r.score)}
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{t(r.why)}</p>
@@ -277,7 +277,8 @@ function ChangeCropsSection() {
       toast.success(t('Analysis updated with new crop selection.'));
     } catch (e) {
       if ((e as Error).name !== 'AbortError') {
-        toast.error(t('Re-analysis failed: ') + (e as Error).message);
+        console.error('Crop re-analysis failed:', e);
+        toast.error(t('dashboard.analysis-retry-failed'));
       }
     } finally {
       setRecalculating(false);
@@ -342,18 +343,17 @@ function ChangeCropsSection() {
             className="border-amber-400/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20 hover:text-amber-50"
           >
             <Plus className="size-4" />
-            Edit crop selection
+            {t('Edit crop selection')}
           </Button>
         </DialogTrigger>
         <DialogContent className="border-white/10 bg-background/95 backdrop-blur-md sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Sprout className="size-5 text-amber-300" />
-              Edit crops you're considering
+              {t('dashboard.edit-crops-you-re-considering')}
             </DialogTitle>
             <DialogDescription>
-              Toggle crops to add or remove them. Chash Orbit re-runs the analysis
-              automatically (debounced) — keep at least one crop selected.
+              {t('Toggle crops to add or remove them. Chash Orbit re-runs the analysis automatically (debounced) — keep at least one crop selected.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -362,7 +362,7 @@ function ChangeCropsSection() {
           <div className="space-y-3">
             <div>
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                Selected ({desired.length})
+                {t('dashboard.selected-count', { count: desired.length })}
               </span>
               <div className="mt-2 flex flex-wrap gap-2">
                 {desired.map(c => (
@@ -379,7 +379,7 @@ function ChangeCropsSection() {
                 ))}
                 {desired.length === 0 && (
                   <span className="text-xs text-rose-300 italic">
-                    No crops selected — pick at least one below.
+                    {t('No crops selected — pick at least one below.')}
                   </span>
                 )}
               </div>
@@ -388,7 +388,7 @@ function ChangeCropsSection() {
             {extraRecs.length > 0 && (
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  Recommended but not selected
+                  {t('Recommended but not selected')}
                 </span>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {extraRecs.map(c => (
@@ -409,7 +409,7 @@ function ChangeCropsSection() {
             {pool.length > 0 && (
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  Full pool
+                  {t('Full pool')}
                 </span>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {pool.map(c => (
@@ -444,7 +444,7 @@ function ChangeCropsSection() {
                     className="inline-flex items-center gap-1.5 text-amber-200"
                   >
                     <Loader2 className="size-3.5 animate-spin" />
-                    Recalculating...
+                    {t('Recalculating...')}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -455,7 +455,7 @@ function ChangeCropsSection() {
               className="border-white/10 bg-white/5 text-foreground hover:bg-white/10"
               variant="outline"
             >
-              Done
+              {t('Done')}
             </Button>
           </DialogFooter>
         </DialogContent>

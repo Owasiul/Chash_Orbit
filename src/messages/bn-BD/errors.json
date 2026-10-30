@@ -1,0 +1,23 @@
+{
+  "couldn-t-load-locations-check-your-connectio": "অবস্থান লোড করা যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।",
+  "analysis-failed": "বিশ্লেষণ ব্যর্থ হয়েছে",
+  "re-analysis-failed": "পুনর্বিশ্লেষণ ব্যর্থ হয়েছে: ",
+  "error": "ত্রুটি",
+  "an-error-occurred-please-try-again": "একটি ত্রুটি হয়েছে। আবার চেষ্টা করুন।",
+  "country-center-could-not-be-resolved-navigat": "দেশের কেন্দ্র নির্ধারণ করা যায়নি। সরাসরি মিলিত অবস্থানে যাওয়া হচ্ছে।",
+  "country-details-could-not-be-loaded-navigati": "দেশের বিবরণ লোড করা যায়নি। সরাসরি মিলিত অবস্থানে যাওয়া হচ্ছে।",
+  "globe-unavailable-showing-reduced-experience": "গ্লোব উপলভ্য নয় — সীমিত অভিজ্ঞতা দেখানো হচ্ছে",
+  "could-not-read-the-saved-language-preference": "সংরক্ষিত ভাষা পছন্দ পড়া যায়নি:",
+  "llm-api-key-is-not-configured": "LLM API key কনফিগার করা হয়নি",
+  "failed-to-process-chat-message": "বার্তাটি প্রক্রিয়া করা যায়নি",
+  "failed-to-generate-explanation": "ব্যাখ্যা তৈরি করা যায়নি",
+  "failed-to-persist-farm": "খামারের তথ্য সংরক্ষণ করা যায়নি।",
+  "location-search-is-temporarily-unavailable-p": "অবস্থান অনুসন্ধান সাময়িকভাবে বন্ধ। কিছুক্ষণ পর আবার চেষ্টা করুন।",
+  "farm-not-found": "খামারটি পাওয়া যায়নি",
+  "the-selected-language-could-not-be-saved": "নির্বাচিত ভাষা সংরক্ষণ করা যায়নি।",
+  "not-found": "পৃষ্ঠাটি পাওয়া যায়নি",
+  "page-not-found-description": "আপনার চাওয়া পৃষ্ঠাটি নেই অথবা ঠিকানা পরিবর্তিত হয়েছে।",
+  "something-went-wrong": "একটি সমস্যা হয়েছে",
+  "unexpected-error-description": "অপ্রত্যাশিত একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।",
+  "request-failed": "অনুরোধটি সম্পন্ন করা যায়নি। আবার চেষ্টা করুন।"
+}

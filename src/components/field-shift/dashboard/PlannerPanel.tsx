@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { FullAnalysis } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 // ── Score chip ──────────────────────────────────────────────────────────────
 interface ScoreChipProps {
@@ -33,7 +33,7 @@ const CHIP_COLOR: Record<ScoreChipProps['color'], { bg: string; text: string; bo
 };
 
 function ScoreChip({ icon, label, score, color }: ScoreChipProps) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   const c = CHIP_COLOR[color];
   return (
     <div
@@ -46,7 +46,7 @@ function ScoreChip({ icon, label, score, color }: ScoreChipProps) {
     >
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-3.5' })}
       <span className="font-mono text-[10px] uppercase tracking-widest">{t(label)}</span>
-      <span className="font-mono text-base font-light tabular-nums">{score}</span>
+      <span className="font-mono text-base font-light tabular-nums">{number(score)}</span>
     </div>
   );
 }
@@ -82,7 +82,7 @@ function YearCard({
   growingDays?: number;
   isLast: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -93,22 +93,22 @@ function YearCard({
       <Card className="border-white/10 bg-card/50 p-4 sm:p-5">
         <div className="mb-2 flex items-center justify-between">
           <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-            {t('Year {year}').replace('{year}', String(year))}
+            {t('Year {year}', { year })}
           </span>
           <span className="font-mono text-2xl font-light text-amber-300 tabular-nums">
-            {score}
+            {number(score)}
           </span>
         </div>
-        <div className="text-xl font-medium text-foreground">{crop}</div>
+        <div className="text-xl font-medium text-foreground">{t(crop)}</div>
         {(plantingSeason || harvestSeason) && (
           <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/80">
             {t('Plant')} {t(plantingSeason ?? '—')} · {t('Harvest')} {t(harvestSeason ?? '—')}
-            {growingDays != null ? ` · ~${growingDays}d` : ''}
+            {growingDays != null ? ` · ~${number(growingDays)}d` : ''}
           </p>
         )}
         {coverCrop && (
           <div className="mt-1 text-xs italic text-muted-foreground">
-            {t('with {crop}').replace('{crop}', t(coverCrop))}
+            {t('with {crop}', { crop: t(coverCrop) })}
           </div>
         )}
         <div className="mt-2">

@@ -1,19 +1,24 @@
 import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { translateMessage, type Locale } from '@/lib/i18n';
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  let locale: Locale = req.headers.get('accept-language')?.toLowerCase().startsWith('bn')
+    ? 'bn-BD'
+    : 'en';
   try {
-    const { messages, analysis, locale } = await req.json();
-    const responseLanguage = locale === 'bn' ? 'Bengali' : 'English';
+    const { messages, analysis, locale: requestedLocale } = await req.json();
+    locale = requestedLocale === 'bn' || requestedLocale === 'bn-BD' ? 'bn-BD' : locale;
+    const responseLanguage = locale === 'bn-BD' ? 'Bengali (Bangladesh)' : 'English';
 
     if (!messages || !analysis) {
-      return new Response(JSON.stringify({ error: 'Messages and analysis data are required' }), { status: 400 });
+      return new Response(JSON.stringify({ error: translateMessage(locale, 'Messages and analysis data are required') }), { status: 400 });
     }
 
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      return new Response(JSON.stringify({ error: 'LLM API key is not configured' }), { status: 500 });
+      return new Response(JSON.stringify({ error: translateMessage(locale, 'LLM API key is not configured') }), { status: 500 });
     }
 
     const systemPrompt = `You are a professional agricultural decision-support assistant answering a farmer's questions.
@@ -76,6 +81,9 @@ ${JSON.stringify(analysis, null, 2)}
     return result.toUIMessageStreamResponse();
   } catch (error: any) {
     console.error('Chat failed:', error);
-    return new Response(JSON.stringify({ error: 'Failed to process chat message', details: error.message }), { status: 500 });
+    return new Response(JSON.stringify({
+      error: translateMessage(locale, 'Failed to process chat message'),
+      details: error.message,
+    }), { status: 500 });
   }
 }

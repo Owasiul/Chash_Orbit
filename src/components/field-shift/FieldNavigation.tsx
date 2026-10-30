@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore, type DashboardTab } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 interface Tab {
   id: DashboardTab;
@@ -21,8 +21,8 @@ const TABS: Tab[] = [
   { id: 'crops', label: 'Crops', icon: Sprout },
   { id: 'planner', label: 'Planner', icon: CalendarClock },
   { id: 'compare', label: 'Compare', icon: BarChart3 },
-  { id: 'learn', label: 'Learn', icon: GraduationCap },
   { id: 'advisor', label: 'Advisor', icon: MessageSquare },
+  { id: 'learn', label: 'Learn', icon: GraduationCap },
 ];
 
 export function FieldNavigation() {

@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/table';
 import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
 import type { FullAnalysis } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 // ── Score explanation row ──────────────────────────────────────────────────
 const SCORE_EXPLANATIONS: { name: string; desc: string; icon: React.ReactNode }[] = [
@@ -118,7 +118,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
     <div className="space-y-4">
       {/* Title */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <h2 className="text-xl font-light text-foreground sm:text-2xl">About this analysis</h2>
+        <h2 className="text-xl font-light text-foreground sm:text-2xl">{t('About this analysis')}</h2>
         <p className="mt-2 text-sm text-muted-foreground">
         {t('Chash Orbit turns NASA Earth-observation data into a transparent field-level recommendation. NASA POWER provides live temperature and rainfall data. Soil moisture, NDVI, and additional soil metrics are derived estimates — we never falsely label sample data as live NASA data.')}
         </p>

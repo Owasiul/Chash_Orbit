@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { BrainCircuit, Send, Loader2, AlertCircle, RefreshCcw, Database } from 'lucide-react';
 import { FullAnalysis } from '@/lib/store';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 
 
@@ -67,7 +67,7 @@ function ReportSkeleton() {
 }
 
 export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
-  const { locale, t } = useTranslation();
+  const { locale, t, number } = useTranslation();
   const report = useAppStore(s => s.advisorReport);
   const setReport = useAppStore(s => s.setAdvisorReport);
   const [loadingReport, setLoadingReport] = React.useState(false);
@@ -103,12 +103,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch report');
       setReport(data.report);
-    } catch (err: any) {
-      setReportError(err.message);
+    } catch (err) {
+      console.error('Advisor report request failed:', err);
+      setReportError(t('errors.request-failed'));
     } finally {
       setLoadingReport(false);
     }
-  }, [analysis, locale, setReport]);
+  }, [analysis, locale, setReport, t]);
 
   React.useEffect(() => {
     setReport(null);
@@ -118,12 +119,12 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
 
   const renderDataStatus = (status: string) => {
     const map: Record<string, { color: string, label: string }> = {
-      LIVE: { color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', label: 'LIVE' },
-      CACHED: { color: 'bg-blue-500/20 text-blue-300 border-blue-500/30', label: 'CACHED' },
-      DERIVED: { color: 'bg-amber-500/20 text-amber-300 border-amber-500/30', label: 'DERIVED' },
-      DEMO: { color: 'bg-purple-500/20 text-purple-300 border-purple-500/30', label: 'DEMO' },
+      LIVE: { color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', label: t('dashboard.data-status-live') },
+      CACHED: { color: 'bg-blue-500/20 text-blue-300 border-blue-500/30', label: t('dashboard.data-status-cached') },
+      DERIVED: { color: 'bg-amber-500/20 text-amber-300 border-amber-500/30', label: t('dashboard.data-status-derived') },
+      DEMO: { color: 'bg-purple-500/20 text-purple-300 border-purple-500/30', label: t('dashboard.data-status-demo') },
     };
-    const s = map[status] || { color: 'bg-gray-500/20 text-gray-300', label: status };
+    const s = map[status] || { color: 'bg-gray-500/20 text-gray-300', label: t(status) };
     return <Badge variant="outline" className={`text-[9px] ${s.color}`}>{s.label}</Badge>;
   };
 
@@ -202,7 +203,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
                     <AccordionTrigger className="hover:no-underline">
                       <div className="flex w-full items-center justify-between pr-4">
                         <span className="font-medium text-emerald-300">
-                          #{rank} {comp.crop} {score !== undefined && `(Score: ${score})`}
+                          #{number(rank)} {t(comp.crop)} {score !== undefined && `(${t('dashboard.score-label', { score })})`}
                         </span>
                       </div>
                     </AccordionTrigger>
@@ -211,13 +212,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
                         <div>
                           <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Strengths:')}</span>
                           <ul className="ml-4 list-disc text-xs">
-                            {comp.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                            {comp.strengths.map((s: string, i: number) => <li key={i}>{t(s)}</li>)}
                           </ul>
                         </div>
                         <div>
                           <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Concerns:')}</span>
                           <ul className="ml-4 list-disc text-xs">
-                            {comp.concerns.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                            {comp.concerns.map((s: string, i: number) => <li key={i}>{t(s)}</li>)}
                           </ul>
                         </div>
                         <div className="rounded bg-white/5 p-2 text-xs italic opacity-80">
@@ -270,7 +271,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
               <div className="flex h-full flex-col items-center justify-center text-center opacity-50">
                 <BrainCircuit className="mb-2 size-8" />
 
-                <p className="text-sm">{t("Ask anything about this field's analysis, crop rankings, or risks.")}</p>
+                <p className="text-sm">{t('dashboard.ask-anything-about-this-field-s-analysis-cro')}</p>
               </div>
             ) : (
               messages.map(m => (

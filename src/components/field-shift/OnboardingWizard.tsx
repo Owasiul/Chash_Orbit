@@ -14,7 +14,7 @@ import {
   type CropSpec,
 } from '@/lib/crops';
 import { fetchEnvironment } from '@/lib/nasa/environment';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 const FieldMap = dynamic(() => import('@/components/field-shift/FieldMap'), { ssr: false });
 
@@ -88,7 +88,7 @@ function CropStep({
   selections: CropSelection[];
   setSelections: (s: CropSelection[]) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   const [custom, setCustom] = React.useState('');
   const allCrops = ONBOARDING_CROP_OPTIONS;
   const selectedNames = new Set(selections.map(s => s.name));
@@ -118,7 +118,7 @@ function CropStep({
       <div>
         <h2 className="text-xl font-semibold text-foreground">{t('What do you want to grow?')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t("Pick your primary crops, secondary crops, and any crops you're considering. We'll match each one to your field's signals.")}
+          {t('common.pick-your-primary-crops-secondary-crops-and')}
         </p>
       </div>
 
@@ -175,7 +175,7 @@ function CropStep({
       {selections.length > 0 && (
         <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
           <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-            {t('Your selected crops')} ({selections.length})
+            {t('Your selected crops')} ({number(selections.length)})
           </div>
           <div className="space-y-2">
             {selections.map(s => (
@@ -247,7 +247,7 @@ function FarmStep({
       <div>
         <h2 className="text-xl font-semibold text-foreground">{t('Farm information')}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          {t("A few details about your land. If you're unsure about soil, we'll infer it from regional signals.")}
+          {t('common.a-few-details-about-your-land-if-you-re-unsu')}
         </p>
       </div>
 
@@ -262,7 +262,7 @@ function FarmStep({
             step="0.1"
             value={area}
             onChange={e => setArea(e.target.value)}
-            placeholder="e.g. 5"
+            placeholder={t('e.g. 5')}
             className="flex-1 rounded-xl border border-white/10 bg-black/30 px-4 py-2.5 text-sm outline-none focus:border-amber-400/40"
           />
           <div className="inline-flex rounded-xl border border-white/10 bg-white/5 p-1">
@@ -336,7 +336,7 @@ function FarmStep({
         <div className="flex items-center justify-between">
           <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Soil type')}</label>
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
-            <Info className="size-3" /> {t("Not required — we'll infer it if you don't know.")}
+            <Info className="size-3" /> {t('validation.not-required-we-ll-infer-it-if-you-don-t-kno')}
           </span>
         </div>
         <div className="mt-2 grid gap-2 sm:grid-cols-4">
@@ -369,7 +369,7 @@ function PrioritiesStep({
   priorities: { soil: number; water: number; climate: number; income: number };
   setPriorities: (p: { soil: number; water: number; climate: number; income: number }) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, number } = useTranslation();
   const total = priorities.soil + priorities.water + priorities.climate + priorities.income;
   const ok = total === 100;
 
@@ -411,7 +411,7 @@ function PrioritiesStep({
             'font-mono text-lg font-semibold tabular-nums',
             ok ? 'text-emerald-300' : 'text-amber-300',
           )}>
-            {total}%
+            {number(total)}%
           </span>
         </div>
         <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-white/5">
@@ -422,7 +422,7 @@ function PrioritiesStep({
         </div>
         {!ok && (
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-amber-300/80">{t('Total must equal 100% (currently {total}%)').replace('{total}', String(total))}</span>
+            <span className="text-xs text-amber-300/80">{t('Total must equal 100% (currently {total}%)', { total })}</span>
             <button
               type="button"
               onClick={normalize}
@@ -470,7 +470,7 @@ function PrioritiesStep({
 
 // ── Main wizard ─────────────────────────────────────────────────────────────
 export function OnboardingWizard() {
-  const { locale, t } = useTranslation();
+  const { locale, t, number } = useTranslation();
   const selected = useAppStore(s => s.selected);
   const setView = useAppStore(s => s.setView);
   const setSelected = useAppStore(s => s.setSelected);
@@ -566,7 +566,7 @@ export function OnboardingWizard() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.65 }}
             className="pointer-events-none absolute inset-0 z-[1]"
-            aria-label={`Map centered on ${selected.name}`}
+            aria-label={t(`Map centered on ${selected.name}`)}
           >
             <FieldMap
               key={`${selected.latitude},${selected.longitude}`}
@@ -589,7 +589,7 @@ export function OnboardingWizard() {
           <ArrowLeft className="size-4" /> {t('Back')}
         </button>
         <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-          {selected.name} · {Math.abs(selected.latitude).toFixed(2)}°{selected.latitude >= 0 ? 'N' : 'S'} {Math.abs(selected.longitude).toFixed(2)}°{selected.longitude >= 0 ? 'E' : 'W'}
+          {selected.name} · {number(Math.abs(selected.latitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.latitude >= 0 ? 'N' : 'S'} {number(Math.abs(selected.longitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.longitude >= 0 ? 'E' : 'W'}
         </div>
       </header>
 
@@ -616,7 +616,7 @@ export function OnboardingWizard() {
                     soil={soil} setSoil={setSoil}
                   />
                   <div>
-                    <p className="mb-2 text-xs text-muted-foreground">Tap the map to refine your field location. Environmental analysis uses this pin.</p>
+                    <p className="mb-2 text-xs text-muted-foreground">{t('Tap the map to refine your field location. Environmental analysis uses this pin.')}</p>
                     <FieldMap latitude={selected.latitude} longitude={selected.longitude} height={280}
                       onPick={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })} />
                   </div>

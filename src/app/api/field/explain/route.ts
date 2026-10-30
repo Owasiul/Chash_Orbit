@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateObject } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
+import { translateMessage, type Locale } from '@/lib/i18n';
 
 export const maxDuration = 60; // Allow more time for LLM response
 
@@ -27,17 +28,21 @@ const explainSchema = z.object({
 });
 
 export async function POST(req: Request) {
+  let locale: Locale = req.headers.get('accept-language')?.toLowerCase().startsWith('bn')
+    ? 'bn-BD'
+    : 'en';
   try {
     const body = await req.json();
-    const { analysis, locale } = body;
-    const responseLanguage = locale === 'bn' ? 'Bengali' : 'English';
+    const { analysis, locale: requestedLocale } = body;
+    locale = requestedLocale === 'bn' || requestedLocale === 'bn-BD' ? 'bn-BD' : locale;
+    const responseLanguage = locale === 'bn-BD' ? 'Bengali (Bangladesh)' : 'English';
 
     if (!analysis) {
-      return NextResponse.json({ error: 'Analysis data is required' }, { status: 400 });
+      return NextResponse.json({ error: translateMessage(locale, 'Analysis data is required') }, { status: 400 });
     }
 
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      return NextResponse.json({ error: 'LLM API key is not configured' }, { status: 500 });
+      return NextResponse.json({ error: translateMessage(locale, 'LLM API key is not configured') }, { status: 500 });
     }
 
     // Call LLM
@@ -65,6 +70,9 @@ ${JSON.stringify(analysis, null, 2)}
     return NextResponse.json({ report: object });
   } catch (error: any) {
     console.error('Explanation generation failed:', error);
-    return NextResponse.json({ error: 'Failed to generate explanation', details: error.message }, { status: 500 });
+    return NextResponse.json({
+      error: translateMessage(locale, 'Failed to generate explanation'),
+      details: error.message,
+    }, { status: 500 });
   }
 }

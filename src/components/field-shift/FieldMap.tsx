@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useTranslation } from '@/lib/locale';
 
 export type MapLayer = 'streets' | 'satellite' | 'ndvi';
 
@@ -27,12 +28,25 @@ function PinPicker({ onPick }: { onPick?: (point: { latitude: number; longitude:
   return null;
 }
 
+/** Keeps Leaflet in sync whenever its container changes size
+ *  (orientation change, window resize, sidebar toggle, etc.). */
+function ResizeHandler() {
+  const map = useMap();
+  React.useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
 /** Client-only Leaflet map. Click anywhere to place the field pin. */
 export default function FieldMap({
   latitude = 24.3745,
   longitude = 88.6042,
   onPick,
-  height = 360,
+  height = 'clamp(280px, 55dvh, 480px)',
   className,
 }: {
   latitude?: number;
@@ -41,6 +55,7 @@ export default function FieldMap({
   height?: number | string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const [layer, setLayer] = React.useState<MapLayer>('streets');
   const point: [number, number] = [latitude, longitude];
   const tile = tiles[layer];
@@ -54,17 +69,48 @@ export default function FieldMap({
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   }), []);
-  return <div className={`relative overflow-hidden rounded-2xl border border-white/10 ${className ?? ''}`} style={{ height }}>
-    <div className="absolute right-3 top-3 z-[1000] flex gap-1 rounded-xl border border-white/10 bg-black/80 p-1">
-      {(['streets', 'satellite', 'ndvi'] as MapLayer[]).map(value => <button key={value} onClick={() => setLayer(value)} className={`rounded-lg px-3 py-1.5 text-xs capitalize ${layer === value ? 'bg-amber-300 text-black' : 'text-white'}`}>{value === 'ndvi' ? 'Vegetation' : value}</button>)}
+
+  return (
+    <div
+      className={`field-map relative isolate w-full max-w-full overflow-hidden rounded-2xl border border-white/10 ${className ?? ''}`}
+      style={{ height }}
+    >
+      {/* Layer switcher */}
+      <div className="absolute right-2 top-2 z-[1000] flex max-w-[calc(100%-4rem)] gap-1 overflow-x-auto rounded-xl border border-white/10 bg-black/80 p-1 sm:right-3 sm:top-3 sm:max-w-[calc(100%-5rem)]">
+        {(['streets', 'satellite', 'ndvi'] as MapLayer[]).map(value => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={layer === value}
+            onClick={() => setLayer(value)}
+            className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-2 text-[11px] capitalize sm:px-3 sm:py-1.5 sm:text-xs ${
+              layer === value ? 'bg-amber-300 text-black' : 'text-white'
+            }`}
+          >
+            {t(value === 'ndvi' ? 'Vegetation' : value)}
+          </button>
+        ))}
+      </div>
+
+      <MapContainer center={point} zoom={11} scrollWheelZoom className="h-full w-full">
+        <TileLayer
+          key={layer}
+          url={tileUrl}
+          attribution={tile.attribution}
+          maxNativeZoom={layer === 'ndvi' ? 9 : undefined}
+        />
+        <Marker position={point} icon={markerIcon} />
+        <PinPicker onPick={onPick} />
+        <ResizeHandler />
+      </MapContainer>
+
+      {/* Hint */}
+      <div className="pointer-events-none absolute bottom-9 left-2 z-[1000] max-w-[calc(100%-1rem)] truncate rounded bg-black/75 px-2 py-1 text-[10px] text-white sm:bottom-2 sm:max-w-[50%]">
+        {t('Click map to place field pin')}
+        <span className="hidden lg:inline"> · {tile.attribution.replace(/<[^>]*>/g, '')}</span>
+      </div>
     </div>
-    <MapContainer center={point} zoom={11} scrollWheelZoom className="h-full w-full">
-      <TileLayer key={layer} url={tileUrl} attribution={tile.attribution} />
-      <Marker position={point} icon={markerIcon} />
-      <PinPicker onPick={onPick} />
-    </MapContainer>
-    <div className="absolute bottom-2 left-2 z-[1000] rounded bg-black/75 px-2 py-1 text-[10px] text-white">Click map to place field pin · {tile.attribution.replace(/<[^>]*>/g, '')}</div>
-  </div>;
+  );
 }
 
 export { L };

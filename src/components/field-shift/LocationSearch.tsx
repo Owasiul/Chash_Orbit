@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Search, Loader2, MapPin, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasBengaliScript, type GeoResult } from '@/lib/location';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation } from '@/lib/locale';
 
 interface Props {
   onSelect: (r: GeoResult) => void;
@@ -29,7 +29,7 @@ export function LocationSearch({
   selectionError,
   onQueryChange,
 }: Props) {
-  const { locale, t } = useTranslation();
+  const { locale, t, number } = useTranslation();
   const [q, setQ] = React.useState('');
   const [results, setResults] = React.useState<GeoResult[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -71,7 +71,7 @@ export function LocationSearch({
 
     const t = setTimeout(async () => {
       try {
-        const language = hasBengaliScript(query) ? 'bn' : locale;
+        const language = hasBengaliScript(query) ? 'bn' : locale === 'bn-BD' ? 'bn' : 'en';
         const res = await fetch(
           `/api/location?q=${encodeURIComponent(query)}&language=${language}`,
           {
@@ -170,7 +170,7 @@ export function LocationSearch({
   };
 
   const statusMessage = error
-    ? t("Couldn't load locations. Check your connection and try again.")
+    ? t('errors.couldn-t-load-locations-check-your-connectio')
     : searched && !loading && results.length === 0
       ? t('No locations found. Try a different spelling or a nearby city.')
       : null;
@@ -254,10 +254,10 @@ export function LocationSearch({
               </div>
               <div className="shrink-0 text-right font-mono text-[10px] leading-4 text-muted-foreground/70">
                 <div>
-                  {Math.abs(r.latitude).toFixed(2)}° {r.latitude >= 0 ? 'N' : 'S'}
+                  {number(Math.abs(r.latitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}° {r.latitude >= 0 ? 'N' : 'S'}
                 </div>
                 <div>
-                  {Math.abs(r.longitude).toFixed(2)}° {r.longitude >= 0 ? 'E' : 'W'}
+                  {number(Math.abs(r.longitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}° {r.longitude >= 0 ? 'E' : 'W'}
                 </div>
               </div>
             </li>
