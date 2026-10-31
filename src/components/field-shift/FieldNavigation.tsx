@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
-  Globe2, Activity, Sprout, CalendarClock, BarChart3, GraduationCap, Home, MessageSquare,
+  Globe2, Activity, Sprout, CalendarClock, BarChart3, GraduationCap, Home, MessageSquare, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore, type DashboardTab } from '@/lib/store';
@@ -21,6 +21,7 @@ const TABS: Tab[] = [
   { id: 'crops', label: 'Crops', icon: Sprout },
   { id: 'planner', label: 'Planner', icon: CalendarClock },
   { id: 'compare', label: 'Compare', icon: BarChart3 },
+  { id: 'scenario', label: 'What-if', icon: SlidersHorizontal },
   { id: 'advisor', label: 'Advisor', icon: MessageSquare },
   { id: 'learn', label: 'Learn', icon: GraduationCap },
 ];

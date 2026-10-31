@@ -7,6 +7,7 @@ import { deriveSoilMoisture, type SoilMoistureAnalysis } from './smap';
 import { deriveRainfall, type RainfallAnalysis } from './gpm';
 import { deriveVegetation, getModisNdvi, type VegetationAnalysis } from './modis';
 import { getCached, setCached, CACHE_TTL, type CacheKey } from './cache';
+import { fetchPowerExtras, type PowerExtras } from './power-extras';
 
 export type DataSource = 'live' | 'cached' | 'demo';
 
@@ -26,6 +27,8 @@ export interface Environment {
   overallSource: DataSource;
   overallAttribution: string;
   rawPower?: PowerAnalysis;
+  /** root-zone soil wetness, real rainfall baseline, extreme-rain indices */
+  extras?: PowerExtras | null;
 }
 
 // ── Stable demo environment generator ──────────────────────────────────────
@@ -140,8 +143,26 @@ export async function fetchEnvironment(
     power = demoPower(latitude, longitude);
   }
 
+  // POWER extras (soil wetness, 10-year baseline, extremes). Cached like POWER
+  // itself and never allowed to fail the analysis.
+  let extras: PowerExtras | null = null;
+  if (power.source !== 'demo') {
+    const extrasKey: CacheKey = {
+      source: 'power-extras',
+      latitude,
+      longitude,
+      dateRange,
+      parameters: 'GWETROOT,GWETTOP,PRECTOTCORR-normals',
+    };
+    extras = await getCached<PowerExtras>(extrasKey, CACHE_TTL.POWER).then(c => c?.data ?? null).catch(() => null);
+    if (!extras) {
+      extras = await fetchPowerExtras(latitude, longitude, power.series).catch(() => null);
+      if (extras) await setCached(extrasKey, extras, CACHE_TTL.POWER).catch(() => {});
+    }
+  }
+
   const soilMoisture = deriveSoilMoisture(power, cropWaterMm);
-  const rainfall = deriveRainfall(power, latitude);
+  const rainfall = deriveRainfall(power, latitude, extras?.rainBaseline?.anomalyPct ?? null);
   const vegetation = deriveVegetation(power, latitude, await modisJob);
 
   // Source tagging
@@ -169,6 +190,7 @@ export async function fetchEnvironment(
             vegetation.source === 'live' || vegetation.source === 'cached' ? ' + MODIS NDVI' : ''
           } (with derived soil-moisture estimates)`,
     rawPower: power,
+    extras,
   };
 }
 
