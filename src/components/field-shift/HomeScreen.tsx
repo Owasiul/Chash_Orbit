@@ -3,7 +3,7 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Satellite, Sparkles, Globe2, Play } from "lucide-react";
+import { ArrowRight, Sparkles, Globe2, Play } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { LocationSearch } from "./LocationSearch";
 import { SAMPLE_FARMS } from "@/lib/location";
@@ -57,6 +57,7 @@ export function HomeScreen() {
   >(null);
   const [showLocationMap, setShowLocationMap] = React.useState(false);
   const locationLookupController = React.useRef<AbortController | null>(null);
+
   const showMapAfterNavigation = React.useCallback(() => {
     setShowLocationMap(true);
   }, []);
@@ -98,9 +99,6 @@ export function HomeScreen() {
       } catch (error) {
         if (controller.signal.aborted) return;
 
-        // The existing search result already contains usable coordinates. If the
-        // optional country lookup is unavailable, keep navigation working and
-        // let the globe fly directly to those coordinates.
         const location: ResolvedLocation = {
           query,
           name: r.name,
@@ -121,10 +119,7 @@ export function HomeScreen() {
           ),
           variant: "destructive",
         });
-        console.warn(
-          "[HomeScreen] country-aware location lookup failed:",
-          error,
-        );
+        console.warn("[HomeScreen] country-aware location lookup failed:", error);
       } finally {
         if (locationLookupController.current === controller) {
           locationLookupController.current = null;
@@ -151,10 +146,9 @@ export function HomeScreen() {
     });
   };
 
-  // One-click walkthrough: a Rajshahi Boro-rice farmer facing dry-season water
-  // stress, skipping onboarding. Its NASA data is pre-warmed by warm-cache.
   const runDemo = () => {
-    const s = SAMPLE_FARMS.find((f) => f.id === "rajshahi")!;
+    const s = SAMPLE_FARMS.find((f) => f.id === "rajshahi");
+    if (!s) return;
     handleSample(s.id);
     runAnalysis(
       {
@@ -190,29 +184,27 @@ export function HomeScreen() {
           />
         </div>
       )}
-      <AnimatePresence>
-        {showLocationMap && selected && (
-          <motion.div
-            key="selected-location-map"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.65 }}
-            className="absolute inset-0 z-[5]"
-            aria-label={t(`Map centered on ${selected.name}`)}
-          >
-            <FieldMap
-              key={`${selected.latitude},${selected.longitude}`}
-              latitude={selected.latitude}
-              longitude={selected.longitude}
-              height="100%"
-              className="h-full rounded-none border-0"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Top — brand + mission tag */}
+      <div
+        className={cn(
+          "absolute inset-0 z-[5] transition-opacity duration-500",
+          showLocationMap && selected
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0",
+        )}
+        aria-label={selected ? `Map centered on ${selected.name}` : undefined}
+      >
+        {selected && (
+          <FieldMap
+            key={`${selected.latitude},${selected.longitude}`}
+            latitude={selected.latitude}
+            longitude={selected.longitude}
+            height="100%"
+            className="h-full rounded-none border-0"
+          />
+        )}
+      </div>
+
       <header className="pointer-events-none relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
         <div className="flex items-center gap-2">
           <Image
@@ -265,7 +257,7 @@ export function HomeScreen() {
                 <button
                   type="button"
                   onClick={() => setView("onboarding")}
-                  className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-linear-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-left transition-all hover:border-amber-300/60 hover:from-amber-400/30 hover:to-amber-400/30"
+                  className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-linear-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-amber-100"
                 >
                   <span className="flex items-center gap-2">
                     <Sparkles className="size-4 text-amber-300" />
