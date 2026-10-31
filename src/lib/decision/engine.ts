@@ -112,19 +112,21 @@ export interface AnalysisResult {
 export function computeRisks(env: Environment): Risks {
   // Heat risk: heat stress days (last 90d) vs a soft threshold of ~20 days
   const heat = clamp((env.temperature.heatStressDays / 20) * 100, 0, 100);
-  // Drought risk: low soil moisture + low growing-season rainfall
+  // Drought risk: low soil moisture + seasonal deficit + low growing-season rain.
+  // Continuous ramps (not 0/15/30/50 steps) so a small change in the input moves
+  // the score a little, and What-if sliders respond smoothly.
   const smDeficit = env.soilMoisture.seasonalDeficit;
   const drought = clamp(
-    (env.soilMoisture.currentPct < 30 ? 50 : 0) +
-    (smDeficit > 100 ? 30 : smDeficit > 50 ? 15 : 0) +
-    (env.rainfall.growingSeasonRainfall < 200 ? 20 : 0),
+    50 * ramp(45 - env.soilMoisture.currentPct, 0, 30) +      // dry root zone: full weight at <=15 %
+    30 * ramp(smDeficit, 25, 125) +                            // shortfall vs crop demand
+    20 * (1 - ramp(env.rainfall.growingSeasonRainfall, 100, 300)), // little rain in the last 90 days
     0, 100,
   );
-  // Flood risk: high rainfall variability + high recent rainfall
+  // Flood risk: rain-heavy, erratic, or already saturated.
   const flood = clamp(
-    (env.rainfall.variability > 10 ? 35 : 0) +
-    (env.rainfall.growingSeasonRainfall > 600 ? 25 : 0) +
-    (env.soilMoisture.currentPct > 85 ? 40 : 0),
+    35 * ramp(env.rainfall.variability, 5, 12) +
+    25 * ramp(env.rainfall.growingSeasonRainfall, 400, 800) +
+    40 * ramp(env.soilMoisture.currentPct, 70, 95),
     0, 100,
   );
   const soilMoistureDeficit = Math.round(smDeficit);
@@ -143,6 +145,11 @@ export function computeRisks(env: Environment): Risks {
 // ── Crop compatibility ─────────────────────────────────────────────────────
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
+}
+
+/** 0 at or below `lo`, 1 at or above `hi`, linear in between. */
+function ramp(v: number, lo: number, hi: number): number {
+  return clamp((v - lo) / (hi - lo), 0, 1);
 }
 
 /** NASA POWER stats during this crop's planting→harvest months (not “last 90 days”). */
@@ -198,11 +205,8 @@ function climateFit(crop: CropSpec, env: Environment, risks: Risks, lat: number)
 function waterFit(crop: CropSpec, env: Environment, irrigation: IrrigationType, risks: Risks, lat: number): number {
   const window = cropWindowSignals(crop, env, lat);
   const ratio = window.rainMm / Math.max(1, crop.waterMm);
-  let rainScore: number;
-  if (ratio >= 1.2) rainScore = 90;
-  else if (ratio >= 0.9) rainScore = 75;
-  else if (ratio >= 0.6) rainScore = 55;
-  else rainScore = 35;
+  // Continuous version of the old 35 / 55 / 75 / 90 steps: 35 at <=0.4, 90 at >=1.2.
+  const rainScore = 35 + 55 * ramp(ratio, 0.4, 1.2);
 
   const irrigUplift = irrigation === 'reliable' ? 25 : irrigation === 'limited' ? 12 : 0;
 

@@ -12,6 +12,8 @@ export interface RainfallAnalysis {
   growingSeasonRainfall: number;
   // anomaly vs a notional climatology mean (mm/year) — expressed as a percent
   anomalyPct: number;
+  /** what the anomaly is measured against */
+  anomalyBasis?: 'power-10yr' | 'latitude-band';
   variability: number;          // std-dev mm/day
   drySpells: number;           // consecutive dry spell count (>=3d <1mm)
   seasonalPattern: { month: string; mm: number }[];
@@ -47,7 +49,13 @@ function climatologyBaseline(lat: number): number {
   return 450;                    // boreal / cold
 }
 
-export function deriveRainfall(power: PowerAnalysis, lat: number): RainfallAnalysis {
+export function deriveRainfall(
+  power: PowerAnalysis,
+  lat: number,
+  // % anomaly vs POWER's own 10-year same-month normals (see power-extras.ts).
+  // When absent we fall back to the latitude-band guess.
+  anomalyOverridePct: number | null = null,
+): RainfallAnalysis {
   if (Number.isNaN(power.annualRainfall)) {
     return {
       annualRainfall: 0,
@@ -63,12 +71,15 @@ export function deriveRainfall(power: PowerAnalysis, lat: number): RainfallAnaly
   }
 
   const base = climatologyBaseline(lat);
-  const anomalyPct = Math.round(((power.annualRainfall - base) / base) * 100);
+  const anomalyPct = anomalyOverridePct != null
+    ? Math.round(anomalyOverridePct)
+    : Math.round(((power.annualRainfall - base) / base) * 100);
 
   return {
     annualRainfall: Math.round(power.annualRainfall * 10) / 10,
     growingSeasonRainfall: Math.round(power.growingSeasonRainfall * 10) / 10,
     anomalyPct,
+    anomalyBasis: anomalyOverridePct != null ? 'power-10yr' : 'latitude-band',
     variability: Math.round(power.rainfallVariability * 100) / 100,
     drySpells: power.drySpells,
     seasonalPattern: monthlyTotals(power.series),
