@@ -10,3 +10,4 @@ export { CropsPanel } from './CropsPanel';
 export { PlannerPanel } from './PlannerPanel';
 export { ComparePanel } from './ComparePanel';
 export { LearnPanel } from './LearnPanel';
+export { ScenarioPanel } from './ScenarioPanel';
