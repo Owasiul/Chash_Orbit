@@ -12,6 +12,7 @@ import {
   PlannerPanel,
   ComparePanel,
   LearnPanel,
+  ScenarioPanel,
 } from './dashboard';
 import { useTranslation } from '@/lib/locale';
 
@@ -58,6 +59,7 @@ export function FieldDashboard() {
             {tab === 'crops' && <CropsPanel analysis={analysis} />}
             {tab === 'planner' && <PlannerPanel analysis={analysis} />}
             {tab === 'compare' && <ComparePanel analysis={analysis} />}
+            {tab === 'scenario' && <ScenarioPanel analysis={analysis} />}
             {tab === 'learn' && <LearnPanel analysis={analysis} />}
             {tab === 'advisor' && <AdvisorPanel analysis={analysis} />}
           </motion.div>
@@ -66,7 +68,7 @@ export function FieldDashboard() {
 
      
       <footer className="break-words border-t border-white/5 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 text-center font-mono text-[10px] uppercase leading-relaxed tracking-wider text-muted-foreground/50 text-balance sm:px-6 sm:pb-4 sm:tracking-widest">
-        {t('Chash Orbit · NASA Earth-observation decision system · POWER · SMAP · GPM · MODIS')}
+        {t('Chash Orbit · NASA Earth-observation decision system · POWER · MODIS · GPM-corrected rainfall')}
       </footer>
     </div>
   );

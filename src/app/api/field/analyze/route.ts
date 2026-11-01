@@ -241,6 +241,7 @@ export async function POST(req: Request) {
       overallSource: env.overallSource,
       overallAttribution: env.overallAttribution,
       rawPower: env.rawPower, // daily series for the Signals temperature chart
+      extras: env.extras ?? null,
     },
     risks: result.risks,
     cropCompatibility: result.cropCompatibility,

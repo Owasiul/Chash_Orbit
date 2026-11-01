@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import type { Environment } from '@/lib/nasa/environment';
+import { revivePowerSeries } from '@/lib/nasa/revive-power';
 import type {
   AnalysisResult,
   FarmerInputs,
@@ -25,6 +26,7 @@ export type DashboardTab =
   | 'crops'
   | 'planner'
   | 'compare'
+  | 'scenario'
   | 'learn'
   | 'advisor';
 
@@ -54,6 +56,12 @@ export interface FullAnalysis {
   recommendations: AnalysisResult['recommendations'];
   rotationPlan: AnalysisResult['rotationPlan'];
   sources: { name: string; source: 'live' | 'cached' | 'demo' | 'derived'; attribution: string }[];
+}
+
+function reviveAnalysis(analysis: FullAnalysis): FullAnalysis {
+  const power = analysis.environment.rawPower;
+  if (!power) return analysis;
+  return { ...analysis, environment: { ...analysis.environment, rawPower: revivePowerSeries(power) } };
 }
 
 interface AppState {
@@ -96,7 +104,7 @@ export const useAppStore = create<AppState>((set) => ({
   setDashboardTab: (t) => set({ dashboardTab: t }),
   setSelected: (g) => set({ selected: g }),
   setInputs: (i) => set({ inputs: i }),
-  setAnalysis: (a) => set({ analysis: a }),
+  setAnalysis: (a) => set({ analysis: a ? reviveAnalysis(a) : null }),
   setAdvisorChatHistory: (h) => set({ advisorChatHistory: h }),
   setAdvisorReport: (r) => set({ advisorReport: r }),
   runAnalysis: async (inputs, meta) => {
@@ -109,7 +117,7 @@ export const useAppStore = create<AppState>((set) => ({
       });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
-      set({ analysis: json, view: 'dashboard' });
+      set({ analysis: reviveAnalysis(json as FullAnalysis), view: 'dashboard' });
     } catch (e) {
       // Surface error then bounce home
       console.error(e);

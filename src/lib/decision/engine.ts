@@ -108,23 +108,67 @@ export interface AnalysisResult {
   rotationPlan: RotationPlan;
 }
 
-// ── Risks ─────────────────────────────────────────────────────────────────
+function normalizeAreaToHa(area?: number, areaUnit?: 'acres' | 'hectares'): number {
+  if (!Number.isFinite(area) || area <= 0) return 1.5;
+  return areaUnit === 'acres' ? area * 0.404686 : area;
+}
+
+function fieldScaleLabel(areaHa: number): string {
+  if (areaHa < 1) return 'smallholder';
+  if (areaHa < 5) return 'small-to-medium';
+  if (areaHa < 20) return 'medium';
+  return 'large';
+}
+
+function areaFit(crop: CropSpec, areaHa: number): number {
+  const highValueCrops = new Set(['Potato', 'Tomato', 'Vegetables', 'Fruit', 'Chickpea', 'Lentil', 'Mustard']);
+  const scaleCrops = new Set(['Rice', 'Wheat', 'Maize', 'Cotton', 'Soybean', 'Sorghum', 'Millet']);
+
+  const isHighValue = highValueCrops.has(crop.name);
+  const isScaleCrop = scaleCrops.has(crop.name);
+
+  if (areaHa <= 0.5) {
+    if (isHighValue) return 92;
+    if (isScaleCrop) return 66;
+    return 80;
+  }
+
+  if (areaHa <= 2) {
+    if (isHighValue) return 88;
+    if (isScaleCrop) return 75;
+    return 82;
+  }
+
+  if (areaHa <= 5) {
+    if (isScaleCrop) return 88;
+    if (isHighValue) return 82;
+    return 84;
+  }
+
+  if (isScaleCrop) return 92;
+  if (isHighValue) return 76;
+  return 82;
+}
+
+// ── Risks ────────────────────────────────────────────────────────────
 export function computeRisks(env: Environment): Risks {
   // Heat risk: heat stress days (last 90d) vs a soft threshold of ~20 days
   const heat = clamp((env.temperature.heatStressDays / 20) * 100, 0, 100);
-  // Drought risk: low soil moisture + low growing-season rainfall
+  // Drought risk: low soil moisture + seasonal deficit + low growing-season rain.
+  // Continuous ramps (not 0/15/30/50 steps) so a small change in the input moves
+  // the score a little, and What-if sliders respond smoothly.
   const smDeficit = env.soilMoisture.seasonalDeficit;
   const drought = clamp(
-    (env.soilMoisture.currentPct < 30 ? 50 : 0) +
-    (smDeficit > 100 ? 30 : smDeficit > 50 ? 15 : 0) +
-    (env.rainfall.growingSeasonRainfall < 200 ? 20 : 0),
+    50 * ramp(45 - env.soilMoisture.currentPct, 0, 30) +      // dry root zone: full weight at <=15 %
+    30 * ramp(smDeficit, 25, 125) +                            // shortfall vs crop demand
+    20 * (1 - ramp(env.rainfall.growingSeasonRainfall, 100, 300)), // little rain in the last 90 days
     0, 100,
   );
-  // Flood risk: high rainfall variability + high recent rainfall
+  // Flood risk: rain-heavy, erratic, or already saturated.
   const flood = clamp(
-    (env.rainfall.variability > 10 ? 35 : 0) +
-    (env.rainfall.growingSeasonRainfall > 600 ? 25 : 0) +
-    (env.soilMoisture.currentPct > 85 ? 40 : 0),
+    35 * ramp(env.rainfall.variability, 5, 12) +
+    25 * ramp(env.rainfall.growingSeasonRainfall, 400, 800) +
+    40 * ramp(env.soilMoisture.currentPct, 70, 95),
     0, 100,
   );
   const soilMoistureDeficit = Math.round(smDeficit);
@@ -143,6 +187,11 @@ export function computeRisks(env: Environment): Risks {
 // ── Crop compatibility ─────────────────────────────────────────────────────
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
+}
+
+/** 0 at or below `lo`, 1 at or above `hi`, linear in between. */
+function ramp(v: number, lo: number, hi: number): number {
+  return clamp((v - lo) / (hi - lo), 0, 1);
 }
 
 /** NASA POWER stats during this crop's planting→harvest months (not “last 90 days”). */
@@ -198,11 +247,8 @@ function climateFit(crop: CropSpec, env: Environment, risks: Risks, lat: number)
 function waterFit(crop: CropSpec, env: Environment, irrigation: IrrigationType, risks: Risks, lat: number): number {
   const window = cropWindowSignals(crop, env, lat);
   const ratio = window.rainMm / Math.max(1, crop.waterMm);
-  let rainScore: number;
-  if (ratio >= 1.2) rainScore = 90;
-  else if (ratio >= 0.9) rainScore = 75;
-  else if (ratio >= 0.6) rainScore = 55;
-  else rainScore = 35;
+  // Continuous version of the old 35 / 55 / 75 / 90 steps: 35 at <=0.4, 90 at >=1.2.
+  const rainScore = 35 + 55 * ramp(ratio, 0.4, 1.2);
 
   const irrigUplift = irrigation === 'reliable' ? 25 : irrigation === 'limited' ? 12 : 0;
 
@@ -279,6 +325,7 @@ function buildReasons(
   env: Environment,
   risks: Risks,
   lat: number,
+  areaHa: number,
 ): string[] {
   const reasons: string[] = [];
 
@@ -286,6 +333,7 @@ function buildReasons(
   const harvestLabel = getHarvestLabel(c, lat);
   const plantable = isCurrentlyPlantable(c, lat);
   const harvesting = isInHarvestWindow(c, lat);
+  const scaleLabel = fieldScaleLabel(areaHa);
 
   if (plantable) {
     reasons.push(`${c.name} is in planting season now (plant ${plantLabel}) — good timing to start.`);
@@ -296,6 +344,12 @@ function buildReasons(
     reasons.push(`${c.name} is out of season — planting window is ${plantLabel} (${mUntil} month${mUntil !== 1 ? 's' : ''} away). Consider for future planning.`);
   } else {
     reasons.push(`${c.name}'s planting season (${plantLabel}) is approaching — prepare soon.`);
+  }
+
+  if (areaHa <= 2 && c.waterDemand === 'high') {
+    reasons.push(`For a ${scaleLabel} field (${areaHa.toFixed(1)} ha), ${c.name} needs careful scheduling and irrigation because it is water-intensive.`);
+  } else if (areaHa >= 5 && (c.name === 'Rice' || c.name === 'Wheat' || c.name === 'Maize')) {
+    reasons.push(`On a ${scaleLabel} field, broad-acre crops like ${c.name} fit the land base better and are easier to manage at scale.`);
   }
 
   const window = cropWindowSignals(c, env, lat);
@@ -329,6 +383,8 @@ function scoreCrop(crop: CropSpec, env: Environment, risks: Risks, inputs: Farme
   const waterF = waterFit(crop, env, inputs.irrigation, risks, lat);
   const soilF = soilFit(crop, soilType);
   const rotationF = rotationFit(crop, inputs.currentCrop ?? null);
+  const areaHa = normalizeAreaToHa(inputs.area, inputs.areaUnit);
+  const areaF = areaFit(crop, areaHa);
   let seasonF = seasonFit(crop, lat);
   // Mid-harvest window: good for rotation planning, not for planting this crop now.
   if (!isCurrentlyPlantable(crop, lat) && isInHarvestWindow(crop, lat) && crop.season !== 'year_round') {
@@ -338,13 +394,14 @@ function scoreCrop(crop: CropSpec, env: Environment, risks: Risks, inputs: Farme
   const totalP = Math.max(1, soil + water + climate + income);
 
   const overall =
-    (climateF * climate + waterF * water + soilF * soil + crop.baseIncome * income + rotationF * 10 + seasonF * 22) /
-    (totalP + 10 + 22);
-  return { climateF, waterF, soilF, rotationF, seasonF, overall };
+    (climateF * climate + waterF * water + soilF * soil + crop.baseIncome * income + rotationF * 10 + seasonF * 22 + areaF * 12) /
+    (totalP + 10 + 22 + 12);
+  return { climateF, waterF, soilF, rotationF, seasonF, areaF, overall };
 }
 
 export function computeCropCompatibility(inputs: FarmerInputs, env: Environment, risks: Risks): CropCompatibility[] {
   const soilType: SoilType = inputs.soilType === 'unknown' ? inferSoilType(inputs.latitude, inputs.longitude) : inputs.soilType;
+  const areaHa = normalizeAreaToHa(inputs.area, inputs.areaUnit);
 
   const allCrops = inputs.desiredCrops.length
     ? inputs.desiredCrops
@@ -362,7 +419,7 @@ export function computeCropCompatibility(inputs: FarmerInputs, env: Environment,
       rotationFit: rotationF,
       seasonFit: seasonF,
       overallFit: Math.round(clamp(overall, 0, 100)),
-      reasons: buildReasons(crop, { climateFit: climateF, waterFit: waterF, soilFit: soilF, rotationFit: rotationF, seasonFit: seasonF }, env, risks, inputs.latitude),
+      reasons: buildReasons(crop, { climateFit: climateF, waterFit: waterF, soilFit: soilF, rotationFit: rotationF, seasonFit: seasonF }, env, risks, inputs.latitude, areaHa),
       plantingSeason: getPlantingLabel(crop, inputs.latitude),
       harvestSeason: getHarvestLabel(crop, inputs.latitude),
       isPlantableNow: isCurrentlyPlantable(crop, inputs.latitude),
@@ -382,6 +439,7 @@ export function computeRecommendations(
   // then write a "Why?" sentence that cites a specific data signal.
   const excluded = new Set([inputs.currentCrop ?? '']);
   const soilType = inputs.soilType === 'unknown' ? inferSoilType(inputs.latitude, inputs.longitude) : inputs.soilType;
+  const areaHa = normalizeAreaToHa(inputs.area, inputs.areaUnit);
   const all = CROP_LIBRARY.filter(c => !excluded.has(c.name)).map(crop => ({
     crop,
     ...scoreCrop(crop, env, risks, inputs, soilType),
@@ -398,21 +456,24 @@ export function computeRecommendations(
     const window = cropWindowSignals(c, env, inputs.latitude);
     const plantLabel = getPlantingLabel(c, inputs.latitude);
     const harvestLabel = getHarvestLabel(c, inputs.latitude);
+    const scaleLabel = fieldScaleLabel(areaHa);
     let why = '';
     if (!isCurrentlyPlantable(c, inputs.latitude) && isInHarvestWindow(c, inputs.latitude)) {
       why = `${c.name} fits this field climatically, but harvest is typically ${harvestLabel} — use it in your rotation plan rather than planting now.`;
     } else if (!isCurrentlyPlantable(c, inputs.latitude) && r.seasonF <= 35) {
       why = `${c.name} matches NASA climate signals for its season (${plantLabel}), but planting is ${monthsUntilPlanting(c, inputs.latitude)} month(s) away — best for planner year 2+.`;
     } else if (r.waterF >= 80 && risks.droughtRisk > 50) {
-      why = `${c.name} scores highly because this field shows seasonal water stress (${env.soilMoisture.seasonalDeficit} mm deficit) and ${c.name} has ${c.droughtTolerance} drought tolerance with low water demand (~${c.waterMm} mm).`;
+      why = `${c.name} scores highly because this field shows seasonal water stress (${env.soilMoisture.seasonalDeficit} mm deficit) and ${c.name} has ${c.droughtTolerance} drought tolerance.`;
     } else if (c.nitrogenEffect === 'fixer' && inputs.priorities.soil >= 25) {
-      why = `${c.name} fixes nitrogen, improving soil fertility — matches your ${inputs.priorities.soil}% soil-health priority and the field's ${inferSoilType(inputs.latitude, inputs.longitude)} soil.`;
+      why = `${c.name} fixes nitrogen, improving soil fertility — matches your ${inputs.priorities.soil}% soil-health priority and the field's ${inferSoilType(inputs.latitude, inputs.longitude)}-leaning soil profile.`;
     } else if (r.climateF >= 80 && window.fromCropWindow) {
       why = `${c.name}'s optimal window (${c.growTempMin}–${c.growTempMax}°C) matches NASA POWER during its season (~${Math.round(window.tempAvgC)}°C, plant ${plantLabel}).`;
+    } else if (areaHa <= 2 && c.waterDemand === 'high') {
+      why = `${c.name} is a realistic choice for a ${scaleLabel} field, but it will need tighter irrigation management because it is a high-water crop.`;
     } else if (r.overall >= 75) {
       why = `${c.name} balances climate, water, soil, and rotation for this field in its planting window (${plantLabel}).`;
     } else {
-      why = `${c.name} is the next-best available option given this field's NASA signals — consider trialing a small area in ${plantLabel}.`;
+      why = `${c.name} is the next-best option given this field's NASA signals and its ${scaleLabel} scale — consider trialing a small area in ${plantLabel}.`;
     }
     return {
       rank: i + 1,
@@ -423,7 +484,7 @@ export function computeRecommendations(
   });
 }
 
-// ── Rotation plan ──────────────────────────────────────────────────────────
+// ── Rotation plan ─────────────────────────────────────────────────────────
 export function buildRotationPlan(
   inputs: FarmerInputs,
   compat: CropCompatibility[],
@@ -500,9 +561,9 @@ export function buildRotationPlan(
   if (y1) {
     const c = byName(y1)!;
     const reason = cur
-      ? `Follows ${cur.name} (${cur.nitrogenEffect}). ${c.nitrogenEffect === 'fixer' ? c.name + ' fixes nitrogen, restoring fertility after the previous depleting crop.' : 'Rotates away from the previous family to break pest/disease cycles.'}`
+      ? `Follows ${cur.name} (${cur.nitrogenEffect}). ${c.nitrogenEffect === 'fixer' ? c.name + ' fixes nitrogen, restoring fertility after the previous depleting crop.' : 'Rotates away from the previous family and keeps the field balanced.'}`
       : `Best first-year match for this field's climate and water signals.`;
-    pushYear(1, y1, null, inputs.irrigation === 'reliable' ? 'reliable' : inputs.irrigation === 'limited' ? 'limited' : 'rainfed', compat.find(c => c.crop === y1)?.overallFit ?? recommendations.find(r => r.crop === y1)?.score ?? 80, reason);
+    pushYear(1, y1, null, inputs.irrigation === 'reliable' ? 'reliable' : inputs.irrigation === 'limited' ? 'limited' : 'rainfed', compat.find(c => c.crop === y1)?.overallFit ?? recommendations.find(r => r.crop === y1)?.score ?? 75, reason);
   }
 
   // Years 2-4 — alternate legume ↔ cereal, avoid repeating family
@@ -550,7 +611,7 @@ export function buildRotationPlan(
     Math.max(1, inputs.priorities.soil + inputs.priorities.water + inputs.priorities.climate + inputs.priorities.income),
   );
 
-  const rationale = `This 4-year rotation alternates nitrogen-fixing legumes (${years.filter(y => byName(y.crop)?.nitrogenEffect === 'fixer').map(y => y.crop).join(', ')}) with nitrogen-demanding cereals, weighted by your priorities (soil ${inputs.priorities.soil}%, water ${inputs.priorities.water}%, climate ${inputs.priorities.climate}%, income ${inputs.priorities.income}%).`;
+  const rationale = `This 4-year rotation alternates nitrogen-fixing legumes (${years.filter(y => byName(y.crop)?.nitrogenEffect === 'fixer').map(y => y.crop).join(', ')}) with nitrogen-demanding cereals (${years.filter(y => byName(y.crop)?.nitrogenEffect === 'depleter').map(y => y.crop).join(', ')}), with a ${fieldScaleLabel(normalizeAreaToHa(inputs.area, inputs.areaUnit))} field strategy that matches your land size and the field's climate signals.`;
 
   return {
     name: 'Chash Orbit Recommended Rotation',
@@ -568,7 +629,7 @@ function mean(a: number[]): number {
   return a.reduce((s, x) => s + x, 0) / Math.max(1, a.length);
 }
 
-// ── Full analysis ──────────────────────────────────────────────────────────
+// ── Full analysis ─────────────────────────────────────────────────────────
 export function analyze(inputs: FarmerInputs, env: Environment): AnalysisResult {
   const risks = computeRisks(env);
   const cropCompatibility = computeCropCompatibility(inputs, env, risks);

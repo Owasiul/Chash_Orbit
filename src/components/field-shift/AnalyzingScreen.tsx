@@ -124,7 +124,7 @@ export function AnalyzingScreen() {
           </div>
 
           <div className="mt-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
-            {t('Live NASA POWER · SMAP / GPM / MODIS derived')}
+            {t('Live NASA POWER + MODIS · soil moisture modelled')}
           </div>
         </motion.div>
       </div>
