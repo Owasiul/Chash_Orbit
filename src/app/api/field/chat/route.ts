@@ -38,9 +38,6 @@ ${JSON.stringify(analysis, null, 2)}
 `;
 
     // Convert UIMessages from the client to CoreMessages for streamText
-    console.log("INCOMING MESSAGES:", JSON.stringify(messages, null, 2));
-
-    console.log("INCOMING MESSAGES: ", JSON.stringify(messages, null, 2));
     const rawMessages = messages.map((m: any) => {
       let textContent = '';
       if (typeof m.content === 'string' && m.content.trim() !== '') {
@@ -55,7 +52,7 @@ ${JSON.stringify(analysis, null, 2)}
       return { role: m.role, content: textContent };
     }).filter((m: any) => m.content.trim() !== '');
 
-    // Gemini requires strictly alternating roles (user -> model -> user -> model)
+    // Merge consecutive messages with the same role for compatibility with chat APIs.
     const coreMessages: any[] = [];
     for (const msg of rawMessages) {
       if (coreMessages.length > 0 && coreMessages[coreMessages.length - 1].role === msg.role) {
@@ -66,14 +63,14 @@ ${JSON.stringify(analysis, null, 2)}
       }
     }
     
-    // Gemini MUST start with a user message (after the system prompt, which is handled separately)
+    // Start the conversation with a user message; the system prompt is passed separately.
     if (coreMessages.length > 0 && coreMessages[0].role === 'assistant') {
       coreMessages.shift();
     }
 
 
     const result = streamText({
-      model: google('gemini-3.5-flash-lite'),
+      model: google('gemini-3.6-flash'),
       system: systemPrompt,
       messages: coreMessages
     });

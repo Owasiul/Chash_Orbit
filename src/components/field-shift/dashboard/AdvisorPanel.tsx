@@ -16,8 +16,6 @@ import { BrainCircuit, Send, Loader2, AlertCircle, RefreshCcw, Database } from '
 import { FullAnalysis } from '@/lib/store';
 import { useTranslation } from '@/lib/locale';
 
-
-
 function ReportSkeleton() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -144,11 +142,11 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
             <BrainCircuit className="size-4" />
             {t('AI Field Report')}
           </div>
-          
+
           {!loadingReport && reportError && (
-             <Button variant="ghost" size="sm" onClick={fetchReport} className="h-6 text-[10px]">
-               <RefreshCcw className="mr-1 size-3" /> {t('Retry')}
-             </Button>
+            <Button variant="ghost" size="sm" onClick={fetchReport} className="h-6 text-[10px]">
+              <RefreshCcw className="mr-1 size-3" /> {t('Retry')}
+            </Button>
           )}
         </div>
 
@@ -156,7 +154,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
 
         {reportError && (
           <div className="rounded border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
-            <div className="flex items-center gap-2 font-bold"><AlertCircle className="size-4"/> {t('Error')}</div>
+            <div className="flex items-center gap-2 font-bold"><AlertCircle className="size-4" /> {t('Error')}</div>
             {reportError}
           </div>
         )}
@@ -190,43 +188,43 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
               <h3 className="mb-2 font-semibold text-foreground">{t('Crop Comparison & Rankings')}</h3>
               <Accordion type="single" collapsible className="w-full">
                 {report.cropComparisons.map((comp: any) => {
-                  const realRec = analysis.recommendations.find((r: any) => 
+                  const realRec = analysis.recommendations.find((r: any) =>
                     r.crop.toLowerCase() === comp.crop.toLowerCase() ||
                     comp.crop.toLowerCase().includes(r.crop.toLowerCase()) ||
                     r.crop.toLowerCase().includes(comp.crop.toLowerCase())
                   );
                   const rank = realRec ? realRec.rank : comp.rank;
                   const score = realRec ? realRec.score : comp.score;
-                  
+
                   return (
-                  <AccordionItem key={comp.crop} value={comp.crop} className="border-white/10">
-                    <AccordionTrigger className="hover:no-underline">
-                      <div className="flex w-full items-center justify-between pr-4">
-                        <span className="font-medium text-emerald-300">
-                          #{number(rank)} {t(comp.crop)} {score !== undefined && `(${t('dashboard.score-label', { score })})`}
-                        </span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground">
-                      <div className="space-y-3 pt-2">
-                        <div>
-                          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Strengths:')}</span>
-                          <ul className="ml-4 list-disc text-xs">
-                            {comp.strengths.map((s: string, i: number) => <li key={i}>{t(s)}</li>)}
-                          </ul>
+                    <AccordionItem key={comp.crop} value={comp.crop} className="border-white/10">
+                      <AccordionTrigger className="hover:no-underline">
+                        <div className="flex w-full items-center justify-between pr-4">
+                          <span className="font-medium text-emerald-300">
+                            #{number(rank)} {t(comp.crop)} {score !== undefined && `(${t('dashboard.score-label', { score })})`}
+                          </span>
                         </div>
-                        <div>
-                          <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Concerns:')}</span>
-                          <ul className="ml-4 list-disc text-xs">
-                            {comp.concerns.map((s: string, i: number) => <li key={i}>{t(s)}</li>)}
-                          </ul>
+                      </AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground">
+                        <div className="space-y-3 pt-2">
+                          <div>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Strengths:')}</span>
+                            <ul className="ml-4 list-disc text-xs">
+                              {comp.strengths.map((s: string, i: number) => <li key={i}>{t(s)}</li>)}
+                            </ul>
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-foreground">{t('Concerns:')}</span>
+                            <ul className="ml-4 list-disc text-xs">
+                              {comp.concerns.map((s: string, i: number) => <li key={i}>{t(s)}</li>)}
+                            </ul>
+                          </div>
+                          <div className="rounded bg-white/5 p-2 text-xs italic opacity-80">
+                            {comp.evidence.join(' ')}
+                          </div>
                         </div>
-                        <div className="rounded bg-white/5 p-2 text-xs italic opacity-80">
-                          {comp.evidence.join(' ')}
-                        </div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
+                      </AccordionContent>
+                    </AccordionItem>
                   );
                 })}
               </Accordion>
@@ -264,38 +262,39 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
           <BrainCircuit className="size-4" />
           {t('Ask Your Field')}
         </div>
-        
+
         <ScrollArea className="flex-1 min-h-0">
           <div className="space-y-4 p-4">
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center opacity-50">
                 <BrainCircuit className="mb-2 size-8" />
-
                 <p className="text-sm">{t('dashboard.ask-anything-about-this-field-s-analysis-cro')}</p>
               </div>
             ) : (
               messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm ${
-                    m.role === 'user' 
-                      ? 'bg-emerald-500/20 text-emerald-100 rounded-tr-sm' 
+                    m.role === 'user'
+                      ? 'bg-emerald-500/20 text-emerald-100 rounded-tr-sm'
                       : 'bg-white/10 text-foreground rounded-tl-sm'
                   }`}>
-                    <div className="text-sm space-y-3 leading-relaxed"><ReactMarkdown 
-  components={{
-    h1: ({node, ...props}) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
-    h2: ({node, ...props}) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
-    h3: ({node, ...props}) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
-    p: ({node, ...props}) => <p className="mb-2 leading-relaxed" {...props} />,
-    ul: ({node, ...props}) => <ul className="list-disc ml-5 space-y-1 mb-2 leading-relaxed" {...props} />,
-    ol: ({node, ...props}) => <ol className="list-decimal ml-5 space-y-1 mb-2 leading-relaxed" {...props} />,
-    li: ({node, ...props}) => <li className="leading-relaxed" {...props} />,
-    strong: ({node, ...props}) => <strong className="font-semibold text-emerald-200" {...props} />,
-    em: ({node, ...props}) => <em className="italic opacity-90" {...props} />
-  }}
->
-  {m.parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || ''}
-</ReactMarkdown></div>
+                    <div className="text-sm space-y-3 leading-relaxed">
+                      <ReactMarkdown
+                        components={{
+                          h1: ({ node, ...props }) => <h1 className="text-lg font-bold mt-4 mb-2" {...props} />,
+                          h2: ({ node, ...props }) => <h2 className="text-base font-bold mt-3 mb-2" {...props} />,
+                          h3: ({ node, ...props }) => <h3 className="text-sm font-bold mt-2 mb-1" {...props} />,
+                          p: ({ node, ...props }) => <p className="mb-2 leading-relaxed" {...props} />,
+                          ul: ({ node, ...props }) => <ul className="list-disc ml-5 space-y-1 mb-2 leading-relaxed" {...props} />,
+                          ol: ({ node, ...props }) => <ol className="list-decimal ml-5 space-y-1 mb-2 leading-relaxed" {...props} />,
+                          li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
+                          strong: ({ node, ...props }) => <strong className="font-semibold text-emerald-200" {...props} />,
+                          em: ({ node, ...props }) => <em className="italic opacity-90" {...props} />
+                        }}
+                      >
+                        {m.parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || ''}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               ))
@@ -314,7 +313,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
             )}
           </div>
         </ScrollArea>
-        
+
         <div className="border-t border-white/5 p-3">
           <form onSubmit={(e) => {
             e.preventDefault();

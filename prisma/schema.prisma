@@ -148,3 +148,30 @@ model NasaCache {
   @@unique([source, latitude, longitude, dateRange, parameters])
   @@index([source, latitude, longitude])
 }
+
+model AnalysisSession {
+  id              String         @id @default(uuid())
+  userId          String
+  imageUrl        String
+  cropName        String
+  isHealthy       Boolean
+  diseaseName     String?
+  severityLevel   String         // LOW, MODERATE, CRITICAL, NONE
+  confidence      Float
+  symptoms        String[]
+  organicRemedy   String?
+  chemicalRemedy  String?
+  preventativeTips String[]
+  createdAt       DateTime       @default(now())
+
+  followUpChats   SessionChat[]
+}
+
+model SessionChat {
+  id          String          @id @default(uuid())
+  sessionId   String
+  session     AnalysisSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender      String          // 'USER' | 'AI'
+  message     String
+  createdAt   DateTime        @default(now())
+}

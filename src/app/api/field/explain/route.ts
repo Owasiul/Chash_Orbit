@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { translateMessage, type Locale } from '@/lib/i18n';
@@ -46,9 +46,9 @@ export async function POST(req: Request) {
     }
 
     // Call LLM
-    const { object } = await generateObject({
-      model: google('gemini-3.5-flash-lite'),
-      schema: explainSchema,
+    const { output } = await generateText({
+      model: google('gemini-3.6-flash'),
+      output: Output.object({ schema: explainSchema }),
       prompt: `You are an expert agricultural advisor. Analyze the following deterministic field analysis results and explain them clearly to a farmer.
 
 RULES:
@@ -67,7 +67,7 @@ ${JSON.stringify(analysis, null, 2)}
 `
     });
 
-    return NextResponse.json({ report: object });
+    return NextResponse.json({ report: output });
   } catch (error: any) {
     console.error('Explanation generation failed:', error);
     return NextResponse.json({

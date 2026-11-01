@@ -3,7 +3,8 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Satellite, Sparkles, Globe2, Play } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Satellite, Sparkles, Globe2, Play, ScanLine } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { LocationSearch } from "./LocationSearch";
 import { SAMPLE_FARMS } from "@/lib/location";
@@ -223,6 +224,13 @@ export function HomeScreen() {
             priority
           />
         </div>
+        <Link
+          href="/crop-health"
+          className="glass-panel pointer-events-auto inline-flex items-center gap-2 rounded-full border border-emerald-300/25 px-3 py-2 text-xs font-medium text-emerald-100 transition-colors hover:border-emerald-300/50 hover:bg-emerald-400/10 sm:px-4 sm:text-sm"
+        >
+          <ScanLine className="size-4 text-emerald-300" />
+          <span>Crop Health</span>
+        </Link>
       </header>
 
       <section className="absolute inset-x-0 bottom-0 z-20 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-8 sm:px-6">

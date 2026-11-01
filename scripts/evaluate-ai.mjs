@@ -1,13 +1,18 @@
-import { generateObject, streamText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { generateText, Output, streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 import dotenv from 'dotenv';
 dotenv.config();
 
-if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-  console.error("Missing GOOGLE_GENERATIVE_AI_API_KEY for tests.");
+if (!process.env.NVIDIA_API_KEY) {
+  console.error("Missing NVIDIA_API_KEY for tests.");
   process.exit(1);
 }
+
+const nvidia = createOpenAI({
+  apiKey: process.env.NVIDIA_API_KEY,
+  baseURL: 'https://integrate.api.nvidia.com/v1',
+});
 
 // Mock analysis payloads
 const baseAnalysis = {
@@ -56,24 +61,23 @@ const explainSchema = z.object({
 async function runExplainTest(name, analysisPayload) {
   console.log(`\n--- Running Explain Test: ${name} ---`);
   try {
-    const { object } = await generateObject({
-      model: google('gemini-3.5-flash-lite'),
-      schema: explainSchema,
-      mode: "json",
+    const { output } = await generateText({
+      model: nvidia.chat(process.env.NVIDIA_CHAT_MODEL || 'meta/llama-3.3-70b-instruct'),
+      output: Output.object({ schema: explainSchema }),
       prompt: `Explain this data. RULES: Distinguish LIVE, CACHED, DEMO. Do not invent numbers. DATA: ${JSON.stringify(analysisPayload)}`
     });
     console.log("PASS: Response generated cleanly.");
     
     // Check data grounding (limitations should mention the correct source)
-    const hasSourceMention = object.dataLimitations.some(lim => 
+    const hasSourceMention = output.dataLimitations.some(lim => 
       lim.toLowerCase().includes(analysisPayload.environment.overallSource)
-    ) || object.keyRisks.some(r => r.dataStatus.toLowerCase() === analysisPayload.environment.overallSource);
+    ) || output.keyRisks.some(r => r.dataStatus.toLowerCase() === analysisPayload.environment.overallSource);
     
     if (hasSourceMention) {
       console.log("PASS: LLM correctly identified data source/limitations.");
     } else {
       console.log("FAIL: LLM failed to identify data limitations/source.");
-      console.log(object.dataLimitations, object.keyRisks);
+      console.log(output.dataLimitations, output.keyRisks);
     }
   } catch (err) {
     console.log("FAIL: ", err.message);
