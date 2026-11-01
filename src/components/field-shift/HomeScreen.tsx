@@ -3,12 +3,8 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
-<<<<<<< HEAD
 import Link from "next/link";
-import { ArrowRight, Satellite, Sparkles, Globe2, Play, ScanLine } from "lucide-react";
-=======
-import { ArrowRight, Sparkles, Globe2, Play } from "lucide-react";
->>>>>>> 5d8b1f852a9ec4aba37bd72f0cfc62ab59589888
+import { ArrowRight, Sparkles, Globe2, Play, ScanLine } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { LocationSearch } from "./LocationSearch";
 import { SAMPLE_FARMS } from "@/lib/location";
