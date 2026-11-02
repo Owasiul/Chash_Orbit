@@ -172,7 +172,7 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-4 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
           <Sprout className="size-3" />
-          {t('4-YEAR ROTATION')}
+          {t('4-Season ROTATION')}
         </div>
         {/* Desktop: horizontal flex with connecting line */}
         <div className="relative hidden md:block">
