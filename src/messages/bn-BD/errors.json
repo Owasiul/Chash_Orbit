@@ -11,7 +11,7 @@
   "llm-api-key-is-not-configured": "LLM API key কনফিগার করা হয়নি",
   "failed-to-process-chat-message": "বার্তাটি প্রক্রিয়া করা যায়নি",
   "failed-to-generate-explanation": "ব্যাখ্যা তৈরি করা যায়নি",
-  "failed-to-persist-farm": "খামারের তথ্য সংরক্ষণ করা যায়নি।",
+  "failed-to-persist-farm": "খামারের তথ্য সংরক্ষণ করা যায়নি। DATABASE_URL-এ চালু PostgreSQL ডেটাবেসের ঠিকানা আছে কি না এবং npm run db:push চালানো হয়েছে কি না পরীক্ষা করুন।",
   "location-search-is-temporarily-unavailable-p": "অবস্থান অনুসন্ধান সাময়িকভাবে বন্ধ। কিছুক্ষণ পর আবার চেষ্টা করুন।",
   "farm-not-found": "খামারটি পাওয়া যায়নি",
   "the-selected-language-could-not-be-saved": "নির্বাচিত ভাষা সংরক্ষণ করা যায়নি।",

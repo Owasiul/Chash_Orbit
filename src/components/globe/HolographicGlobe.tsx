@@ -92,8 +92,14 @@ const TEXTURE_URLS: string[] = IS_MOBILE
   ? [EARTH_DAY_URL]
   : [EARTH_DAY_URL, EARTH_TOPO_URL];
 
-// Kick off the texture downloads as soon as the chunk is evaluated.
-if (typeof window !== "undefined") useTexture.preload(TEXTURE_URLS);
+// Kick off the texture downloads as soon as the chunk is evaluated (safely).
+if (typeof window !== "undefined") {
+  try {
+    useTexture.preload(TEXTURE_URLS);
+  } catch {
+    // ignore preload error so chunk evaluation never fails
+  }
+}
 
 const ATMOSPHERE_COLOR = new THREE.Color("#22d3ee");
 const MARKER_COLOR = "#fbbf24";
@@ -273,32 +279,115 @@ const ATMOSPHERE_FRAG = /* glsl */ `
 /* Scene pieces                                                           */
 /* ---------------------------------------------------------------------- */
 
-function Earth({ onReady }: { onReady?: () => void }) {
+function FallbackEarth({ onReady }: { onReady?: () => void }) {
+  const notifiedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (notifiedRef.current) return;
+    notifiedRef.current = true;
+    onReady?.();
+  }, [onReady]);
+
+  const texture = React.useMemo(() => {
+    if (typeof document === "undefined") return null;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 512;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+
+      // Deep space ocean
+      ctx.fillStyle = "#09172a";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Orbital coordinate grid lines
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= canvas.width; x += 64) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= canvas.height; y += 32) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Stylized continents (holographic Earth)
+      ctx.fillStyle = "#1e3a5f";
+      // Eurasia & Africa
+      ctx.beginPath();
+      ctx.ellipse(560, 180, 210, 100, -0.1, 0, Math.PI * 2);
+      ctx.ellipse(530, 315, 95, 125, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Americas
+      ctx.beginPath();
+      ctx.ellipse(240, 170, 110, 80, -0.3, 0, Math.PI * 2);
+      ctx.ellipse(310, 340, 75, 110, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      // Australia
+      ctx.beginPath();
+      ctx.ellipse(820, 350, 65, 45, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+
+      const t = new THREE.CanvasTexture(canvas);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  return (
+    <mesh>
+      <sphereGeometry args={[1, 64, 64]} />
+      <meshStandardMaterial
+        map={texture || undefined}
+        color={texture ? "#ffffff" : "#0f2942"}
+        roughness={0.7}
+        metalness={0.1}
+        emissive="#081e33"
+        emissiveIntensity={0.25}
+      />
+    </mesh>
+  );
+}
+
+function configureEarthTexture(texture: THREE.Texture, anisotropy: number) {
+  if (texture.colorSpace !== THREE.SRGBColorSpace) {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+  }
+  if (texture.anisotropy !== anisotropy) {
+    texture.anisotropy = anisotropy;
+    texture.needsUpdate = true;
+  }
+}
+
+function EarthWithTextures({ onReady }: { onReady?: () => void }) {
   const gl = useThree((s) => s.gl);
   const textures = useTexture(TEXTURE_URLS);
   const day = textures[0];
   const topo = textures[1] as THREE.Texture | undefined;
 
-  // Deliberate render-phase mutation: colorSpace / anisotropy must be set
-  // before the material's first upload, and the writes are idempotent (they
-  // only fire on the very first mount that sees this cached texture), so
-  // StrictMode re-renders and remounts are safe.
-  if (day.colorSpace !== THREE.SRGBColorSpace) {
-    day.colorSpace = THREE.SRGBColorSpace;
-    day.needsUpdate = true;
-  }
   const desiredAniso = Math.min(8, gl.capabilities.getMaxAnisotropy());
-  if (day.anisotropy !== desiredAniso) {
-    day.anisotropy = desiredAniso;
-    day.needsUpdate = true;
-  }
+  React.useLayoutEffect(() => {
+    if (day) configureEarthTexture(day, desiredAniso);
+  }, [day, desiredAniso]);
 
   const notifiedRef = React.useRef(false);
   React.useEffect(() => {
     if (notifiedRef.current) return;
     notifiedRef.current = true;
-    onReady?.(); // fires once textures have resolved (Suspense passed)
+    onReady?.();
   }, [onReady]);
+
+  if (!day) {
+    return <FallbackEarth onReady={onReady} />;
+  }
 
   return (
     <mesh>
@@ -311,6 +400,14 @@ function Earth({ onReady }: { onReady?: () => void }) {
         metalness={0}
       />
     </mesh>
+  );
+}
+
+function Earth({ onReady }: { onReady?: () => void }) {
+  return (
+    <React.Suspense fallback={<FallbackEarth onReady={onReady} />}>
+      <EarthWithTextures onReady={onReady} />
+    </React.Suspense>
   );
 }
 
@@ -700,7 +797,7 @@ function SceneContents({
       {/* Axial tilt → spinning globe → markers */}
       <group rotation={[0, 0, TILT]}>
         <group ref={spinRef} rotation={[0, INITIAL_SPIN_Y, 0]}>
-          <React.Suspense fallback={null}>
+          <React.Suspense fallback={<FallbackEarth onReady={handleEarthReady} />}>
             <Earth onReady={handleEarthReady} />
           </React.Suspense>
           {ready && coords && (

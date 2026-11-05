@@ -110,8 +110,22 @@ export async function POST(req: Request) {
       },
     });
   } catch (e) {
-    console.error('Failed to persist farm:', e);
-    return bad('Failed to persist farm.', 500, locale);
+    console.warn('[api/field/analyze] Database unavailable, continuing with in-memory farm record:', e);
+    farm = {
+      id: `farm-${Math.abs(latitude).toFixed(4).replace('.', '_')}-${Math.abs(longitude).toFixed(4).replace('.', '_')}`,
+      name: body.locationName || `Field at ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
+      latitude,
+      longitude,
+      locationName: body.locationName || '',
+      country: body.country || null,
+      area: body.area ?? null,
+      areaUnit: body.areaUnit ?? 'acres',
+      soilType: resolvedSoil,
+      irrigationType: irrigation,
+      currentCrop: body.currentCrop ?? null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   }
 
   // ── Step 2: Save farmer preferences (replace existing) ─────────────────
