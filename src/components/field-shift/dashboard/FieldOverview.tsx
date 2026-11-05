@@ -25,10 +25,9 @@ import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
 import type { FullAnalysis } from '@/lib/store';
 import { useTranslation } from '@/lib/locale';
 
-// Dynamically import the holographic globe (ssr:false so three.js never runs
-// on the server).
-const HolographicGlobe = dynamic(
-  () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
+// Leaflet relies on browser APIs, so load the field map only on the client.
+const FieldMap = dynamic(
+  () => import('@/components/field-shift/FieldMap'),
   { ssr: false },
 );
 
@@ -287,7 +286,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
         )}
       </Card>
 
-      {/* Globe + info rings */}
+      {/* Field map + info rings */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-[320px_1fr] md:gap-6">
           <motion.div
@@ -296,12 +295,11 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
             transition={{ duration: 0.4 }}
             className="relative aspect-square w-full overflow-hidden rounded-2xl border border-white/10 bg-black/30 md:aspect-auto md:h-[280px]"
           >
-            <HolographicGlobe
-              selectedLat={field.latitude}
-              selectedLng={field.longitude}
-              locationName={field.locationName || field.name}
-              size="compact"
-              autoRotate
+            <FieldMap
+              latitude={field.latitude}
+              longitude={field.longitude}
+              zoom={15}
+              height="100%"
             />
           </motion.div>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-4">

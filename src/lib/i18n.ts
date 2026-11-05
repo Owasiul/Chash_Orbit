@@ -1,5 +1,6 @@
 import enAuth from '@/messages/en/auth.json';
 import enCommon from '@/messages/en/common.json';
+import enCropStages from '@/messages/en/crop-stages.json';
 import enDashboard from '@/messages/en/dashboard.json';
 import enErrors from '@/messages/en/errors.json';
 import enFooter from '@/messages/en/footer.json';
@@ -9,6 +10,7 @@ import enSettings from '@/messages/en/settings.json';
 import enValidation from '@/messages/en/validation.json';
 import bnAuth from '@/messages/bn-BD/auth.json';
 import bnCommon from '@/messages/bn-BD/common.json';
+import bnCropStages from '@/messages/bn-BD/crop-stages.json';
 import bnDashboard from '@/messages/bn-BD/dashboard.json';
 import bnErrors from '@/messages/bn-BD/errors.json';
 import bnFooter from '@/messages/bn-BD/footer.json';
@@ -25,6 +27,7 @@ type Catalog = Record<string, string>;
 const EN_NAMESPACES: Record<string, Catalog> = {
   common: enCommon,
   auth: enAuth,
+  cropStages: enCropStages,
   dashboard: enDashboard,
   errors: enErrors,
   footer: enFooter,
@@ -37,6 +40,7 @@ const EN_NAMESPACES: Record<string, Catalog> = {
 const BN_NAMESPACES: Record<string, Catalog> = {
   common: bnCommon,
   auth: bnAuth,
+  cropStages: bnCropStages,
   dashboard: bnDashboard,
   errors: bnErrors,
   footer: bnFooter,

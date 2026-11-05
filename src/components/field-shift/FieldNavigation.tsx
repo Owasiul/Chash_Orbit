@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { motion } from 'framer-motion';
 import {
-  Globe2, Activity, Sprout, CalendarClock, BarChart3, GraduationCap, Home, MessageSquare, SlidersHorizontal,
+  Globe2, Activity, Sprout, BarChart3, GraduationCap, Home, MessageSquare, SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore, type DashboardTab } from '@/lib/store';
@@ -18,8 +18,7 @@ interface Tab {
 const TABS: Tab[] = [
   { id: 'field', label: 'Field', icon: Globe2 },
   { id: 'signals', label: 'Signals', icon: Activity },
-  { id: 'crops', label: 'Crops', icon: Sprout },
-  { id: 'planner', label: 'Planner', icon: CalendarClock },
+  { id: 'workspace', label: 'Crop Workspace', icon: Sprout },
   { id: 'compare', label: 'Compare', icon: BarChart3 },
   { id: 'scenario', label: 'What-if', icon: SlidersHorizontal },
   { id: 'advisor', label: 'Advisor', icon: MessageSquare },
@@ -48,7 +47,9 @@ export function FieldNavigation() {
           </button>
           <div className="mx-1 h-5 w-px bg-white/10" />
           {TABS.map(t => {
-            const active = tab === t.id;
+            const active =
+              tab === t.id ||
+              (t.id === 'workspace' && (tab === 'crops' || tab === 'planner'));
             const Icon = t.icon;
             return (
               <button
@@ -79,7 +80,9 @@ export function FieldNavigation() {
       <nav className="fixed inset-x-0 bottom-0 z-50 sm:hidden">
         <div className="glass-panel mx-2 mb-2 flex items-center justify-around rounded-2xl px-1 py-1.5">
           {TABS.map(t => {
-            const active = tab === t.id;
+            const active =
+              tab === t.id ||
+              (t.id === 'workspace' && (tab === 'crops' || tab === 'planner'));
             const Icon = t.icon;
             return (
               <button

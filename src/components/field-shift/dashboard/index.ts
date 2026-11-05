@@ -2,10 +2,11 @@
 // Re-exports every panel so consumers can import them from a single entry point.
 //
 // Usage:
-//   import { FieldOverview, SignalsPanel, CropsPanel, PlannerPanel, ComparePanel, LearnPanel } from '@/components/field-shift/dashboard';
+//   import { FieldOverview, SignalsPanel, CropWorkspace, CropsPanel, PlannerPanel, ComparePanel, LearnPanel } from '@/components/field-shift/dashboard';
 
 export { FieldOverview } from './FieldOverview';
 export { SignalsPanel } from './SignalsPanel';
+export { CropWorkspace } from './CropWorkspace';
 export { CropsPanel } from './CropsPanel';
 export { PlannerPanel } from './PlannerPanel';
 export { ComparePanel } from './ComparePanel';

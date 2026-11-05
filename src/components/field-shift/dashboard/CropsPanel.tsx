@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  Search,
   Sprout,
   Sparkles,
   Plus,
@@ -14,6 +15,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import {
   Accordion,
@@ -35,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { useAppStore, type FullAnalysis } from '@/lib/store';
 import type { FarmerInputs } from '@/lib/decision/engine';
 import { useTranslation } from '@/lib/locale';
+import { FAO_CROPS } from '@/lib/crop-dataset';
 
 // ── Mini-fit-bar ────────────────────────────────────────────────────────────
 function FitBar({ label, value }: { label: string; value: number }) {
@@ -230,15 +233,16 @@ function ChangeCropsSection() {
   const [open, setOpen] = React.useState(false);
   const [desired, setDesired] = React.useState<string[]>(inputs?.desiredCrops ?? []);
   const [recalculating, setRecalculating] = React.useState(false);
+  const [filterQuery, setFilterQuery] = React.useState('');
   const abortRef = React.useRef<AbortController | null>(null);
 
-  // Keep local state in sync when the dialog opens
   React.useEffect(() => {
-    if (open) setDesired(inputs?.desiredCrops ?? []);
+    if (open) {
+      setDesired(inputs?.desiredCrops ?? []);
+      setFilterQuery('');
+    }
   }, [open, inputs]);
 
-  // Re-run the analysis with the current `desired` crop list. Shared by the
-  // debounced live-preview effect AND the explicit "Done" commit.
   const runAnalysis = React.useCallback(async (crops: string[]) => {
     if (!inputs || !analysis) return;
     if (crops.length === 0) {
@@ -285,7 +289,6 @@ function ChangeCropsSection() {
     }
   }, [inputs, analysis, setInputs, setAnalysis, locale, t]);
 
-  // Commit on Done click — explicit user action, no debounce cancellation.
   const handleDone = React.useCallback(() => {
     setOpen(false);
     void runAnalysis(desired);
@@ -295,15 +298,20 @@ function ChangeCropsSection() {
     return null;
   }
 
-  // Recommendations not currently selected — surface as suggestions
   const currentSet = new Set(desired);
   const extraRecs = analysis.recommendations
     .map(r => r.crop)
     .filter(c => !currentSet.has(c))
     .slice(0, 6);
 
-  // Pool of crops the user can pick from (their current + extras + recommendations)
-  const pool = Array.from(new Set([...desired, ...extraRecs])).sort();
+  // Full pool combining desired, recommendations, and all FAO database crops
+  const allCropNames = Array.from(
+    new Set([...desired, ...extraRecs, ...FAO_CROPS.map(c => c.name)])
+  ).sort();
+
+  const filteredPool = filterQuery.trim()
+    ? allCropNames.filter(c => c.toLowerCase().includes(filterQuery.toLowerCase()))
+    : allCropNames.slice(0, 36);
 
   const toggleCrop = (crop: string) => {
     setDesired(prev => {
@@ -319,7 +327,7 @@ function ChangeCropsSection() {
       <p className="mb-3 text-xs text-muted-foreground">
         Curious how a different crop mix changes the recommendations? Adjust your
         selection below — Chash Orbit will re-run the analysis with the same NASA
-        data and your priorities.
+        data and your priorities across 60+ FAO validated crops.
       </p>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
@@ -346,31 +354,43 @@ function ChangeCropsSection() {
             {t('Edit crop selection')}
           </Button>
         </DialogTrigger>
-        <DialogContent className="border-white/10 bg-background/95 backdrop-blur-md sm:max-w-md">
+        <DialogContent className="max-h-[85vh] overflow-y-auto border-white/10 bg-background/95 backdrop-blur-md sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Sprout className="size-5 text-amber-300" />
               {t('dashboard.edit-crops-you-re-considering')}
             </DialogTitle>
             <DialogDescription>
-              {t('Toggle crops to add or remove them. Chash Orbit re-runs the analysis automatically (debounced) — keep at least one crop selected.')}
+              {t('Select crops from the FAO EcoCrop database or search to add them to your evaluation.')}
             </DialogDescription>
           </DialogHeader>
 
           <Separator className="bg-white/10" />
 
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Search Bar inside Dialog */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={filterQuery}
+                onChange={e => setFilterQuery(e.target.value)}
+                placeholder={t('Search 60+ crops (e.g. Barley, Chickpea, Banana, Cotton)...')}
+                className="h-8 border-white/10 bg-white/[0.04] pl-9 text-xs"
+              />
+            </div>
+
+            {/* Currently Selected */}
             <div>
               <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
                 {t('dashboard.selected-count', { count: desired.length })}
               </span>
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {desired.map(c => (
                   <button
                     key={c}
                     type="button"
                     onClick={() => toggleCrop(c)}
-                    className="group inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-400/25"
+                    className="group inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/15 px-3 py-1 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-400/25"
                   >
                     <Check className="size-3" />
                     {t(c)}
@@ -385,18 +405,19 @@ function ChangeCropsSection() {
               </div>
             </div>
 
-            {extraRecs.length > 0 && (
+            {/* Top Recommended */}
+            {extraRecs.length > 0 && !filterQuery && (
               <div>
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  {t('Recommended but not selected')}
+                  {t('Recommended for your field')}
                 </span>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {extraRecs.map(c => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => toggleCrop(c)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-foreground/80 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10 hover:text-cyan-100"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-foreground/80 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10 hover:text-cyan-100"
                     >
                       <Plus className="size-3" />
                       {t(c)}
@@ -406,13 +427,19 @@ function ChangeCropsSection() {
               </div>
             )}
 
-            {pool.length > 0 && (
-              <div>
+            {/* Full FAO Catalog Pool */}
+            <div>
+              <div className="flex items-center justify-between">
                 <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
-                  {t('Full pool')}
+                  {filterQuery ? t('Search Results ({count})', { count: filteredPool.length }) : t('FAO EcoCrop Catalog')}
                 </span>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {pool.map(c => (
+                <span className="text-[10px] text-muted-foreground">
+                  {allCropNames.length} crops total
+                </span>
+              </div>
+              <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-white/5 bg-white/[0.02] p-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {filteredPool.map(c => (
                     <button
                       key={c}
                       type="button"
@@ -429,10 +456,10 @@ function ChangeCropsSection() {
                   ))}
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
-          <DialogFooter className="mt-2 flex !flex-col items-stretch gap-2 sm:!flex-row sm:items-center sm:justify-between">
+          <DialogFooter className="mt-4 flex !flex-col items-stretch gap-2 sm:!flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <AnimatePresence mode="wait">
                 {recalculating && (
@@ -449,14 +476,18 @@ function ChangeCropsSection() {
                 )}
               </AnimatePresence>
             </div>
-            <Button
-              type="button"
-              onClick={handleDone}
-              className="border-white/10 bg-white/5 text-foreground hover:bg-white/10"
-              variant="outline"
-            >
-              {t('Done')}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => setOpen(false)} className="text-xs">
+                {t('Cancel')}
+              </Button>
+              <Button
+                onClick={handleDone}
+                disabled={desired.length === 0}
+                className="bg-amber-400 text-xs font-medium text-black hover:bg-amber-300"
+              >
+                {t('Done')}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -464,7 +495,6 @@ function ChangeCropsSection() {
   );
 }
 
-// ── Main panel ──────────────────────────────────────────────────────────────
 export function CropsPanel({ analysis }: { analysis: FullAnalysis }) {
   return (
     <div className="space-y-4">
