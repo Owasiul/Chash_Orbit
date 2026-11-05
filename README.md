@@ -106,19 +106,25 @@ Chash Orbit now features an LLM-powered agricultural advisor built with the Verc
 ## Tech stack
 
 Next.js 16 (App Router) · React 19 · Tailwind CSS 4 · shadcn/ui ·
-react-globe.gl / three.js · recharts · Zustand · Prisma + SQLite (farms + NASA
-response cache)
+react-globe.gl / three.js · recharts · Zustand · Prisma + PostgreSQL (farms +
+NASA response cache)
 
 ## Getting started
 
-Requires Node.js ≥ 20.9.
+Requires Node.js ≥ 20.9 and a running PostgreSQL server. Create a database
+named `chash_orbit`, copy `.env.example` to `.env`, and set `DATABASE_URL` to
+your PostgreSQL connection string.
 
 ```bash
 npm i         # also generates the Prisma client
 cp .env.example .env
-npm run db:push      # create the SQLite database
+npm run db:push      # create/update tables in PostgreSQL
 npm run dev          # http://localhost:3000
 ```
+
+For a local PostgreSQL installation, create the database with
+`createdb chash_orbit` (or `CREATE DATABASE chash_orbit;` in `psql`) before
+running `npm run db:push`.
 
 The crop library seeds itself on the first API call.
 
@@ -129,18 +135,19 @@ The crop library seeds itself on the first API call.
 | `npm run dev` | Dev server on port 3000 |
 | `npm run build` / `npm start` | Production build (standalone) / serve it |
 | `npm run lint` | ESLint |
-| `npm run db:push` | Sync the Prisma schema to SQLite |
+| `npm run db:push` | Sync the Prisma schema to PostgreSQL |
 | `npm run warm-cache` | Pre-fetch NASA data for the demo farms (`BASE_URL=…` to target a deployment) |
 
 ## Deploying
 
-Use a host with a **persistent disk**, so the SQLite NASA cache survives
-restarts: a VPS, Render with a disk, or Railway with a volume.
+Configure `DATABASE_URL` to point to a PostgreSQL database reachable by your
+host. Use a managed database or a persistent PostgreSQL service so farm data
+and the NASA response cache survive restarts.
 
 ```bash
 npm ci && npm run db:push && npm run build && npm start
 BASE_URL=https://your-host npm run warm-cache   # run after every deploy
 ```
 
-Vercel works, but its filesystem is ephemeral, so the cache is lost and cold
-NASA requests can take 10–30 s. For Vercel, switch Prisma to hosted Postgres.
+Vercel works with a hosted PostgreSQL database configured through
+`DATABASE_URL`.
