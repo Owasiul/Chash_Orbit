@@ -111,7 +111,6 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
 
   React.useEffect(() => {
     setReport(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReport();
   }, [fetchReport, setReport]);
 

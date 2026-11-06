@@ -11,6 +11,7 @@ import {
   Minus,
   FlaskConical,
   Info,
+  Loader2,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -29,7 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
-import type { FullAnalysis } from '@/lib/store';
+import { useAppStore, type FullAnalysis } from '@/lib/store';
 import type { Environment } from '@/lib/nasa/environment';
 import type { PowerAnalysis } from '@/lib/nasa/power';
 import { useTranslation } from '@/lib/locale';
@@ -96,17 +97,21 @@ function NasaCard({
   icon,
   source,
   attribution,
+  resolution,
   children,
   big,
   bigUnit,
+  extraBadge,
 }: {
   title: string;
   icon: React.ReactNode;
   source: 'live' | 'cached' | 'demo' | 'derived';
   attribution: string;
+  resolution?: string;
   children: React.ReactNode;
   big: string;
   bigUnit: string;
+  extraBadge?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   return (
@@ -116,11 +121,21 @@ function NasaCard({
           <span className="flex size-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-300">
             {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-4' })}
           </span>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
-            {t(title)}
-          </span>
+          <div>
+            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
+              {t(title)}
+            </div>
+            {resolution && (
+              <div className="font-mono text-[9px] text-muted-foreground/60">
+                {resolution}
+              </div>
+            )}
+          </div>
         </div>
-        <DataSourceBadge source={source} size="sm" />
+        <div className="flex items-center gap-1.5">
+          {extraBadge}
+          <DataSourceBadge source={source} size="sm" />
+        </div>
       </div>
       <div className="mt-3 flex items-baseline gap-1.5">
         <span className="text-3xl font-light text-foreground sm:text-4xl">{big}</span>
@@ -212,6 +227,41 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
   const sm = environment.soilMoisture;
   const veg = environment.vegetation;
 
+  const activePolygon = useAppStore(s => s.activePolygon);
+  const updateVegetation = useAppStore(s => s.updateVegetation);
+
+  // Progressive background polling for live MODIS NDVI without blocking UI
+  React.useEffect(() => {
+    if (veg.source === 'live' || veg.source === 'cached') return;
+
+    let isCancelled = false;
+    let attempts = 0;
+    const maxAttempts = 15; // ~45s
+
+    const poll = async () => {
+      attempts++;
+      if (attempts > maxAttempts || isCancelled) return;
+      try {
+        const polygonCoords = activePolygon?.coordinates ?? null;
+        const polyParam = polygonCoords ? `&polygon=${encodeURIComponent(JSON.stringify(polygonCoords))}` : '';
+        const res = await fetch(`/api/field/ndvi?lat=${field.latitude}&lng=${field.longitude}${polyParam}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isCancelled && data.vegetation && (data.vegetation.source === 'live' || data.vegetation.source === 'cached')) {
+          updateVegetation(data.vegetation);
+        }
+      } catch {
+        // best-effort polling
+      }
+    };
+
+    const timer = setInterval(poll, 3000);
+    return () => {
+      isCancelled = true;
+      clearInterval(timer);
+    };
+  }, [veg.source, field.latitude, field.longitude, activePolygon, updateVegetation]);
+
   const tempSeries = React.useMemo(() => monthlyTempSeries(environment.rawPower), [environment.rawPower]);
   const rainSeries = rain.seasonalPattern ?? [];
   const vegSeries = veg.seasonalPattern ?? [];
@@ -236,6 +286,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           icon={<Thermometer />}
           source={temp.source}
           attribution={temp.attribution}
+          resolution={temp.resolution ?? '0.5° × 0.5° (~50 km MERRA-2)'}
           big={number(temp.current, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
           bigUnit={t('°C (90d mean)')}
         >
@@ -273,6 +324,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           icon={<CloudRain />}
           source={rain.source === 'live' ? 'live' : rain.source === 'cached' ? 'cached' : 'demo'}
           attribution={rain.attribution}
+          resolution={rain.resolution ?? '0.5° × 0.5° (~50 km MERRA-2 / GPM)'}
           big={number(Math.round(rain.annualRainfall))}
           bigUnit={t('mm / year')}
         >
@@ -313,6 +365,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           icon={<Droplets />}
           source={sm.source === 'derived' ? 'derived' : 'demo'}
           attribution={sm.attribution}
+          resolution={sm.resolution ?? '0.5° (~50 km derived water balance)'}
           big={number(sm.currentMm, { maximumFractionDigits: 0 })}
           bigUnit={t('mm (top ~1m)')}
         >
@@ -357,6 +410,15 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           icon={<Leaf />}
           source={veg.source}
           attribution={veg.attribution}
+          resolution={veg.resolution ?? (vegObserved ? '250 m (NASA MODIS Terra)' : '0.5° (~50 km derived)')}
+          extraBadge={
+            !vegObserved && (veg.ndviLoading || veg.source === 'derived') ? (
+              <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200 animate-pulse text-[9px] flex items-center gap-1 font-mono">
+                <Loader2 className="size-2.5 animate-spin" />
+                <span>{t('MODIS 250m acquiring...')}</span>
+              </Badge>
+            ) : null
+          }
           big={number(veg.ndvi, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           bigUnit={veg.observedDate ? `NDVI · MODIS ${date(veg.observedDate)}` : 'NDVI'}
         >
@@ -392,6 +454,14 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             <div className="mt-1 flex items-center gap-3 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
               <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-emerald-400" />{t('MODIS observed')}</span>
               <span className="flex items-center gap-1"><span className="h-0 w-3 border-t border-dashed border-slate-400" />{t('POWER-driven model')}</span>
+            </div>
+          )}
+          {veg.sentinel2SceneId && (
+            <div className="mt-2 rounded border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 font-mono text-[9px] text-emerald-300">
+              <div className="flex items-center justify-between">
+                <span>{t('Sentinel-2 L2A (10 m):')} {veg.sentinel2SceneId.slice(0, 22)}...</span>
+                <span>{t('Cloud:')} {veg.sentinel2CloudCover ?? 0}%</span>
+              </div>
             </div>
           )}
         </NasaCard>

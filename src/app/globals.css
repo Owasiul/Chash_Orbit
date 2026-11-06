@@ -176,3 +176,69 @@
   0% { transform: scale(1); opacity: 0.9; }
   100% { transform: scale(2.5); opacity: 0; }
 }
+
+/* Print-friendly Executive Report Styles */
+@media print {
+  @page {
+    margin: 1.5cm;
+    size: auto;
+  }
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    background-image: none !important;
+  }
+  .starfield::before,
+  .scanline::after {
+    display: none !important;
+  }
+  .no-print,
+  nav,
+  header.no-print,
+  button:not(.allow-print),
+  .mapboxgl-control-container,
+  .maplibregl-control-container,
+  .terra-draw-toolbar {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  /* Card and container layout for printing */
+  .verdict-print-card,
+  [data-slot="card"] {
+    background: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1rem !important;
+  }
+  h1, h2, h3, h4, strong, span, p {
+    color: #111111 !important;
+  }
+  .text-amber-200, .text-amber-300, .text-amber-400 {
+    color: #b45309 !important;
+  }
+  .text-emerald-200, .text-emerald-300, .text-emerald-400 {
+    color: #047857 !important;
+  }
+  .text-cyan-200, .text-cyan-300, .text-cyan-400 {
+    color: #0369a1 !important;
+  }
+  .text-rose-200, .text-rose-300, .text-rose-400 {
+    color: #b91c1c !important;
+  }
+  .text-muted-foreground {
+    color: #4b5563 !important;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  th, td {
+    border: 1px solid #e5e7eb !important;
+    color: #111111 !important;
+  }
+}

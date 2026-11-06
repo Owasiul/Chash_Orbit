@@ -8,6 +8,7 @@ import { deriveRainfall, type RainfallAnalysis } from './gpm';
 import { deriveVegetation, getModisNdvi, type VegetationAnalysis } from './modis';
 import { getCached, setCached, CACHE_TTL, type CacheKey } from './cache';
 import { fetchPowerExtras, type PowerExtras } from './power-extras';
+import { fetchLatestSentinel2Scene } from './sentinel';
 
 export type DataSource = 'live' | 'cached' | 'demo';
 
@@ -20,6 +21,7 @@ export interface Environment {
     tenYearTrend: number;
     source: DataSource;
     attribution: string;
+    resolution?: string;
   };
   rainfall: RainfallAnalysis;
   soilMoisture: SoilMoistureAnalysis;
@@ -39,7 +41,7 @@ function hashLatLon(lat: number, lng: number): number {
   return x - Math.floor(x);
 }
 
-function demoPower(lat: number, lng: number): PowerAnalysis {
+export function demoPower(lat: number, lng: number): PowerAnalysis {
   const h = hashLatLon(lat, lng);
   const a = Math.abs(lat);
   // temperature declines with latitude
@@ -111,19 +113,62 @@ export async function fetchEnvironment(
   longitude: number,
   cropWaterMm = 500,
   currentCropIsLegume = false,
+  polygon?: [number, number][] | { coordinates?: [number, number][] },
 ): Promise<Environment> {
+  const coords: [number, number][] | undefined = Array.isArray(polygon)
+    ? polygon
+    : Array.isArray(polygon?.coordinates)
+      ? polygon.coordinates
+      : undefined;
+
+  // If a polygon boundary is provided, use the spatial centroid for gridded assimilation queries
+  let queryLat = latitude;
+  let queryLng = longitude;
+  if (coords && coords.length >= 3) {
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    for (const [lng, lat] of coords) {
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
+    queryLat = (minLat + maxLat) / 2;
+    queryLng = (minLng + maxLng) / 2;
+  }
+
   const dateRange = last365Range();
   const key: CacheKey = {
     source: 'power',
-    latitude,
-    longitude,
+    latitude: queryLat,
+    longitude: queryLng,
     dateRange,
     parameters: 'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M',
   };
 
+  // Bounding box for STAC / spatial queries
+  let bbox: [number, number, number, number] = [
+    queryLng - 0.01,
+    queryLat - 0.01,
+    queryLng + 0.01,
+    queryLat + 0.01,
+  ];
+  if (coords && coords.length >= 3) {
+    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+    for (const [lng, lat] of coords) {
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
+    bbox = [minLng, minLat, maxLng, maxLat];
+  }
+
   // MODIS NDVI runs alongside POWER; it never throws and resolves to null if
-  // it can't answer within its time budget.
-  const modisJob = getModisNdvi(latitude, longitude);
+  // it can't answer within its initial time budget (3500ms).
+  const modisJob = getModisNdvi(queryLat, queryLng, coords, 3500);
+
+  // STRETCH: Sentinel-2 L2A via Planetary Computer STAC (non-blocking 2500ms)
+  const sentinelJob = fetchLatestSentinel2Scene(bbox, 2500).catch(() => null);
 
   let power: PowerAnalysis;
   let cacheHit = false;
@@ -134,13 +179,13 @@ export async function fetchEnvironment(
       power = { ...reviveSeries(cached.data), source: 'cached' as const };
       cacheHit = true;
     } else {
-      power = await fetchPowerAnalysis(latitude, longitude);
+      power = await fetchPowerAnalysis(queryLat, queryLng);
       // store only the live data; mark as cached when retrieved later.
       // A failed cache write must not discard the live data we just fetched.
       await setCached(key, { ...power, source: 'live' }, CACHE_TTL.POWER).catch(() => {});
     }
   } catch {
-    power = demoPower(latitude, longitude);
+    power = demoPower(queryLat, queryLng);
   }
 
   // POWER extras (soil wetness, 10-year baseline, extremes). Cached like POWER
@@ -149,21 +194,22 @@ export async function fetchEnvironment(
   if (power.source !== 'demo') {
     const extrasKey: CacheKey = {
       source: 'power-extras',
-      latitude,
-      longitude,
+      latitude: queryLat,
+      longitude: queryLng,
       dateRange,
       parameters: 'GWETROOT,GWETTOP,PRECTOTCORR-normals',
     };
     extras = await getCached<PowerExtras>(extrasKey, CACHE_TTL.POWER).then(c => c?.data ?? null).catch(() => null);
     if (!extras) {
-      extras = await fetchPowerExtras(latitude, longitude, power.series).catch(() => null);
+      extras = await fetchPowerExtras(queryLat, queryLng, power.series).catch(() => null);
       if (extras) await setCached(extrasKey, extras, CACHE_TTL.POWER).catch(() => {});
     }
   }
 
   const soilMoisture = deriveSoilMoisture(power, cropWaterMm);
-  const rainfall = deriveRainfall(power, latitude, extras?.rainBaseline?.anomalyPct ?? null);
-  const vegetation = deriveVegetation(power, latitude, await modisJob);
+  const rainfall = deriveRainfall(power, queryLat, extras?.rainBaseline?.anomalyPct ?? null);
+  const sentinelScene = await sentinelJob;
+  const vegetation = deriveVegetation(power, queryLat, queryLng, await modisJob, polygon, sentinelScene);
 
   // Source tagging
   const powerSrc: DataSource = cacheHit ? 'cached' : power.source;
@@ -178,6 +224,7 @@ export async function fetchEnvironment(
       tenYearTrend: Math.round(power.tenYearTempTrend * 1000) / 1000,
       source: powerSrc,
       attribution: power.attribution,
+      resolution: power.resolution ?? '0.5° × 0.5° (~50 km MERRA-2)',
     },
     rainfall,
     soilMoisture,

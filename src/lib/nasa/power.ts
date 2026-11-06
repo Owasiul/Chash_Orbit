@@ -31,6 +31,7 @@ export interface PowerAnalysis {
   tenYearRainfallTrend: number; // mm/year slope
   source: 'live' | 'cached' | 'demo';
   attribution: string;
+  resolution?: string;
 }
 
 // ── Date helpers ────────────────────────────────────────────────────────────
@@ -53,11 +54,39 @@ function last10YearRange(end = new Date()): { start: string; end: string } {
   return { start: String(lastFull - 9), end: String(lastFull) };
 }
 
-// ── API call ────────────────────────────────────────────────────────────────
+// ── API call with retry & exponential backoff ────────────────────────────────
 interface PowerRawResponse {
   properties?: {
     parameter?: Record<string, Record<string, number | null>>;
   };
+}
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 2,
+  backoffMs = 500,
+): Promise<Response> {
+  let attempt = 0;
+  while (true) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      if ([429, 500, 502, 503, 504].includes(res.status) && attempt < retries) {
+        attempt++;
+        await new Promise(r => setTimeout(r, backoffMs * 2 ** (attempt - 1)));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt < retries) {
+        attempt++;
+        await new Promise(r => setTimeout(r, backoffMs * 2 ** (attempt - 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 async function fetchPower(
@@ -72,12 +101,11 @@ async function fetchPower(
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (NASA_API_KEY) headers['X-Api-Key'] = NASA_API_KEY;
 
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers,
-    // POWER can be slow on cold cache; give it generous timeouts.
     next: { revalidate: 0 },
-    signal: AbortSignal.timeout(20000),
-  });
+    signal: AbortSignal.timeout(18000),
+  }, 2, 600);
   if (!res.ok) {
     throw new Error(`POWER ${temporal} HTTP ${res.status}`);
   }
@@ -228,5 +256,6 @@ export async function fetchPowerAnalysis(
     tenYearRainfallTrend,
     source: 'live',
     attribution: 'NASA POWER (Prediction Of Worldwide Energy Resources), NASA Langley Research Center',
+    resolution: '0.5° × 0.5° (~50 km MERRA-2 assimilation grid, queried at field centroid)',
   };
 }

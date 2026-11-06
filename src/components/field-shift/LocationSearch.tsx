@@ -1,38 +1,44 @@
 "use client";
 
 import * as React from 'react';
-import { Search, Loader2, MapPin, X } from 'lucide-react';
+import { Search, Loader2, MapPin, X, Navigation, Crosshair } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hasBengaliScript, type GeoResult } from '@/lib/location';
 import { useTranslation } from '@/lib/locale';
 
 interface Props {
   onSelect: (r: GeoResult) => void;
+  onClear?: () => void;
   className?: string;
   autoFocus?: boolean;
   resolving?: boolean;
   selectionError?: string | null;
   onQueryChange?: () => void;
+  dropdownPosition?: 'top' | 'bottom';
 }
 
 const DEBOUNCE_MS = 250;
 const MIN_CHARS = 2;
 
-const panelClass =
-  'absolute bottom-full z-50 mb-2 w-full rounded-2xl border border-white/10 bg-card/95 shadow-2xl backdrop-blur-md';
+const panelBaseClass =
+  'absolute z-50 w-full rounded-2xl border border-white/20 bg-slate-900/98 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl ring-1 ring-black/50';
 
 export function LocationSearch({
   onSelect,
+  onClear,
   className,
   autoFocus,
   resolving = false,
   selectionError,
   onQueryChange,
+  dropdownPosition = 'bottom',
 }: Props) {
   const { locale, t, number } = useTranslation();
   const [q, setQ] = React.useState('');
   const [results, setResults] = React.useState<GeoResult[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [locating, setLocating] = React.useState(false);
+  const [geoNotice, setGeoNotice] = React.useState<string | null>(null);
   const [searched, setSearched] = React.useState(false); // a search finished for the current query
   const [error, setError] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -45,7 +51,41 @@ export function LocationSearch({
   const listId = React.useId();
   const optionId = (i: number) => `${listId}-option-${i}`;
 
-  // Debounced search
+  // Geolocation trigger
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoNotice(t('Geolocation is not supported by your browser'));
+      setTimeout(() => setGeoNotice(null), 3000);
+      return;
+    }
+    setLocating(true);
+    setGeoNotice(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const lat = Number(pos.coords.latitude.toFixed(5));
+        const lng = Number(pos.coords.longitude.toFixed(5));
+        const gpsResult: GeoResult = {
+          id: 888888,
+          name: `${t('My Location')} (${lat}°, ${lng}°)`,
+          latitude: lat,
+          longitude: lng,
+          country: t('Current GPS Position'),
+          countryCode: '',
+          featureCode: 'GPS',
+        };
+        select(gpsResult);
+      },
+      (err) => {
+        setLocating(false);
+        setGeoNotice(err.message || t('Could not acquire GPS position'));
+        setTimeout(() => setGeoNotice(null), 4000);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  // Debounced search & coordinate detection
   React.useEffect(() => {
     // After picking a result we set q to the result name — don't search for it again
     if (skipNextSearch.current) {
@@ -54,6 +94,31 @@ export function LocationSearch({
     }
 
     const query = q.trim();
+
+    // Check direct coordinate input: "24.3745, 88.6042" or "24.3745 88.6042"
+    const coordMatch = query.match(/^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$/);
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[3]);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        setResults([
+          {
+            id: 999999,
+            name: `${t('Coordinates')}: ${lat.toFixed(4)}°, ${lng.toFixed(4)}°`,
+            latitude: lat,
+            longitude: lng,
+            country: t('Direct Coordinate FlyTo'),
+            countryCode: '',
+            featureCode: 'COORD',
+          },
+        ]);
+        setSearched(true);
+        setActive(0);
+        setOpen(true);
+        setLoading(false);
+        return;
+      }
+    }
 
     if (query.length < MIN_CHARS) {
       setResults([]);
@@ -69,7 +134,7 @@ export function LocationSearch({
     setLoading(true);
     setError(false);
 
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const language = hasBengaliScript(query) ? 'bn' : locale === 'bn-BD' ? 'bn' : 'en';
         const res = await fetch(
@@ -100,10 +165,10 @@ export function LocationSearch({
     }, DEBOUNCE_MS);
 
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       controller.abort();
     };
-  }, [q, locale]);
+  }, [q, locale, t]);
 
   // Click-outside to close
   React.useEffect(() => {
@@ -181,7 +246,7 @@ export function LocationSearch({
   return (
     <div ref={containerRef} className={cn('relative w-full', className)}>
       <div className="group relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground/70 group-focus-within:text-amber-300/80" />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4.5 -translate-y-1/2 text-muted-foreground/70 group-focus-within:text-amber-300" />
         <input
           ref={inputRef}
           type="text"
@@ -195,8 +260,8 @@ export function LocationSearch({
           }}
           onKeyDown={handleKey}
           onFocus={() => (results.length > 0 || statusMessage) && setOpen(true)}
-          placeholder={t('Search your farm, city, district or region...')}
-          className="w-full rounded-2xl border border-white/10 bg-black/40 px-12 py-4 font-sans text-base text-foreground placeholder:text-muted-foreground/60 backdrop-blur-md outline-none transition-all focus:border-amber-400/40 focus:bg-black/50 focus:ring-2 focus:ring-amber-400/20"
+          placeholder={t('Search city, region, or enter lat, lng (e.g. 24.37, 88.60)...')}
+          className="w-full rounded-2xl border border-white/10 bg-black/60 pl-10 pr-28 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 backdrop-blur-md outline-none transition-all focus:border-amber-400/50 focus:bg-black/80 focus:ring-2 focus:ring-amber-400/20"
           aria-label={t('Search location')}
           role="combobox"
           aria-expanded={showList}
@@ -204,31 +269,57 @@ export function LocationSearch({
           aria-activedescendant={showList && active >= 0 ? optionId(active) : undefined}
           aria-autocomplete="list"
         />
-        {(loading || resolving) && (
-          <Loader2 className="absolute right-4 top-1/2 size-5 -translate-y-1/2 animate-spin text-muted-foreground/70" />
-        )}
-        {!loading && !resolving && q && (
+
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+          {(loading || resolving || locating) && (
+            <Loader2 className="size-4 animate-spin text-amber-400" />
+          )}
+
+          {!loading && !resolving && !locating && q && (
+            <button
+              type="button"
+              onClick={() => {
+                setQ('');
+                setResults([]);
+                setOpen(false);
+                onClear?.();
+                inputRef.current?.focus();
+              }}
+              className="rounded-full p-1 text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
+              aria-label={t('Clear search')}
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={() => {
-              setQ('');
-              setResults([]);
-              setOpen(false);
-              inputRef.current?.focus();
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground/70 transition-colors hover:bg-white/10 hover:text-foreground"
-            aria-label={t('Clear search')}
+            onClick={handleUseMyLocation}
+            disabled={locating}
+            title={t('Use my current GPS device location')}
+            className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-mono text-muted-foreground hover:border-amber-400/40 hover:bg-amber-400/15 hover:text-amber-200 transition-colors shrink-0"
           >
-            <X className="size-4" />
+            <Navigation className={cn("size-3 text-amber-400", locating && "animate-pulse")} />
+            <span className="hidden sm:inline text-[10px] font-medium">{t('My GPS')}</span>
           </button>
-        )}
+        </div>
       </div>
+
+      {geoNotice && (
+        <div className="absolute top-full mt-2 z-50 rounded-xl border border-amber-400/30 bg-amber-950/95 px-3 py-1.5 text-xs text-amber-200 shadow-xl backdrop-blur-md">
+          {geoNotice}
+        </div>
+      )}
 
       {showList && (
         <ul
           id={listId}
           role="listbox"
-          className={cn(panelClass, 'max-h-80 overflow-y-auto p-1 fs-scroll')}
+          className={cn(
+            panelBaseClass,
+            dropdownPosition === 'top' ? 'bottom-full mb-2' : 'top-full mt-2',
+            'max-h-80 overflow-y-auto p-1 fs-scroll'
+          )}
         >
           {results.map((r, i) => (
             <li

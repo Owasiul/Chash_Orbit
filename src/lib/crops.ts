@@ -40,6 +40,8 @@ export interface CropSpec {
   growTempMax: number;     // °C
   baseIncome: number;      // relative profitability index 1-100
   soilBenefits: string;
+  source: 'BRRI' | 'BARI' | 'FAO' | 'ICRISAT' | 'BARI/FAO' | 'BRRI/FAO' | 'CDB/FAO' | 'illustrative';
+  sourceCitation?: string;
 }
 
 // ── Crop library ────────────────────────────────────────────────────────────
@@ -53,6 +55,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'high', droughtTolerance: 'low',
     floodTolerance: 'high', growTempMin: 20, growTempMax: 35, baseIncome: 72,
     soilBenefits: 'Builds organic matter under flooded paddy; depletes nitrogen.',
+    source: 'BRRI/FAO',
+    sourceCitation: 'BRRI (Bangladesh Rice Research Institute) & FAO Irrigation and Drainage Paper 56',
   },
   {
     name: 'Wheat', family: 'Poaceae', season: 'rabi',
@@ -61,6 +65,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'medium', droughtTolerance: 'medium',
     floodTolerance: 'low', growTempMin: 10, growTempMax: 25, baseIncome: 68,
     soilBenefits: 'Staple cereal; responds well to residual nitrogen from legumes.',
+    source: 'BARI/FAO',
+    sourceCitation: 'BARI Wheat Research Centre & FAO 56',
   },
   {
     name: 'Maize', family: 'Poaceae', season: 'kharif',
@@ -69,6 +75,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'high', droughtTolerance: 'medium',
     floodTolerance: 'low', growTempMin: 15, growTempMax: 35, baseIncome: 70,
     soilBenefits: 'Deep rooting improves soil structure; high nitrogen demand.',
+    source: 'BARI/FAO',
+    sourceCitation: 'BARI Maize Division & FAO 56',
   },
   {
     name: 'Potato', family: 'Solanaceae', season: 'rabi',
@@ -77,6 +85,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'low', droughtTolerance: 'low',
     floodTolerance: 'low', growTempMin: 10, growTempMax: 25, baseIncome: 85,
     soilBenefits: 'High-value tuber; loosens compacted surface soil.',
+    source: 'BARI/FAO',
+    sourceCitation: 'BARI Tuber Crops Research Centre (TCRC) & FAO 56',
   },
   {
     name: 'Tomato', family: 'Solanaceae', season: 'kharif',
@@ -85,6 +95,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'medium', droughtTolerance: 'low',
     floodTolerance: 'low', growTempMin: 18, growTempMax: 30, baseIncome: 80,
     soilBenefits: 'High-value vegetable; needs steady moisture and good drainage.',
+    source: 'BARI/FAO',
+    sourceCitation: 'BARI Horticulture Research Centre & FAO 56',
   },
   {
     name: 'Chickpea', family: 'Fabaceae', season: 'rabi',
@@ -93,6 +105,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'fixer', heatTolerance: 'high', droughtTolerance: 'high',
     floodTolerance: 'low', growTempMin: 15, growTempMax: 30, baseIncome: 75,
     soilBenefits: 'Nitrogen-fixing legume; improves soil fertility for following cereal.',
+    source: 'BARI/FAO',
+    sourceCitation: 'BARI Pulses Research Centre & ICRISAT/FAO 56',
   },
   {
     name: 'Lentil', family: 'Fabaceae', season: 'rabi',
@@ -101,6 +115,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'fixer', heatTolerance: 'medium', droughtTolerance: 'high',
     floodTolerance: 'low', growTempMin: 10, growTempMax: 28, baseIncome: 72,
     soilBenefits: 'Nitrogen-fixing legume; suits rainfed rabi systems.',
+    source: 'BARI/FAO',
+    sourceCitation: 'BARI Pulses Research Centre & FAO 56',
   },
   {
     name: 'Soybean', family: 'Fabaceae', season: 'kharif',
@@ -109,6 +125,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'fixer', heatTolerance: 'high', droughtTolerance: 'medium',
     floodTolerance: 'medium', growTempMin: 20, growTempMax: 35, baseIncome: 78,
     soilBenefits: 'Nitrogen-fixing; improves soil structure; versatile oilseed/legume.',
+    source: 'BARI/FAO',
+    sourceCitation: 'BARI Oilseed Research Centre & FAO 56',
   },
   {
     name: 'Sorghum', family: 'Poaceae', season: 'kharif',
@@ -117,6 +135,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'high', droughtTolerance: 'high',
     floodTolerance: 'medium', growTempMin: 20, growTempMax: 38, baseIncome: 60,
     soilBenefits: 'Deep roots break hardpans; very drought tolerant.',
+    source: 'FAO',
+    sourceCitation: 'ICRISAT & FAO Crop Water Management (Paper 56)',
   },
   {
     name: 'Millet', family: 'Poaceae', season: 'kharif',
@@ -125,6 +145,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'high', droughtTolerance: 'high',
     floodTolerance: 'medium', growTempMin: 20, growTempMax: 38, baseIncome: 55,
     soilBenefits: 'Short-season cereal; thrives on marginal soils.',
+    source: 'FAO',
+    sourceCitation: 'ICRISAT & FAO 56',
   },
   {
     name: 'Mung', family: 'Fabaceae', season: 'summer',
@@ -133,6 +155,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'fixer', heatTolerance: 'high', droughtTolerance: 'medium',
     floodTolerance: 'low', growTempMin: 22, growTempMax: 36, baseIncome: 65,
     soilBenefits: 'Fast nitrogen-fixing cover/relay crop; short cycle fits between cereals.',
+    source: 'BARI',
+    sourceCitation: 'BARI Pulses Research Centre & AVRDC/WorldVeg',
   },
   {
     name: 'Mustard', family: 'Brassicaceae', season: 'rabi',
@@ -141,6 +165,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'medium', droughtTolerance: 'medium',
     floodTolerance: 'low', growTempMin: 10, growTempMax: 28, baseIncome: 76,
     soilBenefits: 'Oilseed; taproot opens subsoil; breaks some cereal disease cycles.',
+    source: 'BARI',
+    sourceCitation: 'BARI Oilseed Research Centre',
   },
   {
     name: 'Cotton', family: 'Malvaceae', season: 'kharif',
@@ -149,6 +175,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'high', droughtTolerance: 'medium',
     floodTolerance: 'low', growTempMin: 22, growTempMax: 38, baseIncome: 82,
     soilBenefits: 'Deep taproot exploits subsoil moisture; long season crop.',
+    source: 'CDB/FAO',
+    sourceCitation: 'Cotton Development Board (CDB) Bangladesh & FAO 56',
   },
   {
     name: 'Vegetables', family: 'Mixed', season: 'year_round',
@@ -157,6 +185,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'depleter', heatTolerance: 'medium', droughtTolerance: 'low',
     floodTolerance: 'low', growTempMin: 15, growTempMax: 32, baseIncome: 88,
     soilBenefits: 'High-value; needs reliable irrigation and fertile soil.',
+    source: 'illustrative',
+    sourceCitation: 'Illustrative composite agronomic profile',
   },
   {
     name: 'Fruit', family: 'Mixed', season: 'year_round',
@@ -165,6 +195,8 @@ export const CROP_LIBRARY: CropSpec[] = [
     nitrogenEffect: 'neutral', heatTolerance: 'medium', droughtTolerance: 'medium',
     floodTolerance: 'low', growTempMin: 15, growTempMax: 35, baseIncome: 90,
     soilBenefits: 'Perennial; long-term soil cover; needs steady water.',
+    source: 'illustrative',
+    sourceCitation: 'Illustrative composite perennial profile',
   },
 ];
 

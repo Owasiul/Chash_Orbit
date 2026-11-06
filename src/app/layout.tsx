@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import LanguageSwitcher from "@/components/language-switcher";
 import { Toaster } from "@/components/ui/toaster";
 import { LocaleProvider } from "@/lib/locale";
 import { getRequestLocale } from "@/lib/locale-server";
@@ -61,7 +60,6 @@ export default async function RootLayout({
       >
         <LocaleProvider initialLocale={locale}>
           {children}
-          <LanguageSwitcher />
           <Toaster />
         </LocaleProvider>
       </body>

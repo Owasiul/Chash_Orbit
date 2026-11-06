@@ -20,6 +20,7 @@ export interface RainfallAnalysis {
   recentTrend: number;          // mm/year slope (last 10y via POWER monthly)
   source: 'live' | 'cached' | 'demo';
   attribution: string;
+  resolution?: string;
 }
 
 function monthlyTotals(series: PowerAnalysis['series']): { month: string; mm: number }[] {
@@ -89,5 +90,6 @@ export function deriveRainfall(
     source: power.source === 'demo' ? 'demo' : (power.source === 'cached' ? 'cached' : 'live'),
     attribution:
       'NASA POWER PRECTOTCORR (GPM-corrected precipitation). GPM IMERG late-run data feeds the POWER corrected-precipitation product.',
+    resolution: '0.5° × 0.5° (~50 km MERRA-2 / GPM)',
   };
 }

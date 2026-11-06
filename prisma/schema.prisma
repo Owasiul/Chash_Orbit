@@ -147,6 +147,7 @@ model NasaCache {
 
   @@unique([source, latitude, longitude, dateRange, parameters])
   @@index([source, latitude, longitude])
+  @@index([expiresAt])
 }
 
 model AnalysisSession {

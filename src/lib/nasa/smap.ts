@@ -19,6 +19,7 @@ export interface SoilMoistureAnalysis {
   // label: "derived" | "demo"
   source: 'derived' | 'demo';
   attribution: string;
+  resolution?: string;
 }
 
 // Simple monthly water-balance model. Bucket capacity ~150mm (representing the
@@ -83,6 +84,7 @@ export function deriveSoilMoisture(
     attribution: power.source === 'demo'
       ? 'Demo estimate (NASA POWER unreachable). Values are illustrative.'
       : 'Derived estimate from NASA POWER precipitation + a water-balance model. Live NASA SMAP data requires authenticated NSIDC/AppEEARS access.',
+    resolution: '0.5° (~50 km derived water balance)',
   };
 }
 

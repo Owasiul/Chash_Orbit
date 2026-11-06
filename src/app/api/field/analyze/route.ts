@@ -25,6 +25,7 @@ interface AnalyzeBody {
   irrigation: IrrigationType | 'rainfed' | 'limited' | 'reliable';
   soilType?: SoilType;
   priorities: FarmerPriorities;
+  polygon?: [number, number][];
 }
 
 function requestLocale(req: Request): Locale {
@@ -80,6 +81,7 @@ export async function POST(req: Request) {
     irrigation,
     soilType,
     priorities,
+    polygon: body.polygon,
   };
 
   // ── Step 1: Find-or-create the Farm record ─────────────────────────────
@@ -152,7 +154,7 @@ export async function POST(req: Request) {
   const cropWaterMm = currentCrop?.waterMm ?? 500;
   const currentCropIsLegume = currentCrop?.nitrogenEffect === 'fixer';
 
-  const env = await fetchEnvironment(latitude, longitude, cropWaterMm, currentCropIsLegume);
+  const env = await fetchEnvironment(latitude, longitude, cropWaterMm, currentCropIsLegume, body.polygon);
 
   // ── Step 5: Run decision engine ────────────────────────────────────────
   const result = analyze(inputs, env);
@@ -253,9 +255,29 @@ export async function POST(req: Request) {
 
 function buildSourceList(env: Environment) {
   return [
-    { name: 'Temperature', source: env.temperature.source, attribution: env.temperature.attribution },
-    { name: 'Rainfall', source: env.rainfall.source, attribution: env.rainfall.attribution },
-    { name: 'Soil moisture', source: env.soilMoisture.source, attribution: env.soilMoisture.attribution },
-    { name: 'Vegetation (NDVI)', source: env.vegetation.source, attribution: env.vegetation.attribution },
+    {
+      name: 'Temperature',
+      source: env.temperature.source,
+      attribution: env.temperature.attribution,
+      resolution: env.temperature.resolution ?? '0.5° × 0.5° (~50 km MERRA-2)',
+    },
+    {
+      name: 'Rainfall',
+      source: env.rainfall.source,
+      attribution: env.rainfall.attribution,
+      resolution: env.rainfall.resolution ?? '0.5° × 0.5° (~50 km MERRA-2 / GPM)',
+    },
+    {
+      name: 'Soil moisture',
+      source: env.soilMoisture.source,
+      attribution: env.soilMoisture.attribution,
+      resolution: env.soilMoisture.resolution ?? '0.5° (~50 km derived water balance)',
+    },
+    {
+      name: 'Vegetation (NDVI)',
+      source: env.vegetation.source,
+      attribution: env.vegetation.attribution,
+      resolution: env.vegetation.resolution ?? '250 m (NASA MODIS Terra MOD13Q1)',
+    },
   ];
 }

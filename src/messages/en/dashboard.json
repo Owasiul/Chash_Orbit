@@ -242,5 +242,13 @@
   "modis": "MODIS",
   "ndvi": "NDVI",
   "soil-moisture-uses-power-precipitation-gpm-c": "Soil moisture uses POWER precipitation (GPM-corrected).",
-  "soil-texture-organic-matter-nitrogen-balance": "Soil texture, organic matter, nitrogen balance, erosion risk, and water retention."
+  "soil-texture-organic-matter-nitrogen-balance": "Soil texture, organic matter, nitrogen balance, erosion risk, and water retention.",
+  "data-quality": "Data Quality:",
+  "high-quality": "High Quality",
+  "derived-regional-model": "Derived / Regional Model",
+  "demo-simulation": "Demo Simulation",
+  "crop-source": "Source:",
+  "high-confidence-note": "High confidence: Grounded in 250 m MODIS satellite NDVI and multi-year NASA POWER telemetry.",
+  "calibrated-confidence-note": "Calibrated confidence: Regional model with South Asia bias correction (-0.28).",
+  "demo-confidence-note": "Illustrative confidence: Operating in demonstration mode."
 }

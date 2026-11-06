@@ -47,6 +47,7 @@ export interface FarmerInputs {
   irrigation: IrrigationType;
   soilType: SoilType;
   priorities: FarmerPriorities;
+  polygon?: [number, number][] | null;
 }
 
 export interface CropCompatibility {

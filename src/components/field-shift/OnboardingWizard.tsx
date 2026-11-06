@@ -472,6 +472,8 @@ function PrioritiesStep({
 export function OnboardingWizard() {
   const { locale, t, number } = useTranslation();
   const selected = useAppStore(s => s.selected);
+  const activePolygon = useAppStore(s => s.activePolygon);
+  const setActivePolygon = useAppStore(s => s.setActivePolygon);
   const setView = useAppStore(s => s.setView);
   const setSelected = useAppStore(s => s.setSelected);
   const runAnalysis = useAppStore(s => s.runAnalysis);
@@ -486,8 +488,8 @@ export function OnboardingWizard() {
   // Step 1
   const [cropSelections, setCropSelections] = React.useState<CropSelection[]>([]);
   // Step 2
-  const [area, setArea] = React.useState('5');
-  const [areaUnit, setAreaUnit] = React.useState<'acres' | 'hectares'>('acres');
+  const [area, setArea] = React.useState(activePolygon ? activePolygon.areaHa.toFixed(2) : '5');
+  const [areaUnit, setAreaUnit] = React.useState<'acres' | 'hectares'>(activePolygon ? 'hectares' : 'acres');
   const [currentCrop, setCurrentCrop] = React.useState('Rice');
   const [irrigation, setIrrigation] = React.useState<Irrigation>('limited');
   const [soil, setSoil] = React.useState<Soil>('unknown');
@@ -527,15 +529,16 @@ export function OnboardingWizard() {
   const submit = () =>
     runAnalysis(
       {
-        latitude: selected.latitude,
-        longitude: selected.longitude,
-        area: parseFloat(area) || undefined,
+        latitude: activePolygon?.centroid[1] ?? selected.latitude,
+        longitude: activePolygon?.centroid[0] ?? selected.longitude,
+        area: parseFloat(area) || activePolygon?.areaHa || undefined,
         areaUnit,
         currentCrop: currentCrop === 'None / fallow' ? null : currentCrop,
         desiredCrops: cropSelections.map(s => s.name),
         irrigation,
         soilType: soil,
         priorities,
+        polygon: activePolygon?.coordinates,
       },
       {
         locationName: [selected.name, selected.admin1, selected.country].filter(Boolean).join(', '),
@@ -616,9 +619,31 @@ export function OnboardingWizard() {
                     soil={soil} setSoil={setSoil}
                   />
                   <div>
-                    <p className="mb-2 text-xs text-muted-foreground">{t('Tap the map to refine your field location. Environmental analysis uses this pin.')}</p>
-                    <FieldMap latitude={selected.latitude} longitude={selected.longitude} height={280}
-                      onPick={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })} />
+                    <p className="mb-2 text-xs text-muted-foreground">{t('Draw or refine your field boundary on the satellite map.')}</p>
+                    <FieldMap
+                      latitude={activePolygon?.centroid[1] ?? selected.latitude}
+                      longitude={activePolygon?.centroid[0] ?? selected.longitude}
+                      height={280}
+                      initialPolygon={activePolygon?.coordinates}
+                      onPolygonChange={(res, feat) => {
+                        if (res && res.valid && feat) {
+                          const coords = feat.geometry?.coordinates?.[0];
+                          if (coords) {
+                            setActivePolygon({
+                              coordinates: coords,
+                              areaHa: res.areaHa,
+                              areaAcres: res.areaAcres,
+                              centroid: res.centroid,
+                              bbox: res.bbox,
+                              geojson: feat,
+                            });
+                            setArea(res.areaHa.toFixed(2));
+                            setAreaUnit('hectares');
+                          }
+                        }
+                      }}
+                      onPick={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })}
+                    />
                   </div>
                 </div>
               )}

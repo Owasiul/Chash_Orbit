@@ -140,6 +140,9 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
                 {t('Source status')}
               </TableHead>
               <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+                {t('Resolution')}
+              </TableHead>
+              <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
                 {t('Attribution')}
               </TableHead>
             </TableRow>
@@ -150,6 +153,9 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
                 <TableCell className="py-3 text-sm text-foreground">{s.name}</TableCell>
                 <TableCell className="py-3">
                   <DataSourceBadge source={s.source} size="sm" />
+                </TableCell>
+                <TableCell className="py-3 font-mono text-xs text-amber-200/90">
+                  {s.resolution ?? '0.5° (~50 km)'}
                 </TableCell>
                 <TableCell className="py-3 text-xs text-muted-foreground">{s.attribution}</TableCell>
               </TableRow>
