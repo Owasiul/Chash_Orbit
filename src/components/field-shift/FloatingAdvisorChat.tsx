@@ -145,11 +145,22 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
   const topRec = analysis?.recommendations?.[0];
   const topCropName = topRec?.crop || "Paddy Rice";
   const topCropScore = topRec?.score !== undefined ? Number(topRec.score).toFixed(1) : "88.4";
-  const rainfall = Math.round(analysis?.environmental?.rainfallMm ?? 1100);
-  const ndviVal = (analysis?.environmental?.vegetation?.ndvi ?? 0.58).toFixed(2);
-  const soilType = analysis?.inputs?.soilType || "loamy";
-  const dominantRisk = analysis?.verdict?.dominantRisk || "None";
+  const rainfall = Math.round(analysis?.environment?.rainfall?.annualRainfall ?? 1100);
+  const ndviVal = (analysis?.environment?.vegetation?.ndvi ?? 0.58).toFixed(2);
+  const soilType = analysis?.field?.soilType || "loamy";
+  const dominantRisk = React.useMemo(() => {
+    if (!analysis?.risks) return "None";
+    const { heatRisk, droughtRisk, floodRisk } = analysis.risks;
+    const entries: [string, number][] = [
+      ["Heat", heatRisk ?? 0],
+      ["Drought", droughtRisk ?? 0],
+      ["Flood", floodRisk ?? 0],
+    ];
+    entries.sort((a, b) => b[1] - a[1]);
+    return entries[0]?.[1] > 0 ? entries[0][0] : "None";
+  }, [analysis?.risks]);
   const rotationYears = analysis?.rotationPlan?.years || [];
+  const summaryText = analysis?.risks?.summary || topRec?.why || "";
 
   // Send message to Gemini Flash Lite endpoint
   const handleSend = async (textToSend?: string) => {
@@ -298,7 +309,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
   return (
     <>
       {/* ── 1. FLOATING CHAT TRIGGER BUTTON (ALWAYS VISIBLE BOTTOM-RIGHT) ── */}
-      <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-50 flex items-center gap-3 sm:bottom-6 sm:right-6">
         {/* Tooltip greeting badge on desktop */}
         {!isOpen && (
           <div
@@ -347,7 +358,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
       {/* ── 2. FLOATING CHAT WINDOW (COMPANY-STYLE POPUP DRAWER) ── */}
       {isOpen && (
         <div
-          className="fixed bottom-24 right-4 sm:right-6 z-50 flex flex-col w-[calc(100vw-2rem)] sm:w-[400px] h-[520px] max-h-[calc(100vh-7rem)] rounded-3xl border border-white/15 bg-slate-950/95 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-300"
+          className="fixed bottom-[calc(9.5rem+env(safe-area-inset-bottom))] right-2 z-50 flex h-[min(520px,calc(100dvh-11rem-env(safe-area-inset-bottom)))] w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-3xl border border-white/15 bg-slate-950/95 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] backdrop-blur-2xl animate-in fade-in slide-in-from-bottom-6 duration-300 sm:bottom-24 sm:right-6 sm:h-[520px] sm:max-h-[calc(100vh-7rem)] sm:w-[400px]"
         >
           {/* Header */}
           <div className="flex items-center justify-between border-b border-white/10 bg-black/60 px-4 py-3 backdrop-blur-md">
@@ -414,7 +425,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                 </div>
 
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {analysis.verdict?.summary ||
+                  {summaryText ||
                     `Optimal for ${soilType} soil with ~${rainfall} mm annual precipitation. Current MODIS vegetation density is ${ndviVal}.`}
                 </p>
 

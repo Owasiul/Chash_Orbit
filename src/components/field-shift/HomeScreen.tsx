@@ -16,12 +16,7 @@ import {
   type ResolvedLocation,
 } from "@/lib/location-geocoding";
 import type { GeoResult } from "@/lib/location";
-import {
-  RAJSHAHI_DEMO_FIELD,
-  formatArea,
-  type PolygonValidationResult,
-} from "@/lib/polygon";
-import Image from "next/image";
+
 
 const FieldMap = dynamic(() => import("@/components/field-shift/FieldMap"), {
   ssr: false,
@@ -52,8 +47,6 @@ export function HomeScreen() {
   const { locale, t, number } = useTranslation();
   const setSelected = useAppStore((s) => s.setSelected);
   const selected = useAppStore((s) => s.selected);
-  const activePolygon = useAppStore((s) => s.activePolygon);
-  const setActivePolygon = useAppStore((s) => s.setActivePolygon);
   const setView = useAppStore((s) => s.setView);
   const runAnalysis = useAppStore((s) => s.runAnalysis);
   const [navigationLocation, setNavigationLocation] =
@@ -140,37 +133,9 @@ export function HomeScreen() {
 
   React.useEffect(() => () => locationLookupController.current?.abort(), []);
 
-  const handlePolygonChange = React.useCallback(
-    (res: PolygonValidationResult | null, feature: any) => {
-      if (res && res.valid && feature) {
-        const coords = feature.geometry.coordinates?.[0] as [number, number][];
-        setActivePolygon({
-          coordinates: coords,
-          areaHa: res.areaHa,
-          areaAcres: res.areaAcres,
-          centroid: res.centroid,
-          bbox: res.bbox,
-          geojson: feature,
-        });
-      } else if (!res) {
-        setActivePolygon(null);
-      }
-    },
-    [setActivePolygon],
-  );
-
   const handleSample = (id: string) => {
     const s = SAMPLE_FARMS.find((f) => f.id === id);
     if (!s) return;
-    if (id === 'rajshahi') {
-      setActivePolygon({
-        coordinates: RAJSHAHI_DEMO_FIELD.coordinates,
-        areaHa: RAJSHAHI_DEMO_FIELD.areaHa,
-        areaAcres: RAJSHAHI_DEMO_FIELD.areaAcres,
-        centroid: [RAJSHAHI_DEMO_FIELD.longitude, RAJSHAHI_DEMO_FIELD.latitude],
-        bbox: [88.6028, 24.3738, 88.6050, 24.3751],
-      });
-    }
     handleSelect({
       id: 0,
       name: s.name,
@@ -185,27 +150,18 @@ export function HomeScreen() {
   const runDemo = () => {
     const s = SAMPLE_FARMS.find((f) => f.id === "rajshahi");
     if (!s) return;
-    const demoPolygonData = {
-      coordinates: RAJSHAHI_DEMO_FIELD.coordinates,
-      areaHa: RAJSHAHI_DEMO_FIELD.areaHa,
-      areaAcres: RAJSHAHI_DEMO_FIELD.areaAcres,
-      centroid: [RAJSHAHI_DEMO_FIELD.longitude, RAJSHAHI_DEMO_FIELD.latitude] as [number, number],
-      bbox: [88.6028, 24.3738, 88.6050, 24.3751] as [number, number, number, number],
-    };
-    setActivePolygon(demoPolygonData);
     handleSample(s.id);
     runAnalysis(
       {
-        latitude: RAJSHAHI_DEMO_FIELD.latitude,
-        longitude: RAJSHAHI_DEMO_FIELD.longitude,
-        area: RAJSHAHI_DEMO_FIELD.areaHa,
-        areaUnit: "hectares",
+        latitude: s.latitude,
+        longitude: s.longitude,
+        area: 2,
+        areaUnit: "acres",
         currentCrop: "Rice",
         desiredCrops: ["Wheat", "Chickpea", "Lentil", "Maize", "Potato"],
         irrigation: "limited",
         soilType: "unknown",
         priorities: { soil: 25, water: 35, climate: 20, income: 20 },
-        polygon: RAJSHAHI_DEMO_FIELD.coordinates,
       },
       { locationName: s.fullName, country: s.country, locale },
     );
@@ -246,26 +202,11 @@ export function HomeScreen() {
             longitude={selected.longitude}
             height="100%"
             className="h-full rounded-none border-0"
-            initialPolygon={
-              selected.name.toLowerCase().includes("rajshahi")
-                ? (activePolygon?.coordinates ?? RAJSHAHI_DEMO_FIELD.coordinates)
-                : activePolygon?.coordinates
-            }
-            onPolygonChange={handlePolygonChange}
           />
         )}
       </div>
 
       <header className="pointer-events-none relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/Logo.webp"
-            alt="Logo"
-            width={50}
-            height={50}
-            priority
-          />
-        </div>
         <Link
           href="/crop-health"
           className="glass-panel pointer-events-auto inline-flex items-center gap-2 rounded-full border border-emerald-300/25 px-3 py-2 text-xs font-medium text-emerald-100 transition-colors hover:border-emerald-300/50 hover:bg-emerald-400/10 sm:px-4 sm:text-sm"
@@ -312,17 +253,10 @@ export function HomeScreen() {
                     </div>
                   </div>
                 </div>
-
-                {activePolygon && (
-                  <div className="flex items-center justify-between rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-                    <span className="font-medium">{t("Field Boundary")}:</span>
-                    <span className="font-mono font-bold">{formatArea(activePolygon.areaHa)}</span>
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={() => setView("onboarding")}
-                  className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-linear-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-amber-100"
+                  className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-amber-100"
                 >
                   <span className="flex items-center gap-2">
                     <Sparkles className="size-4 text-amber-300" />

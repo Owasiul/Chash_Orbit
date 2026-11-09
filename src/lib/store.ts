@@ -24,6 +24,7 @@ export type View =
 export type DashboardTab =
   | 'field'
   | 'signals'
+  | 'workspace'
   | 'crops'
   | 'planner'
   | 'compare'

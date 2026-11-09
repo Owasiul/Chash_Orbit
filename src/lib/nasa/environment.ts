@@ -2,15 +2,22 @@
 // Orchestrates NASA POWER (live) and derived SMAP/GPM/MODIS estimates,
 // with a stable demo fallback when NASA POWER is unreachable.
 
-import { fetchPowerAnalysis, type PowerAnalysis } from './power';
-import { deriveSoilMoisture, type SoilMoistureAnalysis } from './smap';
-import { deriveRainfall, type RainfallAnalysis } from './gpm';
-import { deriveVegetation, getModisNdvi, type VegetationAnalysis } from './modis';
-import { getCached, setCached, CACHE_TTL, type CacheKey } from './cache';
-import { fetchPowerExtras, type PowerExtras } from './power-extras';
-import { fetchLatestSentinel2Scene } from './sentinel';
+import { fetchPowerAnalysis, type PowerAnalysis } from "./power";
+import { deriveSoilMoisture, type SoilMoistureAnalysis } from "./smap";
+import {
+  deriveRainfall,
+  fetchGpmRainfallSeries,
+  type RainfallAnalysis,
+} from "./gpm";
+import {
+  deriveVegetation,
+  getModisNdvi,
+  type VegetationAnalysis,
+} from "./modis";
+import { getCached, setCached, CACHE_TTL, type CacheKey } from "./cache";
+import { fetchPowerExtras, type PowerExtras } from "./power-extras";
 
-export type DataSource = 'live' | 'cached' | 'demo';
+export type DataSource = "live" | "cached" | "demo";
 
 export interface Environment {
   temperature: {
@@ -21,7 +28,6 @@ export interface Environment {
     tenYearTrend: number;
     source: DataSource;
     attribution: string;
-    resolution?: string;
   };
   rainfall: RainfallAnalysis;
   soilMoisture: SoilMoistureAnalysis;
@@ -63,18 +69,24 @@ export function demoPower(lat: number, lng: number): PowerAnalysis {
   for (let i = 364; i >= 0; i--) {
     const d = new Date(now);
     d.setUTCDate(d.getUTCDate() - i);
-    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
     dates.push(`${d.getUTCFullYear()}${mm}${dd}`);
     // seasonal cycle (warmer mid-year in N hemisphere)
-    const season = Math.cos((d.getUTCMonth() - 6 + (lat < 0 ? 6 : 0)) * Math.PI / 6);
-    const t = baseT + season * 4 + (Math.sin(i * 0.7) * 1.5);
+    const season = Math.cos(
+      ((d.getUTCMonth() - 6 + (lat < 0 ? 6 : 0)) * Math.PI) / 6,
+    );
+    const t = baseT + season * 4 + Math.sin(i * 0.7) * 1.5;
     t2m.push(t);
     t2mMax.push(t + 5);
     t2mMin.push(t - 5);
     // monsoon-ish rainfall: a wet season bump
-    const wet = lat > 20 ? Math.sin((d.getUTCMonth() - 5) * Math.PI / 4) : 0.5;
-    const dailyRain = Math.max(0, wet * (rain / 365) * 3 + (Math.sin(i * 1.3) + 1) * 0.5);
+    const wet =
+      lat > 20 ? Math.sin(((d.getUTCMonth() - 5) * Math.PI) / 4) : 0.5;
+    const dailyRain = Math.max(
+      0,
+      wet * (rain / 365) * 3 + (Math.sin(i * 1.3) + 1) * 0.5,
+    );
     prectotcorr.push(Math.round(dailyRain * 10) / 10);
     rh2m.push(60 + Math.round(season * -10 + (Math.sin(i) + 1) * 5));
     ws10m.push(2 + Math.round((Math.sin(i * 0.4) + 1) * 0.7 * 10) / 10);
@@ -86,24 +98,27 @@ export function demoPower(lat: number, lng: number): PowerAnalysis {
   const recent90T2mMax = t2mMax.slice(recent90);
   const recent90T2m = t2m.slice(recent90);
   const recent90Prec = prectotcorr.slice(recent90);
-  const heatStressDays = recent90T2mMax.filter(t => t > 35).length;
+  const heatStressDays = recent90T2mMax.filter((t) => t > 35).length;
   const annualRain = prectotcorr.reduce((s, v) => s + v, 0);
   const recent90Rain = recent90Prec.reduce((s, v) => s + v, 0);
 
   return {
     series,
     currentTemp: recent90T2m.reduce((s, v) => s + v, 0) / recent90T2m.length,
-    currentTempMax: recent90T2mMax.reduce((s, v) => s + v, 0) / recent90T2mMax.length,
+    currentTempMax:
+      recent90T2mMax.reduce((s, v) => s + v, 0) / recent90T2mMax.length,
     heatStressDays,
-    growingSeasonAvg: recent90T2m.reduce((s, v) => s + v, 0) / recent90T2m.length,
+    growingSeasonAvg:
+      recent90T2m.reduce((s, v) => s + v, 0) / recent90T2m.length,
     annualRainfall: annualRain,
     growingSeasonRainfall: recent90Rain,
     rainfallVariability: vari,
     drySpells,
     tenYearTempTrend: (h - 0.5) * 0.04,
     tenYearRainfallTrend: (h - 0.5) * 8,
-    source: 'demo',
-    attribution: 'Demo estimate (NASA POWER unreachable). Values are illustrative.',
+    source: "demo",
+    attribution:
+      "Demo estimate (NASA POWER unreachable). Values are illustrative.",
   };
 }
 
@@ -113,107 +128,90 @@ export async function fetchEnvironment(
   longitude: number,
   cropWaterMm = 500,
   currentCropIsLegume = false,
-  polygon?: [number, number][] | { coordinates?: [number, number][] },
+  polygon?: [number, number][] | { coordinates?: [number, number][] } | null,
 ): Promise<Environment> {
-  const coords: [number, number][] | undefined = Array.isArray(polygon)
-    ? polygon
-    : Array.isArray(polygon?.coordinates)
-      ? polygon.coordinates
-      : undefined;
-
-  // If a polygon boundary is provided, use the spatial centroid for gridded assimilation queries
-  let queryLat = latitude;
-  let queryLng = longitude;
-  if (coords && coords.length >= 3) {
-    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-    for (const [lng, lat] of coords) {
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-    }
-    queryLat = (minLat + maxLat) / 2;
-    queryLng = (minLng + maxLng) / 2;
-  }
-
   const dateRange = last365Range();
   const key: CacheKey = {
-    source: 'power',
-    latitude: queryLat,
-    longitude: queryLng,
+    source: "power",
+    latitude,
+    longitude,
     dateRange,
-    parameters: 'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M',
+    parameters: "T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M",
   };
 
-  // Bounding box for STAC / spatial queries
-  let bbox: [number, number, number, number] = [
-    queryLng - 0.01,
-    queryLat - 0.01,
-    queryLng + 0.01,
-    queryLat + 0.01,
-  ];
-  if (coords && coords.length >= 3) {
-    let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-    for (const [lng, lat] of coords) {
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-    }
-    bbox = [minLng, minLat, maxLng, maxLat];
-  }
-
   // MODIS NDVI runs alongside POWER; it never throws and resolves to null if
-  // it can't answer within its initial time budget (3500ms).
-  const modisJob = getModisNdvi(queryLat, queryLng, coords, 3500);
-
-  // STRETCH: Sentinel-2 L2A via Planetary Computer STAC (non-blocking 2500ms)
-  const sentinelJob = fetchLatestSentinel2Scene(bbox, 2500).catch(() => null);
+  // it can't answer within its time budget.
+  const modisJob = getModisNdvi(latitude, longitude);
 
   let power: PowerAnalysis;
   let cacheHit = false;
   try {
     // A cache read failure (e.g. DB unavailable) should fall through to a live fetch.
-    const cached = await getCached<PowerAnalysis>(key, CACHE_TTL.POWER).catch(() => null);
+    const cached = await getCached<PowerAnalysis>(key, CACHE_TTL.POWER).catch(
+      () => null,
+    );
     if (cached) {
-      power = { ...reviveSeries(cached.data), source: 'cached' as const };
+      power = { ...reviveSeries(cached.data), source: "cached" as const };
       cacheHit = true;
     } else {
-      power = await fetchPowerAnalysis(queryLat, queryLng);
+      power = await fetchPowerAnalysis(latitude, longitude);
       // store only the live data; mark as cached when retrieved later.
       // A failed cache write must not discard the live data we just fetched.
-      await setCached(key, { ...power, source: 'live' }, CACHE_TTL.POWER).catch(() => {});
+      await setCached(key, { ...power, source: "live" }, CACHE_TTL.POWER).catch(
+        () => {},
+      );
     }
   } catch {
-    power = demoPower(queryLat, queryLng);
+    power = demoPower(latitude, longitude);
   }
 
   // POWER extras (soil wetness, 10-year baseline, extremes). Cached like POWER
   // itself and never allowed to fail the analysis.
   let extras: PowerExtras | null = null;
-  if (power.source !== 'demo') {
+  if (power.source !== "demo") {
     const extrasKey: CacheKey = {
-      source: 'power-extras',
-      latitude: queryLat,
-      longitude: queryLng,
+      source: "power-extras",
+      latitude,
+      longitude,
       dateRange,
-      parameters: 'GWETROOT,GWETTOP,PRECTOTCORR-normals',
+      parameters: "GWETROOT,GWETTOP,PRECTOTCORR-normals",
     };
-    extras = await getCached<PowerExtras>(extrasKey, CACHE_TTL.POWER).then(c => c?.data ?? null).catch(() => null);
+    extras = await getCached<PowerExtras>(extrasKey, CACHE_TTL.POWER)
+      .then((c) => c?.data ?? null)
+      .catch(() => null);
     if (!extras) {
-      extras = await fetchPowerExtras(queryLat, queryLng, power.series).catch(() => null);
-      if (extras) await setCached(extrasKey, extras, CACHE_TTL.POWER).catch(() => {});
+      extras = await fetchPowerExtras(latitude, longitude, power.series).catch(
+        () => null,
+      );
+      if (extras)
+        await setCached(extrasKey, extras, CACHE_TTL.POWER).catch(() => {});
     }
   }
 
   const soilMoisture = deriveSoilMoisture(power, cropWaterMm);
-  const rainfall = deriveRainfall(power, queryLat, extras?.rainBaseline?.anomalyPct ?? null);
-  const sentinelScene = await sentinelJob;
-  const vegetation = deriveVegetation(power, queryLat, queryLng, await modisJob, polygon, sentinelScene);
+  const gpmData = await fetchGpmRainfallSeries(latitude, longitude).catch(
+    (error) => {
+      console.warn(
+        "NASA GPM unavailable; using POWER rainfall fallback:",
+        error,
+      );
+
+      return null;
+    },
+  );
+
+  const rainfall = deriveRainfall(
+    power,
+    latitude,
+    extras?.rainBaseline?.anomalyPct ?? null,
+    gpmData,
+  );
+  const vegetation = deriveVegetation(power, latitude, await modisJob);
 
   // Source tagging
-  const powerSrc: DataSource = cacheHit ? 'cached' : power.source;
-  const overallSource: DataSource = power.source === 'demo' ? 'demo' : cacheHit ? 'cached' : 'live';
+  const powerSrc: DataSource = cacheHit ? "cached" : power.source;
+  const overallSource: DataSource =
+    power.source === "demo" ? "demo" : cacheHit ? "cached" : "live";
 
   return {
     temperature: {
@@ -224,17 +222,18 @@ export async function fetchEnvironment(
       tenYearTrend: Math.round(power.tenYearTempTrend * 1000) / 1000,
       source: powerSrc,
       attribution: power.attribution,
-      resolution: power.resolution ?? '0.5° × 0.5° (~50 km MERRA-2)',
     },
     rainfall,
     soilMoisture,
     vegetation,
     overallSource,
     overallAttribution:
-      overallSource === 'demo'
-        ? 'Demo data — NASA POWER unreachable. Values are illustrative.'
-        : `${overallSource === 'live' ? 'Live' : 'Cached'} NASA POWER${
-            vegetation.source === 'live' || vegetation.source === 'cached' ? ' + MODIS NDVI' : ''
+      overallSource === "demo"
+        ? "Demo data — NASA POWER unreachable. Values are illustrative."
+        : `${overallSource === "live" ? "Live" : "Cached"} NASA POWER${
+            vegetation.source === "live" || vegetation.source === "cached"
+              ? " + MODIS NDVI"
+              : ""
           } (with derived soil-moisture estimates)`,
     rawPower: power,
     extras,
@@ -244,7 +243,7 @@ export async function fetchEnvironment(
 // JSON turns NaN (missing POWER days) into null; restore NaN so the
 // derivations skip those days instead of treating them as 0 mm / 0 °C.
 function reviveSeries(p: PowerAnalysis): PowerAnalysis {
-  const fix = (a: (number | null)[]) => a.map(v => (v == null ? NaN : v));
+  const fix = (a: (number | null)[]) => a.map((v) => (v == null ? NaN : v));
   const s = p.series;
   return {
     ...p,
@@ -265,8 +264,8 @@ function last365Range(end = new Date()): string {
   s.setUTCDate(s.getUTCDate() - 364);
   const ymd = (d: Date) => {
     const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(d.getUTCDate()).padStart(2, "0");
     return `${y}${m}${dd}`;
   };
   return `${ymd(s)}-${ymd(end)}`;

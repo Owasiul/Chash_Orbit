@@ -76,17 +76,3 @@ export const CACHE_TTL = {
   GPM: 6 * 60 * 60 * 1000,      // 6h
   MODIS: 24 * 60 * 60 * 1000,   // 24h
 };
-
-/**
- * Removes all expired entries from the PostgreSQL NASA cache.
- * Returns the number of removed rows.
- */
-export async function pruneExpiredCache(): Promise<number> {
-  const result = await db.nasaCache.deleteMany({
-    where: {
-      expiresAt: { lt: new Date() },
-    },
-  });
-  return result.count;
-}
-

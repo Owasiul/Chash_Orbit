@@ -20,6 +20,7 @@ import {
   getGrowingWindowMonths,
 } from '@/lib/crops';
 import { aggregateMonths, buildMonthlyClimatology } from '@/lib/nasa/climatology';
+import { findFaoCrop } from '@/lib/crop-dataset';
 import type { Environment } from '@/lib/nasa/environment';
 
 export interface Risks {
@@ -41,7 +42,9 @@ export interface FarmerInputs {
   latitude: number;
   longitude: number;
   area?: number;
+  fieldArea?: number;
   areaUnit?: 'acres' | 'hectares';
+  fieldAreaUnit?: 'acres' | 'hectares';
   currentCrop?: string | null;
   desiredCrops: string[];
   irrigation: IrrigationType;
@@ -110,7 +113,7 @@ export interface AnalysisResult {
 }
 
 function normalizeAreaToHa(area?: number, areaUnit?: 'acres' | 'hectares'): number {
-  if (!Number.isFinite(area) || area <= 0) return 1.5;
+  if (typeof area !== 'number' || !Number.isFinite(area) || area <= 0) return 1.5;
   return areaUnit === 'acres' ? area * 0.404686 : area;
 }
 
@@ -195,6 +198,17 @@ function ramp(v: number, lo: number, hi: number): number {
   return clamp((v - lo) / (hi - lo), 0, 1);
 }
 
+/**
+ * FAO EcoCrop piecewise trapezoidal suitability response curve (0-100).
+ * Optimal plateau between optMin and optMax, linear ramps to absMin and absMax.
+ */
+export function faoTrapezoid(v: number, absMin: number, optMin: number, optMax: number, absMax: number): number {
+  if (v <= absMin || v >= absMax) return 0;
+  if (v >= optMin && v <= optMax) return 100;
+  if (v < optMin) return Math.max(0, Math.min(100, Math.round(((v - absMin) / (optMin - absMin)) * 100)));
+  return Math.max(0, Math.min(100, Math.round(((absMax - v) / (absMax - optMax)) * 100)));
+}
+
 /** NASA POWER stats during this crop's planting→harvest months (not “last 90 days”). */
 function cropWindowSignals(crop: CropSpec, env: Environment, lat: number) {
   const power = env.rawPower;
@@ -228,10 +242,15 @@ function cropWindowSignals(crop: CropSpec, env: Environment, lat: number) {
 function climateFit(crop: CropSpec, env: Environment, risks: Risks, lat: number): number {
   const window = cropWindowSignals(crop, env, lat);
   const t = window.tempAvgC;
+  const fao = findFaoCrop(crop.name);
   let tempScore: number;
-  if (t >= crop.growTempMin && t <= crop.growTempMax) tempScore = 100;
-  else if (t < crop.growTempMin) tempScore = clamp(100 - (crop.growTempMin - t) * 8, 0, 100);
-  else tempScore = clamp(100 - (t - crop.growTempMax) * 8, 0, 100);
+  if (fao) {
+    tempScore = faoTrapezoid(t, fao.temp.absMin, fao.temp.optMin, fao.temp.optMax, fao.temp.absMax);
+  } else {
+    if (t >= crop.growTempMin && t <= crop.growTempMax) tempScore = 100;
+    else if (t < crop.growTempMin) tempScore = clamp(100 - (crop.growTempMin - t) * 8, 0, 100);
+    else tempScore = clamp(100 - (t - crop.growTempMax) * 8, 0, 100);
+  }
 
   // Heat stress during this crop's season (from POWER daily in those months)
   const heatThreshold = 20;
@@ -247,20 +266,28 @@ function climateFit(crop: CropSpec, env: Environment, risks: Risks, lat: number)
 
 function waterFit(crop: CropSpec, env: Environment, irrigation: IrrigationType, risks: Risks, lat: number): number {
   const window = cropWindowSignals(crop, env, lat);
-  const ratio = window.rainMm / Math.max(1, crop.waterMm);
-  // Continuous version of the old 35 / 55 / 75 / 90 steps: 35 at <=0.4, 90 at >=1.2.
-  const rainScore = 35 + 55 * ramp(ratio, 0.4, 1.2);
+  const fao = findFaoCrop(crop.name);
+  const irrigUpliftMm = irrigation === 'reliable' ? 350 : irrigation === 'limited' ? 180 : 0;
+  const effectiveRain = window.rainMm + irrigUpliftMm;
 
-  const irrigUplift = irrigation === 'reliable' ? 25 : irrigation === 'limited' ? 12 : 0;
+  let rainScore: number;
+  if (fao) {
+    rainScore = faoTrapezoid(effectiveRain, fao.water.absMinMm, fao.water.optMinMm, fao.water.optMaxMm, fao.water.absMaxMm);
+  } else {
+    const ratio = window.rainMm / Math.max(1, crop.waterMm);
+    rainScore = 35 + 55 * ramp(ratio, 0.4, 1.2);
+    if (irrigation === 'reliable') rainScore = clamp(rainScore + 25, 0, 100);
+    else if (irrigation === 'limited') rainScore = clamp(rainScore + 12, 0, 100);
+  }
 
   const floodMap = { low: 0, medium: 0.5, high: 1 } as const;
   const floodScore = clamp(50 + floodMap[crop.floodTolerance] * 50 - risks.floodRisk * 0.3, 0, 100);
 
-  return clamp(Math.round(rainScore * 0.5 + irrigUplift + floodScore * 0.3), 0, 100);
+  return clamp(Math.round(rainScore * 0.7 + floodScore * 0.3), 0, 100);
 }
 
 function soilFit(crop: CropSpec, soilType: SoilType): number {
-  // root depth × texture fit
+  const fao = findFaoCrop(crop.name);
   const retentionMap = { sandy: 0, loamy: 1, clay: 0.7, unknown: 0.6 } as const;
   const retention = retentionMap[soilType];
   let rootScore = 70;
@@ -268,10 +295,15 @@ function soilFit(crop: CropSpec, soilType: SoilType): number {
   if (crop.rootDepth === 'shallow') rootScore = soilType === 'sandy' ? 55 : 80;
   if (crop.rootDepth === 'medium') rootScore = 75;
 
+  let textureBonus = 0;
+  if (fao && soilType !== 'unknown') {
+    textureBonus = fao.soilTextures.includes(soilType) ? 12 : -12;
+  }
+
   // Nitrogen effect: legumes are forgiving on poorer soils
   const nitrogenScore = crop.nitrogenEffect === 'fixer' ? 90 : crop.nitrogenEffect === 'neutral' ? 75 : 60;
 
-  return clamp(Math.round(rootScore * 0.55 + retention * 100 * 0.25 + nitrogenScore * 0.2), 0, 100);
+  return clamp(Math.round(rootScore * 0.45 + retention * 100 * 0.25 + nitrogenScore * 0.2 + textureBonus * 0.1), 0, 100);
 }
 
 function rotationFit(crop: CropSpec, currentCropName: string | null): number {
@@ -637,4 +669,89 @@ export function analyze(inputs: FarmerInputs, env: Environment): AnalysisResult 
   const recommendations = computeRecommendations(inputs, cropCompatibility, env, risks);
   const rotationPlan = buildRotationPlan(inputs, cropCompatibility, recommendations);
   return { risks, cropCompatibility, recommendations, rotationPlan };
+}
+
+/**
+ * Cross-checks a crop's cardinal FAO thresholds directly against NASA Earth-science observations.
+ * Returns structured atmospheric comparison metrics for UI visualization.
+ */
+export function evaluateCropAtmosphere(
+  crop: CropSpec,
+  env: Environment,
+  lat: number,
+  irrigation: IrrigationType,
+  soilType: SoilType
+) {
+  const fao = findFaoCrop(crop.name);
+  const window = cropWindowSignals(crop, env, lat);
+  const fieldTemp = window.tempAvgC;
+  const fieldRain = window.rainMm;
+  const heatStressDays = window.heatStressDays;
+
+  const tempAbsMin = fao?.temp.absMin ?? crop.growTempMin - 6;
+  const tempOptMin = fao?.temp.optMin ?? crop.growTempMin;
+  const tempOptMax = fao?.temp.optMax ?? crop.growTempMax;
+  const tempAbsMax = fao?.temp.absMax ?? crop.growTempMax + 6;
+
+  const waterAbsMin = fao?.water.absMinMm ?? Math.round(crop.waterMm * 0.5);
+  const waterOptMin = fao?.water.optMinMm ?? Math.round(crop.waterMm * 0.85);
+  const waterOptMax = fao?.water.optMaxMm ?? Math.round(crop.waterMm * 1.35);
+  const waterAbsMax = fao?.water.absMaxMm ?? Math.round(crop.waterMm * 2.2);
+
+  const irrigUpliftMm = irrigation === 'reliable' ? 350 : irrigation === 'limited' ? 180 : 0;
+  const totalWater = Math.round(fieldRain + irrigUpliftMm);
+  const waterDeficit = Math.max(0, waterOptMin - totalWater);
+
+  const tempSuitability = faoTrapezoid(fieldTemp, tempAbsMin, tempOptMin, tempOptMax, tempAbsMax);
+  const waterSuitability = faoTrapezoid(totalWater, waterAbsMin, waterOptMin, waterOptMax, waterAbsMax);
+
+  // Status badges
+  let tempStatus: 'optimal' | 'marginal' | 'extreme' = 'optimal';
+  if (tempSuitability < 40) tempStatus = 'extreme';
+  else if (tempSuitability < 80) tempStatus = 'marginal';
+
+  let waterStatus: 'adequate' | 'deficit' | 'excess' = 'adequate';
+  if (totalWater < waterOptMin) waterStatus = 'deficit';
+  else if (totalWater > waterOptMax) waterStatus = 'excess';
+
+  const soilTextureMatch = fao ? fao.soilTextures.includes(soilType as any) : true;
+
+  return {
+    cropName: crop.name,
+    scientificName: fao?.scientificName ?? crop.name,
+    category: fao?.category ?? 'cereal',
+    season: crop.season,
+    growingDays: crop.growingDays,
+    nitrogenEffect: crop.nitrogenEffect,
+    fieldAtmosphere: {
+      temperatureC: Math.round(fieldTemp * 10) / 10,
+      rainfallMm: Math.round(fieldRain),
+      heatStressDays,
+      rootZoneSoilMoisturePct: Math.round(env.soilMoisture.currentPct),
+      soilDeficitMm: Math.round(env.soilMoisture.seasonalDeficit),
+      ndviVigor: Math.round(env.vegetation.ndvi * 100) / 100,
+    },
+    cropRequirements: {
+      tempRange: [tempAbsMin, tempOptMin, tempOptMax, tempAbsMax] as [number, number, number, number],
+      waterRangeMm: [waterAbsMin, waterOptMin, waterOptMax, waterAbsMax] as [number, number, number, number],
+      rootDepth: crop.rootDepth,
+      tolerances: {
+        heat: crop.heatTolerance,
+        drought: crop.droughtTolerance,
+        flood: crop.floodTolerance,
+      },
+      soilTextures: fao?.soilTextures ?? ['loamy', 'sandy', 'clay'],
+    },
+    crossCheck: {
+      tempSuitability,
+      waterSuitability,
+      tempStatus,
+      waterStatus,
+      waterDeficitMm: waterDeficit,
+      soilTextureMatch,
+      isPlantableNow: isCurrentlyPlantable(crop, lat),
+      monthsUntilPlant: monthsUntilPlanting(crop, lat),
+    },
+    benefits: crop.soilBenefits,
+  };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { Map, NavigationControl, AttributionControl, setWorkerUrl, type StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -39,6 +40,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const HolographicGlobe = dynamic(
+  () => import('@/components/globe/HolographicGlobe').then((m) => m.HolographicGlobe),
+  { ssr: false },
+);
+
 export type MapLayer = 'satellite' | 'streets' | 'ndvi';
 export type DrawMode = 'polygon' | 'select' | 'static';
 
@@ -67,6 +73,7 @@ export interface PolygonMapProps {
   onPolygonChange?: (result: PolygonValidationResult | null, feature: any) => void;
   onLocationSelect?: (point: { latitude: number; longitude: number }) => void;
   showBottomHelper?: boolean;
+  globeTarget?: { latitude: number; longitude: number; name?: string | null } | null;
 }
 
 export function PolygonMap({
@@ -81,6 +88,7 @@ export function PolygonMap({
   onPolygonChange,
   onLocationSelect,
   showBottomHelper = false,
+  globeTarget = null,
 }: PolygonMapProps) {
   const { t } = useTranslation();
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
@@ -147,6 +155,7 @@ export function PolygonMap({
       ndvi: {
         type: 'raster',
         tiles: [
+          // NASA EOSDIS GIBS MODIS Terra NDVI 8-day composite layer.
           `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_NDVI_8Day/default/${ndviDate}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png`,
         ],
         tileSize: 256,
@@ -195,17 +204,6 @@ export function PolygonMap({
       // safe no-op if layers are in-transition
     }
   }, [activeLayer, mapLoaded]);
-
-  // Toggle globe projection
-  React.useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-    try {
-      map.setProjection({ type: isGlobe ? 'globe' : 'mercator' });
-    } catch {
-      // safe fallback if projection not supported
-    }
-  }, [isGlobe, mapLoaded]);
 
   // Initialize MapLibre GL map & Terra Draw
   React.useEffect(() => {
@@ -404,6 +402,8 @@ export function PolygonMap({
       });
 
       map.on('click', (e) => {
+        const target = e.originalEvent.target;
+        if (!(target instanceof Node) || !map || !map.getCanvasContainer().contains(target)) return;
         if (currentModeRef.current === 'polygon') return;
         onLocationSelect?.({ latitude: e.lngLat.lat, longitude: e.lngLat.lng });
       });
@@ -645,8 +645,25 @@ export function PolygonMap({
       )}
       style={{ height }}
     >
-      {/* Map container */}
-      <div ref={mapContainerRef} className="h-full w-full" />
+      {/* Keep the planar map mounted so its field boundary survives globe toggles. */}
+      <div
+        ref={mapContainerRef}
+        className={cn('h-full w-full', isGlobe && 'invisible')}
+        aria-hidden={isGlobe}
+      />
+
+      {isGlobe && (
+        <div className="absolute inset-0 z-[5] bg-black" role="region" aria-label={t('Interactive 3D Earth globe')}>
+          <HolographicGlobe
+            selectedLat={globeTarget?.latitude ?? null}
+            selectedLng={globeTarget?.longitude ?? null}
+            locationName={globeTarget?.name}
+            size="hero"
+            autoRotate={!globeTarget}
+            enableZoom
+          />
+        </div>
+      )}
 
       {/* WebGL2 Hardware Acceleration Offline Fallback */}
       {webglError && (
@@ -679,7 +696,7 @@ export function PolygonMap({
 
       {/* Top Floating Control Bar: Layers & Globe Projection */}
       <div className="absolute right-3 top-3 z-10 flex flex-wrap items-center gap-1.5 rounded-xl border border-white/10 bg-black/85 p-1 backdrop-blur-md">
-        {(['satellite', 'streets', 'ndvi'] as MapLayer[]).map((layer) => (
+        {!isGlobe && (['satellite', 'streets', 'ndvi'] as MapLayer[]).map((layer) => (
           <button
             key={layer}
             type="button"
@@ -700,7 +717,7 @@ export function PolygonMap({
         <button
           type="button"
           onClick={() => setIsGlobe((prev) => !prev)}
-          title={isGlobe ? 'Switch to 2D Planar Map' : 'Switch to 3D Globe Projection'}
+          title={isGlobe ? 'Switch to 2D Planar Map' : 'Switch to 3D Earth Globe'}
           className={cn(
             'inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-all',
             isGlobe
@@ -714,7 +731,7 @@ export function PolygonMap({
       </div>
 
       {/* Polygon Drawing Controls */}
-      {showToolbar && enableDrawing && (
+      {!isGlobe && showToolbar && enableDrawing && (
         <div className="absolute left-3 top-3 z-10 flex flex-col gap-2 max-w-[calc(100%-1.5rem)]">
           <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-white/10 bg-black/85 p-1.5 shadow-lg backdrop-blur-md">
             {currentMode === 'polygon' ? (

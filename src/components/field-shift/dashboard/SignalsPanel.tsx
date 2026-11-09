@@ -1,6 +1,6 @@
 "use client";
-
-import * as React from 'react';
+import * as React from "react";
+import { motion } from "framer-motion";
 import {
   Thermometer,
   CloudRain,
@@ -11,8 +11,10 @@ import {
   Minus,
   FlaskConical,
   Info,
-  Loader2,
-} from 'lucide-react';
+  Activity,
+  Satellite,
+  Clock,
+} from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -24,27 +26,58 @@ import {
   Tooltip,
   CartesianGrid,
   Cell,
-} from 'recharts';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
-import { DataSourceBadge } from '@/components/field-shift/DataSourceBadge';
-import { useAppStore, type FullAnalysis } from '@/lib/store';
-import type { Environment } from '@/lib/nasa/environment';
-import type { PowerAnalysis } from '@/lib/nasa/power';
-import { useTranslation } from '@/lib/locale';
+} from "recharts";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+import { DataSourceBadge } from "@/components/field-shift/DataSourceBadge";
+import type { FullAnalysis } from "@/lib/store";
+import type { Environment } from "@/lib/nasa/environment";
+import type { PowerAnalysis } from "@/lib/nasa/power";
+import { useTranslation } from "@/lib/locale";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function trendArrow(trend: number): { icon: React.ReactNode; label: string; color: string } {
-  if (trend > 0.001) return { icon: <ArrowUp className="size-3" />, label: 'rising', color: 'text-rose-300' };
-  if (trend < -0.001) return { icon: <ArrowDown className="size-3" />, label: 'falling', color: 'text-cyan-300' };
-  return { icon: <Minus className="size-3" />, label: 'stable', color: 'text-muted-foreground' };
+function trendArrow(trend: number): {
+  icon: React.ReactNode;
+  label: string;
+  color: string;
+} {
+  if (trend > 0.001)
+    return {
+      icon: <ArrowUp className="size-3" />,
+      label: "rising",
+      color: "text-amber-300",
+    };
+  if (trend < -0.001)
+    return {
+      icon: <ArrowDown className="size-3" />,
+      label: "falling",
+      color: "text-sky-300/80",
+    };
+  return {
+    icon: <Minus className="size-3" />,
+    label: "stable",
+    color: "text-stone-400",
+  };
 }
 
-function monthlyTempSeries(raw?: PowerAnalysis): { month: string; t: number }[] | null {
+function monthlyTempSeries(
+  raw?: PowerAnalysis,
+): { month: string; t: number }[] | null {
   if (!raw) return null;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const buckets: Record<string, { sum: number; count: number }> = {};
   for (let i = 0; i < raw.series.dates.length; i++) {
     const m = raw.series.dates[i].slice(4, 6);
@@ -55,167 +88,324 @@ function monthlyTempSeries(raw?: PowerAnalysis): { month: string; t: number }[] 
     buckets[m].count += 1;
   }
   return months.map((name, idx) => {
-    const key = String(idx + 1).padStart(2, '0');
+    const key = String(idx + 1).padStart(2, "0");
     const b = buckets[key] ?? { sum: 0, count: 0 };
-    return { month: name, t: b.count ? Math.round((b.sum / b.count) * 10) / 10 : 0 };
+    return {
+      month: name,
+      t: b.count ? Math.round((b.sum / b.count) * 10) / 10 : 0,
+    };
   });
 }
 
-// ── Mini section header ──────────────────────────────────────────────────────
-function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  const { t } = useTranslation();
-  return (
-    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
-      {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-3' })}
-      {typeof children === 'string' ? t(children) : children}
-    </div>
-  );
-}
-
-// ── Stat row helper ──────────────────────────────────────────────────────────
-function StatRow({ label, value, tone }: { label: string; value: string; tone?: 'good' | 'warn' | 'risk' | 'neutral' }) {
-  const { t } = useTranslation();
-  const color =
-    tone === 'good'
-      ? 'text-emerald-300'
-      : tone === 'warn'
-        ? 'text-amber-300'
-        : tone === 'risk'
-          ? 'text-rose-300'
-          : 'text-foreground/80';
-  return (
-    <div className="flex items-center justify-between py-1 text-xs">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t(label)}</span>
-      <span className={cn('font-medium', color)}>{t(value)}</span>
-    </div>
-  );
-}
-
-// ── Card shell ─────────────────────────────────────────────────────────────────
-function NasaCard({
-  title,
-  icon,
-  source,
-  attribution,
-  resolution,
-  children,
-  big,
-  bigUnit,
-  extraBadge,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  source: 'live' | 'cached' | 'demo' | 'derived';
-  attribution: string;
-  resolution?: string;
-  children: React.ReactNode;
-  big: string;
-  bigUnit: string;
-  extraBadge?: React.ReactNode;
-}) {
-  const { t } = useTranslation();
-  return (
-    <Card className="border-white/10 bg-card/50 p-4 sm:p-5">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-md border border-white/10 bg-white/5 text-amber-300">
-            {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-4' })}
-          </span>
-          <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
-              {t(title)}
-            </div>
-            {resolution && (
-              <div className="font-mono text-[9px] text-muted-foreground/60">
-                {resolution}
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {extraBadge}
-          <DataSourceBadge source={source} size="sm" />
-        </div>
-      </div>
-      <div className="mt-3 flex items-baseline gap-1.5">
-        <span className="text-3xl font-light text-foreground sm:text-4xl">{big}</span>
-        <span className="text-sm text-muted-foreground">{bigUnit}</span>
-      </div>
-      <div className="mt-3 divide-y divide-white/5">{children}</div>
-      <div className="mt-3 border-t border-white/5 pt-2 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/50">
-        {t('Source:')} {t(attribution)}
-      </div>
-    </Card>
-  );
-}
-
-// ── Soil-condition badge ──────────────────────────────────────────────────────
-type SoilMetric = 'low' | 'medium' | 'high' | 'deficit' | 'adequate' | 'surplus' | 'depleting' | 'stable' | 'building';
-function soilBadgeTone(v: SoilMetric): { label: string; cls: string } {
-  switch (v) {
-    case 'low':
-    case 'deficit':
-    case 'depleting':
-      return { label: v, cls: 'border-rose-400/40 bg-rose-400/10 text-rose-200' };
-    case 'medium':
-    case 'adequate':
-    case 'stable':
-      return { label: v, cls: 'border-amber-400/40 bg-amber-400/10 text-amber-200' };
-    case 'high':
-    case 'surplus':
-    case 'building':
-      return { label: v, cls: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200' };
-  }
-}
-
 // ── Chart tooltip ────────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number; name: string }[]; label?: string }) {
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { value: number; name: string }[];
+  label?: string;
+}) {
   const { t, number } = useTranslation();
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-[10px] text-foreground backdrop-blur">
-      <div className="text-muted-foreground/80">{label ? t(label) : ''}</div>
+    <div className="rounded-lg border border-amber-400/20 bg-stone-950/95 px-2.5 py-1.5 font-mono text-[10px] shadow-xl backdrop-blur-md">
+      <div className="text-stone-400">{label ? t(label) : ""}</div>
       {payload.map((p, i) => (
         <div key={i} className="text-amber-200">
-          {payload.length > 1 ? `${t(p.name)}: ` : ''}{number(p.value)}
+          {payload.length > 1 ? `${t(p.name)}: ` : ""}
+          {number(p.value)}
         </div>
       ))}
     </div>
   );
 }
 
+// ── Mono micro-label ──────────────────────────────────────────────────────────
+function MicroLabel({
+  icon,
+  children,
+  className,
+}: {
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-200/70",
+        className,
+      )}
+    >
+      {icon &&
+        React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
+          className: "size-3",
+        })}
+      {typeof children === "string" ? t(children) : children}
+    </span>
+  );
+}
+
+// ── Stat row ──────────────────────────────────────────────────────────────────
+function StatRow({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "good" | "warn" | "risk" | "neutral" | "accent";
+}) {
+  const { t } = useTranslation();
+  const color =
+    tone === "good"
+      ? "text-emerald-300"
+      : tone === "warn"
+        ? "text-amber-300"
+        : tone === "risk"
+          ? "text-rose-300"
+          : tone === "accent"
+            ? "text-amber-200"
+            : "text-stone-200/80";
+  return (
+    <div className="flex items-center justify-between gap-2 border-t border-white/5 py-1.5 text-xs first:border-t-0 first:pt-0">
+      <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-widest text-stone-500">
+        {t(label)}
+      </span>
+      <span className={cn("shrink-0 font-medium tabular-nums", color)}>{t(value)}</span>
+    </div>
+  );
+}
+
+// ── Bento card shell ──────────────────────────────────────────────────────────
+type CardTone = "amber" | "cyan" | "emerald" | "rose" | "neutral";
+
+function BentoCard({
+  title,
+  icon,
+  source,
+  attribution,
+  children,
+  big,
+  bigUnit,
+  tone = "neutral",
+  delay = 0,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  source: "live" | "cached" | "demo" | "derived";
+  attribution: string;
+  children?: React.ReactNode;
+  big: string;
+  bigUnit: string;
+  tone?: CardTone;
+  delay?: number;
+}) {
+  const { t } = useTranslation();
+  const accentColor =
+    tone === "amber"
+      ? "text-amber-300"
+      : tone === "cyan"
+        ? "text-sky-300"
+        : tone === "emerald"
+          ? "text-emerald-300"
+          : tone === "rose"
+            ? "text-rose-300"
+            : "text-stone-200";
+  const chipBg =
+    tone === "amber"
+      ? "bg-amber-400/10 border-amber-400/20"
+      : tone === "cyan"
+        ? "bg-sky-400/10 border-sky-400/20"
+        : tone === "emerald"
+          ? "bg-emerald-400/10 border-emerald-400/20"
+          : tone === "rose"
+            ? "bg-rose-400/10 border-rose-400/20"
+            : "bg-white/5 border-white/10";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="h-full"
+    >
+      <Card className="group relative flex h-full flex-col overflow-hidden rounded-2xl border-white/6 bg-stone-950/40 p-3 backdrop-blur-sm transition-colors duration-300 hover:border-amber-400/20 hover:bg-stone-950/60 sm:p-4 md:p-5">        {/* Top hairline glow on hover */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+        {/* Header */}
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              className={cn(
+                "flex size-8 shrink-0 items-center justify-center rounded-xl border sm:size-9",
+                chipBg,
+              )}
+            >
+              {React.cloneElement(
+                icon as React.ReactElement<{ className?: string }>,
+                { className: cn("size-3.5 sm:size-4", accentColor) },
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
+              <MicroLabel>{title}</MicroLabel>
+              <span className="mt-0.5 block truncate font-mono text-[9px] uppercase tracking-widest text-stone-600">
+                {attribution}
+              </span>
+            </div>
+          </div>
+          <DataSourceBadge source={source} size="sm" />
+        </div>
+
+        {/* Big number */}
+        <div className="mt-3 flex items-baseline gap-1.5 sm:mt-4">
+          <span
+            className={cn(
+              "text-2xl font-light tracking-tight tabular-nums sm:text-3xl md:text-4xl",
+              accentColor,
+            )}
+          >
+            {big}
+          </span>
+          <span className="text-xs font-medium text-stone-400">{bigUnit}</span>
+        </div>
+
+        {/* Body */}
+        {children && (
+          <div className="mt-3 flex-1 space-y-0 sm:mt-4">{children}</div>
+        )}
+      </Card>
+    </motion.div>
+  );
+}
+
+// ── Soil-condition badge ──────────────────────────────────────────────────────
+type SoilMetric =
+  | "low"
+  | "medium"
+  | "high"
+  | "deficit"
+  | "adequate"
+  | "surplus"
+  | "depleting"
+  | "stable"
+  | "building";
+
+function soilBadgeTone(v: SoilMetric): {
+  label: string;
+  cls: string;
+  dot: string;
+} {
+  switch (v) {
+    case "low":
+    case "deficit":
+    case "depleting":
+      return {
+        label: v,
+        cls: "border-rose-400/30 bg-rose-400/6 text-rose-200",
+        dot: "bg-rose-400",
+      };
+    case "medium":
+    case "adequate":
+    case "stable":
+      return {
+        label: v,
+        cls: "border-amber-400/30 bg-amber-400/6 text-amber-200",
+        dot: "bg-amber-400",
+      };
+    case "high":
+    case "surplus":
+    case "building":
+      return {
+        label: v,
+        cls: "border-emerald-400/30 bg-emerald-400/6 text-emerald-200",
+        dot: "bg-emerald-400",
+      };
+  }
+}
+
 // ── Soil condition helper (re-derivation, matches smap.ts deriveSoilCondition) ─
 function deriveSoilCondition(env: Environment, currentCrop: string | null) {
-  // Texture — uses farmer-reported soil type from the field record
   const soilType = (env as Environment & { _soilType?: string })._soilType;
-  // We don't have direct access to the field's soilType here, but we can
-  // derive the texture from field soil. The CropsPanel and parent know this.
-  // For this panel we use NDVI + soil moisture %.
   const ndvi = env.vegetation.ndvi;
   const pct = env.soilMoisture.currentPct;
-  const isLegume = currentCrop ? /lentil|chickpea|mung|pea|bean|soybean|gram|pigeon/i.test(currentCrop) : false;
+  const isLegume = currentCrop
+    ? /lentil|chickpea|mung|pea|bean|soybean|gram|pigeon/i.test(currentCrop)
+    : false;
   const variability = env.rainfall.variability;
 
-  // Heuristic re-derivation
-  let erosion: SoilMetric = 'low';
-  if (variability > 8 && ndvi < 0.3) erosion = 'high';
-  else if (variability > 4) erosion = 'medium';
+  let erosion: SoilMetric = "low";
+  if (variability > 8 && ndvi < 0.3) erosion = "high";
+  else if (variability > 4) erosion = "medium";
 
-  const organicMatter: SoilMetric = ndvi > 0.5 ? 'high' : ndvi > 0.3 ? 'medium' : 'low';
-  const moistureCondition: SoilMetric = pct < 30 ? 'deficit' : pct > 70 ? 'surplus' : 'adequate';
-  const nitrogenBalance: SoilMetric = isLegume ? 'building' : 'depleting';
-  // Water retention — not measurable here without soil texture; default to 'medium'
-  const waterRetention: SoilMetric = 'medium';
+  const organicMatter: SoilMetric =
+    ndvi > 0.5 ? "high" : ndvi > 0.3 ? "medium" : "low";
+  const moistureCondition: SoilMetric =
+    pct == null
+      ? "adequate"
+      : pct < 30
+        ? "deficit"
+        : pct > 70
+          ? "surplus"
+          : "adequate";
+  const nitrogenBalance: SoilMetric = isLegume ? "building" : "depleting";
+  const waterRetention: SoilMetric = "medium";
 
   void soilType;
   return {
-    texture: 'See field record',
+    texture: "See field record",
     organicMatter,
     moistureCondition,
     nitrogenBalance,
     erosionRisk: erosion,
     waterRetention,
   };
+}
+
+// ── Soil metric chip ──────────────────────────────────────────────────────────
+function SoilMetricChip({
+  label,
+  valueText,
+  badge,
+  delay = 0,
+}: {
+  label: string;
+  valueText: string;
+  badge?: SoilMetric;
+  delay?: number;
+}) {
+  const { t } = useTranslation();
+  const badgeCls = badge ? soilBadgeTone(badge) : null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
+      className="flex items-center justify-between gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-2.5 py-2 transition-colors duration-300 hover:border-amber-400/20 hover:bg-white/[0.04] sm:px-3 sm:py-2.5"
+    >
+      <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-widest text-stone-500">
+        {t(label)}
+      </span>
+      {badgeCls ? (
+        <span
+          className={cn(
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] capitalize",
+            badgeCls.cls,
+          )}
+        >
+          <span className={cn("size-1.5 rounded-full", badgeCls.dot)} />
+          {badgeCls.label}
+        </span>
+      ) : (
+        <span className="shrink-0 truncate text-xs font-medium text-stone-300">
+          {valueText}
+        </span>
+      )}
+    </motion.div>
+  );
 }
 
 // ── Main panel ──────────────────────────────────────────────────────────────
@@ -226,49 +416,22 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
   const rain = environment.rainfall;
   const sm = environment.soilMoisture;
   const veg = environment.vegetation;
+  const rainAnomalyPct = rain.anomalyPct ?? 0;
+  const smCurrentMm = sm.currentMm ?? 0;
+  const smCurrentPct = sm.currentPct ?? 0;
+  const smSeasonalDeficit = sm.seasonalDeficit ?? 0;
+  const smTenYearTrend = sm.tenYearTrend ?? 0;
 
-  const activePolygon = useAppStore(s => s.activePolygon);
-  const updateVegetation = useAppStore(s => s.updateVegetation);
-
-  // Progressive background polling for live MODIS NDVI without blocking UI
-  React.useEffect(() => {
-    if (veg.source === 'live' || veg.source === 'cached') return;
-
-    let isCancelled = false;
-    let attempts = 0;
-    const maxAttempts = 15; // ~45s
-
-    const poll = async () => {
-      attempts++;
-      if (attempts > maxAttempts || isCancelled) return;
-      try {
-        const polygonCoords = activePolygon?.coordinates ?? null;
-        const polyParam = polygonCoords ? `&polygon=${encodeURIComponent(JSON.stringify(polygonCoords))}` : '';
-        const res = await fetch(`/api/field/ndvi?lat=${field.latitude}&lng=${field.longitude}${polyParam}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!isCancelled && data.vegetation && (data.vegetation.source === 'live' || data.vegetation.source === 'cached')) {
-          updateVegetation(data.vegetation);
-        }
-      } catch {
-        // best-effort polling
-      }
-    };
-
-    const timer = setInterval(poll, 3000);
-    return () => {
-      isCancelled = true;
-      clearInterval(timer);
-    };
-  }, [veg.source, field.latitude, field.longitude, activePolygon, updateVegetation]);
-
-  const tempSeries = React.useMemo(() => monthlyTempSeries(environment.rawPower), [environment.rawPower]);
+  const tempSeries = React.useMemo(
+    () => monthlyTempSeries(environment.rawPower),
+    [environment.rawPower],
+  );
   const rainSeries = rain.seasonalPattern ?? [];
   const vegSeries = veg.seasonalPattern ?? [];
-  const vegObserved = veg.source === 'live' || veg.source === 'cached';
+  const vegObserved = veg.source === "live" || veg.source === "cached";
 
   const tempTrend = trendArrow(temp.tenYearTrend);
-  const smTrend = trendArrow(sm.tenYearTrend);
+  const smTrend = trendArrow(sm.tenYearTrend ?? 0);
   const vegTrend = trendArrow(veg.recentTrend);
 
   const soilCond = React.useMemo(
@@ -276,253 +439,524 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
     [environment, field.currentCrop],
   );
 
-  // Bar color for current month on rainfall chart (just the bar that's "current")
+  // Shared chart axis styling — minimal, amber-tinted
+  const axisTick = { fontSize: 9, fill: "rgba(168, 162, 158, 0.5)" };
+  const gridStroke = "rgba(255, 255, 255, 0.04)";
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="space-y-4 sm:space-y-5">
+      {/* ── Hero band ─────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="relative overflow-hidden rounded-2xl border border-amber-400/15 bg-stone-950/60 p-3 sm:p-4 md:p-6"
+      >
+        {/* Ambient amber glow */}
+        <div className="pointer-events-none absolute -right-20 -top-20 size-60 rounded-full bg-amber-500/8 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -left-20 size-40 rounded-full bg-amber-700/4 blur-3xl" />
+
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="flex size-7 items-center justify-center rounded-lg border border-amber-400/30 bg-amber-400/10">
+                <Satellite className="size-3.5 text-amber-300" />
+              </span>
+              <MicroLabel className="text-amber-200/90">
+                Field signals
+              </MicroLabel>
+            </div>
+            <h2 className="text-xl font-light tracking-tight text-stone-100 sm:text-2xl md:text-3xl">
+              {t("Climate & soil observation")}
+            </h2>
+            <p className="max-w-xl text-xs leading-relaxed text-stone-400">
+              {t(
+                "NASA POWER satellite observation fused with derived model estimates. Updated continuously from the field record.",
+              )}
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-stone-500 sm:text-[10px]">
+            <Clock className="size-3 text-amber-300/70" />
+            <span>
+              {t("Last sync")} · {date(new Date().toISOString())}
+            </span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Bento grid: 4 climate cards ──────────────────────────────────── */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-2 ">
         {/* Temperature */}
-        <NasaCard
-          title={t('Temperature')}
+        <BentoCard
+          title="Temperature"
           icon={<Thermometer />}
           source={temp.source}
           attribution={temp.attribution}
-          resolution={temp.resolution ?? '0.5° × 0.5° (~50 km MERRA-2)'}
-          big={number(temp.current, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
-          bigUnit={t('°C (90d mean)')}
+          big={number(temp.current, {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+          })}
+          bigUnit={t("°C (90d mean)")}
+          tone="amber"
+          delay={0.05}
         >
-          <StatRow label="Current max" value={`${number(temp.currentMax, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`} />
-          <StatRow label="Growing-season avg" value={`${number(temp.growingSeasonAvg, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} °C`} />
+          <StatRow
+            label="Current max"
+            value={`${number(temp.currentMax, {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })} °C`}
+          />
+          <StatRow
+            label="Growing-season avg"
+            value={`${number(temp.growingSeasonAvg, {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })} °C`}
+          />
           <StatRow
             label="Heat-stress days (90d)"
-            value={`${number(temp.heatStressDays)} ${t('d')}`}
-            tone={temp.heatStressDays > 20 ? 'risk' : temp.heatStressDays > 10 ? 'warn' : 'good'}
+            value={`${number(temp.heatStressDays)} ${t("d")}`}
+            tone={
+              temp.heatStressDays > 20
+                ? "risk"
+                : temp.heatStressDays > 10
+                  ? "warn"
+                  : "good"
+            }
           />
-          <div className="flex items-center justify-between py-1 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('10y trend')}</span>
-            <span className={cn('flex items-center gap-1 font-medium', tempTrend.color)}>
+          <div className="flex items-center justify-between border-t border-white/5 py-1.5 text-xs">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500">
+              {t("10y trend")}
+            </span>
+            <span
+              className={cn(
+                "flex items-center gap-1 font-medium tabular-nums",
+                tempTrend.color,
+              )}
+            >
               {tempTrend.icon}
-              {number(Math.abs(temp.tenYearTrend), { minimumFractionDigits: 3, maximumFractionDigits: 3 })} °C/yr
+              {number(Math.abs(temp.tenYearTrend), {
+                minimumFractionDigits: 3,
+                maximumFractionDigits: 3,
+              })}{" "}
+              °C/yr
             </span>
           </div>
           {tempSeries && (
-            <div className="mt-2 h-20 w-full">
+            <div className="mt-3 h-24 w-full sm:h-28">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={tempSeries} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <XAxis dataKey="month" tickFormatter={value => t(String(value))} tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
-                  <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" domain={['dataMin - 2', 'dataMax + 2']} />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Line type="monotone" dataKey="t" stroke="#fbbf24" strokeWidth={2} dot={false} />
+                <LineChart
+                  data={tempSeries}
+                  margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                >
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(value) => t(String(value))}
+                    tick={axisTick}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={1}
+                  />
+                  <YAxis
+                    tick={axisTick}
+                    tickLine={false}
+                    axisLine={false}
+                    domain={["dataMin - 2", "dataMax + 2"]}
+                  />
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={{
+                      stroke: "rgba(251,191,36,0.2)",
+                      strokeWidth: 1,
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="t"
+                    stroke="#fbbf24"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           )}
-        </NasaCard>
+        </BentoCard>
 
         {/* Rainfall */}
-        <NasaCard
-          title={t('Rainfall')}
+        <BentoCard
+          title="Rainfall"
           icon={<CloudRain />}
-          source={rain.source === 'live' ? 'live' : rain.source === 'cached' ? 'cached' : 'demo'}
+          source={
+            String(rain.source) === "live"
+              ? "live"
+              : String(rain.source) === "cached"
+                ? "cached"
+                : "demo"
+          }
           attribution={rain.attribution}
-          resolution={rain.resolution ?? '0.5° × 0.5° (~50 km MERRA-2 / GPM)'}
           big={number(Math.round(rain.annualRainfall))}
-          bigUnit={t('mm / year')}
+          bigUnit={t("mm / year")}
+          tone="cyan"
+          delay={0.1}
         >
-          <StatRow label="Growing-season (90d)" value={`${number(Math.round(rain.growingSeasonRainfall))} mm`} />
+          <StatRow
+            label="Growing-season (90d)"
+            value={`${number(Math.round(rain.growingSeasonRainfall))} mm`}
+          />
           <StatRow
             label="Anomaly vs climatology"
-            value={`${rain.anomalyPct > 0 ? '+' : ''}${number(rain.anomalyPct)}%`}
-            tone={Math.abs(rain.anomalyPct) > 25 ? 'warn' : 'neutral'}
+            value={`${(rain.anomalyPct ?? 0) > 0 ? "+" : ""}${number(rain.anomalyPct ?? 0)}%`}
+            tone={Math.abs(rain.anomalyPct ?? 0) > 25 ? "warn" : "neutral"}
           />
-          <StatRow label="Variability (σ)" value={`${number(rain.variability, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mm/d`} />
+          <StatRow
+            label="Variability (σ)"
+            value={`${number(rain.variability, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })} mm/d`}
+          />
           <StatRow
             label="Dry spells (90d)"
             value={number(rain.drySpells)}
-            tone={rain.drySpells > 4 ? 'risk' : rain.drySpells > 2 ? 'warn' : 'good'}
+            tone={
+              rain.drySpells > 4 ? "risk" : rain.drySpells > 2 ? "warn" : "good"
+            }
           />
           {rainSeries.length > 0 && (
-            <div className="mt-2 h-24 w-full">
+            <div className="mt-3 h-24 w-full sm:h-28">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={rainSeries} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="month" tickFormatter={value => t(String(value))} tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
-                  <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" />
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                <BarChart
+                  data={rainSeries}
+                  margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={gridStroke}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(value) => t(String(value))}
+                    tick={axisTick}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={1}
+                  />
+                  <YAxis tick={axisTick} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={{ fill: "rgba(56,189,248,0.05)" }}
+                  />
                   <Bar dataKey="mm" radius={[2, 2, 0, 0]}>
                     {rainSeries.map((_, i) => (
-                      <Cell key={i} fill="#22d3ee" fillOpacity={0.7} />
+                      <Cell key={i} fill="#38bdf8" fillOpacity={0.65} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
-        </NasaCard>
+        </BentoCard>
 
         {/* Soil moisture */}
-        <NasaCard
-          title={t('Soil moisture')}
+        <BentoCard
+          title="Soil moisture"
           icon={<Droplets />}
-          source={sm.source === 'derived' ? 'derived' : 'demo'}
+          source={(sm.source as string) === "DERIVED" ? "derived" : "demo"}
           attribution={sm.attribution}
-          resolution={sm.resolution ?? '0.5° (~50 km derived water balance)'}
-          big={number(sm.currentMm, { maximumFractionDigits: 0 })}
-          bigUnit={t('mm (top ~1m)')}
+          big={number(sm.currentMm ?? 0, { maximumFractionDigits: 0 })}
+          bigUnit={t("mm (top ~1m)")}
+          tone="cyan"
+          delay={0.15}
         >
           <StatRow
             label="Current (% capacity)"
-            value={`${number(sm.currentPct, { maximumFractionDigits: 0 })}%`}
-            tone={sm.currentPct < 30 ? 'risk' : sm.currentPct > 70 ? 'good' : 'neutral'}
+            value={`${number(sm.currentPct ?? 0, { maximumFractionDigits: 0 })}%`}
+            tone={
+              (sm.currentPct ?? 0) < 30
+                ? "risk"
+                : (sm.currentPct ?? 0) > 70
+                  ? "good"
+                  : "neutral"
+            }
           />
           <StatRow
             label="Seasonal deficit (90d)"
-            value={`${number(sm.seasonalDeficit, { maximumFractionDigits: 0 })} mm`}
-            tone={sm.seasonalDeficit > 80 ? 'risk' : sm.seasonalDeficit > 40 ? 'warn' : 'good'}
+            value={`${number(sm.seasonalDeficit, {
+              maximumFractionDigits: 0,
+            })} mm`}
+            tone={
+              sm.seasonalDeficit > 80
+                ? "risk"
+                : sm.seasonalDeficit > 40
+                  ? "warn"
+                  : "good"
+            }
           />
-          <div className="flex items-center justify-between py-1 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('10y trend')}</span>
-            <span className={cn('flex items-center gap-1 font-medium', smTrend.color)}>
+          <div className="flex items-center justify-between border-t border-white/5 py-1.5 text-xs">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500">
+              {t("10y trend")}
+            </span>
+            <span
+              className={cn(
+                "flex items-center gap-1 font-medium tabular-nums",
+                smTrend.color,
+              )}
+            >
               {smTrend.icon}
-              {number(Math.abs(sm.tenYearTrend), { minimumFractionDigits: 3, maximumFractionDigits: 3 })} %/yr
+              {number(Math.abs(sm.tenYearTrend ?? 0), {
+                minimumFractionDigits: 3,
+                maximumFractionDigits: 3,
+              })}{" "}
+              %/yr
             </span>
           </div>
           {/* Horizontal bar: current vs 100% */}
           <div className="mt-3">
-            <div className="mb-1 flex items-center justify-between font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
-              <span>{t('Field capacity')}</span>
-              <span>{number(sm.currentPct, { maximumFractionDigits: 0 })} / {number(100)}%</span>
+            <div className="mb-1.5 flex items-center justify-between font-mono text-[9px] uppercase tracking-widest text-stone-600">
+              <span>{t("Field capacity")}</span>
+              <span className="text-stone-400">
+                {number(sm.currentPct ?? 0, { maximumFractionDigits: 0 })} /{" "}
+                {number(100)}%
+              </span>
             </div>
-            <div className="h-2.5 w-full overflow-hidden rounded-full bg-white/5">
-              <div
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{
+                  width: `${Math.max(2, Math.min(100, sm.currentPct ?? 0))}%`,
+                }}
+                transition={{
+                  duration: 0.8,
+                  delay: 0.3,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
                 className={cn(
-                  'h-full rounded-full',
-                  sm.currentPct < 30 ? 'bg-rose-400' : sm.currentPct > 70 ? 'bg-emerald-400' : 'bg-cyan-400',
+                  "h-full rounded-full",
+                  (sm.currentPct ?? 0) < 30
+                    ? "bg-gradient-to-r from-rose-500 to-rose-400"
+                    : (sm.currentPct ?? 0) > 70
+                      ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                      : "bg-gradient-to-r from-sky-500 to-sky-400",
                 )}
-                style={{ width: `${Math.max(2, Math.min(100, sm.currentPct))}%` }}
               />
             </div>
           </div>
-        </NasaCard>
+        </BentoCard>
 
         {/* Vegetation NDVI */}
-        <NasaCard
-          title={t('Vegetation (NDVI)')}
+        <BentoCard
+          title="Vegetation (NDVI)"
           icon={<Leaf />}
           source={veg.source}
           attribution={veg.attribution}
-          resolution={veg.resolution ?? (vegObserved ? '250 m (NASA MODIS Terra)' : '0.5° (~50 km derived)')}
-          extraBadge={
-            !vegObserved && (veg.ndviLoading || veg.source === 'derived') ? (
-              <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200 animate-pulse text-[9px] flex items-center gap-1 font-mono">
-                <Loader2 className="size-2.5 animate-spin" />
-                <span>{t('MODIS 250m acquiring...')}</span>
-              </Badge>
-            ) : null
+          big={number(veg.ndvi, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+          bigUnit={
+            veg.observedDate ? `NDVI · MODIS ${date(veg.observedDate)}` : "NDVI"
           }
-          big={number(veg.ndvi, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          bigUnit={veg.observedDate ? `NDVI · MODIS ${date(veg.observedDate)}` : 'NDVI'}
+          tone="emerald"
+          delay={0.2}
         >
           <StatRow
             label="Health"
             value={veg.health}
-            tone={veg.health === 'vigorous' || veg.health === 'good' ? 'good' : veg.health === 'moderate' ? 'neutral' : 'risk'}
+            tone={
+              veg.health === "vigorous" || veg.health === "good"
+                ? "good"
+                : veg.health === "moderate"
+                  ? "neutral"
+                  : "risk"
+            }
           />
-          <div className="flex items-center justify-between py-1 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Recent trend')}</span>
-            <span className={cn('flex items-center gap-1 font-medium', vegTrend.color)}>
+          <div className="flex items-center justify-between border-t border-white/5 py-1.5 text-xs">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500">
+              {t("Recent trend")}
+            </span>
+            <span
+              className={cn(
+                "flex items-center gap-1 font-medium tabular-nums",
+                vegTrend.color,
+              )}
+            >
               {vegTrend.icon}
-              {number(Math.abs(veg.recentTrend), { minimumFractionDigits: 3, maximumFractionDigits: 3 })} /yr
+              {number(Math.abs(veg.recentTrend), {
+                minimumFractionDigits: 3,
+                maximumFractionDigits: 3,
+              })}{" "}
+              /yr
             </span>
           </div>
           {vegSeries.length > 0 && (
-            <div className="mt-2 h-24 w-full">
+            <div className="mt-3 h-24 w-full sm:h-28">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={vegSeries} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                  <XAxis dataKey="month" tickFormatter={value => t(String(value))} tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" interval={1} />
-                  <YAxis tick={{ fontSize: 9, fill: 'currentColor' }} className="text-muted-foreground" domain={[0, 1]} />
-                  <Tooltip content={<ChartTooltip />} />
+                <LineChart
+                  data={vegSeries}
+                  margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={gridStroke}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(value) => t(String(value))}
+                    tick={axisTick}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={1}
+                  />
+                  <YAxis
+                    tick={axisTick}
+                    tickLine={false}
+                    axisLine={false}
+                    domain={[0, 1]}
+                  />
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={{
+                      stroke: "rgba(52,211,153,0.2)",
+                      strokeWidth: 1,
+                    }}
+                  />
                   {vegObserved && (
-                    <Line type="monotone" dataKey="model" name="Model" stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
+                    <Line
+                      type="monotone"
+                      dataKey="model"
+                      name="Model"
+                      stroke="#94a3b8"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 3"
+                      dot={false}
+                    />
                   )}
-                  <Line type="monotone" dataKey="ndvi" name={vegObserved ? 'MODIS' : 'Model'} stroke="#34d399" strokeWidth={2} dot={vegObserved ? { r: 2 } : false} connectNulls />
+                  <Line
+                    type="monotone"
+                    dataKey="ndvi"
+                    name={vegObserved ? "MODIS" : "Model"}
+                    stroke="#34d399"
+                    strokeWidth={2}
+                    dot={vegObserved ? { r: 2, fill: "#34d399" } : false}
+                    connectNulls
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           )}
           {vegObserved && (
-            <div className="mt-1 flex items-center gap-3 font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60">
-              <span className="flex items-center gap-1"><span className="h-0.5 w-3 bg-emerald-400" />{t('MODIS observed')}</span>
-              <span className="flex items-center gap-1"><span className="h-0 w-3 border-t border-dashed border-slate-400" />{t('POWER-driven model')}</span>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[9px] uppercase tracking-widest text-stone-600">
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-3 bg-emerald-400" />
+                {t("MODIS observed")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-0 w-3 border-t border-dashed border-stone-500" />
+                {t("POWER-driven model")}
+              </span>
             </div>
           )}
-          {veg.sentinel2SceneId && (
-            <div className="mt-2 rounded border border-emerald-400/20 bg-emerald-400/5 px-2 py-1 font-mono text-[9px] text-emerald-300">
-              <div className="flex items-center justify-between">
-                <span>{t('Sentinel-2 L2A (10 m):')} {veg.sentinel2SceneId.slice(0, 22)}...</span>
-                <span>{t('Cloud:')} {veg.sentinel2CloudCover ?? 0}%</span>
-              </div>
-            </div>
-          )}
-        </NasaCard>
+        </BentoCard>
       </div>
 
-      {/* Soil condition section */}
-      <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <SectionLabel icon={<FlaskConical />}>Soil condition</SectionLabel>
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
-            {t('NASA observation + derived model estimate')}
-          </span>
-        </div>
-        <Separator className="my-3 bg-white/10" />
-        <p className="mb-3 text-xs text-muted-foreground italic">
-          {t('Soil moisture is derived from NASA POWER precipitation + a water-balance model. Other soil metrics are derived from regional signals and farmer-reported texture. NASA does not directly measure every soil-health metric.')}
-        </p>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <SoilMetricRow label="Soil texture" valueText={soilCond.texture} />
-          <SoilMetricRow label="Organic matter" valueText={soilCond.organicMatter} badge={soilCond.organicMatter} />
-          <SoilMetricRow label="Moisture condition" valueText={soilCond.moistureCondition} badge={soilCond.moistureCondition} />
-          <SoilMetricRow label="Nitrogen balance" valueText={soilCond.nitrogenBalance} badge={soilCond.nitrogenBalance} />
-          <SoilMetricRow label="Erosion risk" valueText={soilCond.erosionRisk} badge={soilCond.erosionRisk} />
-          <SoilMetricRow label="Water retention" valueText={soilCond.waterRetention} badge={soilCond.waterRetention} />
-        </div>
-        <div className="mt-4 flex items-start gap-2 rounded-lg border border-cyan-400/20 bg-cyan-400/5 px-3 py-2 text-xs text-cyan-100/80">
-          <Info className="mt-0.5 size-3.5 shrink-0 text-cyan-300" />
-          <span>
-            <strong className="font-medium text-cyan-200">{t('NASA observation:')}</strong>{' '}
-            {t('Soil moisture uses POWER precipitation (GPM-corrected).')}{' '}
-            <strong className="font-medium text-amber-200">{t('Derived/model estimate:')}</strong>{' '}
-            {t('Soil texture, organic matter, nitrogen balance, erosion risk, and water retention.')}
-          </span>
-        </div>
-      </Card>
-    </div>
-  );
-}
+      {/* ── Soil condition rail ──────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <Card className="relative overflow-hidden rounded-2xl border-white/6 bg-stone-950/40 p-3 backdrop-blur-sm sm:p-4 md:p-6">
+          {/* Subtle ambient glow */}
+          <div className="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-amber-500/4 blur-3xl" />
 
-function SoilMetricRow({
-  label,
-  valueText,
-  badge,
-}: {
-  label: string;
-  valueText: string;
-  badge?: SoilMetric;
-}) {
-  const badgeCls = badge ? soilBadgeTone(badge) : null;
-  return (
-    <div className="flex items-center justify-between rounded-md border border-white/5 bg-white/[0.03] px-3 py-2">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
-        {label}
-      </span>
-      {badgeCls ? (
-        <Badge variant="outline" className={cn('capitalize', badgeCls.cls)}>
-          {badgeCls.label}
-        </Badge>
-      ) : (
-        <span className="text-xs font-medium text-foreground/80">{valueText}</span>
-      )}
+          <div className="relative">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="flex size-7 items-center justify-center rounded-lg border border-amber-400/30 bg-amber-400/10">
+                    <FlaskConical className="size-3.5 text-amber-300" />
+                  </span>
+                  <MicroLabel>Soil condition</MicroLabel>
+                </div>
+                <p className="text-xs italic text-stone-500">
+                  {t("NASA observation + derived model estimate")}
+                </p>
+              </div>
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 px-2.5 py-1 font-mono text-[9px] uppercase tracking-widest text-amber-200/80">
+                <Activity className="size-3" />
+                {t("derived")}
+              </span>
+            </div>
+
+            <div className="my-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+            <p className="mb-4 text-xs leading-relaxed text-stone-500">
+              {t(
+                "Soil moisture is derived from NASA POWER precipitation + a water-balance model. Other soil metrics are derived from regional signals and farmer-reported texture. NASA does not directly measure every soil-health metric.",
+              )}
+            </p>
+
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+              <SoilMetricChip
+                label="Soil texture"
+                valueText={soilCond.texture}
+                delay={0.3}
+              />
+              <SoilMetricChip
+                label="Organic matter"
+                valueText={soilCond.organicMatter}
+                badge={soilCond.organicMatter}
+                delay={0.35}
+              />
+              <SoilMetricChip
+                label="Moisture condition"
+                valueText={soilCond.moistureCondition}
+                badge={soilCond.moistureCondition}
+                delay={0.4}
+              />
+              <SoilMetricChip
+                label="Nitrogen balance"
+                valueText={soilCond.nitrogenBalance}
+                badge={soilCond.nitrogenBalance}
+                delay={0.45}
+              />
+              <SoilMetricChip
+                label="Erosion risk"
+                valueText={soilCond.erosionRisk}
+                badge={soilCond.erosionRisk}
+                delay={0.5}
+              />
+              <SoilMetricChip
+                label="Water retention"
+                valueText={soilCond.waterRetention}
+                badge={soilCond.waterRetention}
+                delay={0.55}
+              />
+            </div>
+
+            <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-amber-400/15 bg-amber-400/[0.03] px-3.5 py-3 text-xs leading-relaxed text-stone-300">
+              <Info className="mt-0.5 size-3.5 shrink-0 text-amber-300/80" />
+              <span>
+                <strong className="font-medium text-amber-200">
+                  {t("NASA observation:")}
+                </strong>{" "}
+                {t("Soil moisture uses POWER precipitation (GPM-corrected).")}{" "}
+                <strong className="font-medium text-stone-200">
+                  {t("Derived/model estimate:")}
+                </strong>{" "}
+                {t(
+                  "Soil texture, organic matter, nitrogen balance, erosion risk, and water retention.",
+                )}
+              </span>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
     </div>
   );
 }

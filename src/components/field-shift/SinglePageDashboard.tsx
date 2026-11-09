@@ -2,12 +2,16 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import {
   Sparkles,
   Printer,
   RotateCcw,
   Languages,
   Search,
+  Activity,
+  BarChart3,
+  Leaf,
   MapPin,
   Loader2,
   FileText,
@@ -18,13 +22,14 @@ import {
   CheckCircle2,
   ArrowDown,
   Compass,
+  Sprout,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { useAppStore, type FullAnalysis } from "@/lib/store";
+import { useAppStore, type DashboardTab, type FullAnalysis } from "@/lib/store";
 import { useTranslation } from "@/lib/locale";
 import { formatArea, type PolygonValidationResult } from "@/lib/polygon";
 import { formatLatLng, type GeoResult } from "@/lib/location";
@@ -33,38 +38,70 @@ import { RankedCropsSection } from "./RankedCropsSection";
 import { RotationTimelineSection } from "./RotationTimelineSection";
 import { FarmerProfileForm } from "./FarmerProfileForm";
 import { LocationSearch } from "./LocationSearch";
+import Image from "next/image";
 
 // Dynamically import heavy interactive panels to keep initial bundle ultra fast
-const FieldMap = dynamic(() => import("@/components/field-shift/FieldMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[480px] w-full items-center justify-center rounded-2xl border border-white/10 bg-slate-950">
-      <div className="flex flex-col items-center gap-2 text-muted-foreground font-mono text-xs">
-        <Loader2 className="size-6 animate-spin text-amber-400" />
-        <span>INITIALIZING SATELLITE MAP...</span>
+const PolygonMap = dynamic(
+  () => import("@/components/field-shift/PolygonMap").then((m) => m.PolygonMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[480px] w-full items-center justify-center rounded-2xl border border-white/10 bg-slate-950">
+        <div className="flex flex-col items-center gap-2 text-muted-foreground font-mono text-xs">
+          <Loader2 className="size-6 animate-spin text-amber-400" />
+          <span>INITIALIZING SATELLITE MAP...</span>
+        </div>
       </div>
-    </div>
-  ),
-});
+    ),
+  },
+);
 
 const SignalsPanel = dynamic(
-  () => import("@/components/field-shift/dashboard/SignalsPanel").then((m) => m.SignalsPanel),
-  { ssr: false }
+  () =>
+    import("@/components/field-shift/dashboard/SignalsPanel").then(
+      (m) => m.SignalsPanel,
+    ),
+  { ssr: false },
+);
+
+const CropWorkspace = dynamic(
+  () =>
+    import("@/components/field-shift/dashboard/CropWorkspace").then(
+      (m) => m.CropWorkspace,
+    ),
+  { ssr: false },
+);
+
+const ComparePanel = dynamic(
+  () =>
+    import("@/components/field-shift/dashboard/ComparePanel").then(
+      (m) => m.ComparePanel,
+    ),
+  { ssr: false },
 );
 
 const ScenarioPanel = dynamic(
-  () => import("@/components/field-shift/dashboard/ScenarioPanel").then((m) => m.ScenarioPanel),
-  { ssr: false }
+  () =>
+    import("@/components/field-shift/dashboard/ScenarioPanel").then(
+      (m) => m.ScenarioPanel,
+    ),
+  { ssr: false },
 );
 
 const LearnPanel = dynamic(
-  () => import("@/components/field-shift/dashboard/LearnPanel").then((m) => m.LearnPanel),
-  { ssr: false }
+  () =>
+    import("@/components/field-shift/dashboard/LearnPanel").then(
+      (m) => m.LearnPanel,
+    ),
+  { ssr: false },
 );
 
 const FloatingAdvisorChat = dynamic(
-  () => import("@/components/field-shift/FloatingAdvisorChat").then((m) => m.FloatingAdvisorChat),
-  { ssr: false }
+  () =>
+    import("@/components/field-shift/FloatingAdvisorChat").then(
+      (m) => m.FloatingAdvisorChat,
+    ),
+  { ssr: false },
 );
 
 const GLOBAL_INIT_LAT = 15;
@@ -72,40 +109,94 @@ const GLOBAL_INIT_LNG = 15;
 const GLOBAL_INIT_ZOOM = 1.0;
 const FOCUSED_FIELD_ZOOM = 15;
 
+const RESULT_TABS = [
+  { id: "field", label: "Field plan", icon: Compass },
+  { id: "signals", label: "NASA Signals", icon: Activity },
+  { id: "workspace", label: "Crop Workspace", icon: Sprout },
+  { id: "compare", label: "Compare", icon: BarChart3 },
+] as const satisfies readonly {
+  id: DashboardTab;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[];
+
 const REGION_SHORTCUTS = [
-  { name: "Dhaka Division, Bangladesh", label: "🇧🇩 Dhaka", lat: 23.8103, lng: 90.4125, country: "Bangladesh" },
-  { name: "Punjab, India", label: "🇮🇳 Punjab", lat: 30.9010, lng: 75.8573, country: "India" },
-  { name: "Iowa, USA", label: "🇺🇸 Iowa", lat: 41.8780, lng: -93.0977, country: "USA" },
-  { name: "Cairo Nile Basin, Egypt", label: "🇪🇬 Nile Basin", lat: 30.0444, lng: 31.2357, country: "Egypt" },
-  { name: "Bavaria, Germany", label: "🇩🇪 Bavaria", lat: 48.7904, lng: 11.4979, country: "Germany" },
-  { name: "Rift Valley, Kenya", label: "🇰🇪 Rift Valley", lat: -0.3031, lng: 36.0800, country: "Kenya" },
+  {
+    name: "Dhaka Division, Bangladesh",
+    label: "🇧🇩 Dhaka",
+    lat: 23.8103,
+    lng: 90.4125,
+    country: "Bangladesh",
+  },
+  {
+    name: "Punjab, India",
+    label: "🇮🇳 Punjab",
+    lat: 30.901,
+    lng: 75.8573,
+    country: "India",
+  },
+  {
+    name: "Iowa, USA",
+    label: "🇺🇸 Iowa",
+    lat: 41.878,
+    lng: -93.0977,
+    country: "USA",
+  },
+  {
+    name: "Cairo Nile Basin, Egypt",
+    label: "🇪🇬 Nile Basin",
+    lat: 30.0444,
+    lng: 31.2357,
+    country: "Egypt",
+  },
+  {
+    name: "Bavaria, Germany",
+    label: "🇩🇪 Bavaria",
+    lat: 48.7904,
+    lng: 11.4979,
+    country: "Germany",
+  },
+  {
+    name: "Rift Valley, Kenya",
+    label: "🇰🇪 Rift Valley",
+    lat: -0.3031,
+    lng: 36.08,
+    country: "Kenya",
+  },
 ];
 
 export function SinglePageDashboard() {
   const { locale, setLocale, t, number } = useTranslation();
   const analysis = useAppStore((s) => s.analysis);
   const view = useAppStore((s) => s.view);
+  const dashboardTab = useAppStore((s) => s.dashboardTab);
+  const setDashboardTab = useAppStore((s) => s.setDashboardTab);
   const activePolygon = useAppStore((s) => s.activePolygon);
   const setActivePolygon = useAppStore((s) => s.setActivePolygon);
   const selected = useAppStore((s) => s.selected);
   const setSelected = useAppStore((s) => s.setSelected);
   const runAnalysis = useAppStore((s) => s.runAnalysis);
   const reset = useAppStore((s) => s.reset);
+  const activeResultTab =
+    RESULT_TABS.find((tab) => tab.id === dashboardTab)?.id ?? "field";
 
   const resultsRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Map center coordinates & zoom:
-  // Starts in global orbital view (zoom 1.8) showing the whole world map.
-  // Once a user selects a location, it smoothly flies to that location at field zoom (15).
-  const mapLat = activePolygon?.centroid[1] ?? selected?.latitude ?? GLOBAL_INIT_LAT;
-  const mapLng = activePolygon?.centroid[0] ?? selected?.longitude ?? GLOBAL_INIT_LNG;
-  const mapZoom = activePolygon || selected ? FOCUSED_FIELD_ZOOM : GLOBAL_INIT_ZOOM;
+  const mapLat =
+    activePolygon?.centroid[1] ?? selected?.latitude ?? GLOBAL_INIT_LAT;
+  const mapLng =
+    activePolygon?.centroid[0] ?? selected?.longitude ?? GLOBAL_INIT_LNG;
+  const mapZoom =
+    activePolygon || selected ? FOCUSED_FIELD_ZOOM : GLOBAL_INIT_ZOOM;
 
   // Auto-scroll to results when analysis is ready
   React.useEffect(() => {
     if (analysis && view === "dashboard") {
       setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        resultsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
       }, 300);
     }
   }, [analysis, view]);
@@ -127,11 +218,11 @@ export function SinglePageDashboard() {
         setActivePolygon(null);
       }
     },
-    [setActivePolygon]
+    [setActivePolygon],
   );
 
   // City Jump Shortcut Handler (clicking an active jump toggles back to global view)
-  const handleCityJump = (city: typeof REGION_SHORTCUTS[number]) => {
+  const handleCityJump = (city: (typeof REGION_SHORTCUTS)[number]) => {
     setActivePolygon(null);
     if (selected?.name === city.name) {
       setSelected(null);
@@ -182,7 +273,9 @@ export function SinglePageDashboard() {
       polygon: activePolygon?.coordinates ?? null,
     };
 
-    const locName = selected?.name || (activePolygon ? `Field (${formatArea(area)})` : "Target Field");
+    const locName =
+      selected?.name ||
+      (activePolygon ? `Field (${formatArea(area)})` : "Target Field");
     const country = selected?.country || undefined;
 
     runAnalysis(payload, { locationName: locName, country, locale });
@@ -199,20 +292,22 @@ export function SinglePageDashboard() {
       <header className="no-print sticky top-0 z-50 border-b border-white/10 bg-background/85 backdrop-blur-md px-4 py-2.5 sm:px-6">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-2">
           {/* Logo & Subtitle */}
-          <div className="flex items-center gap-3">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 text-black shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-              <Sparkles className="size-4.5" />
-            </div>
-            <div>
+          <div className="flex min-w-0 items-center gap-3">
+            <Image
+              src="/Logo.webp"
+              alt="Logo"
+              width={50}
+              height={50}
+              priority
+            />
+
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm font-bold tracking-widest text-foreground">
+                <span className="truncate font-mono text-sm font-bold tracking-widest text-foreground">
                   CHASH ORBIT
                 </span>
-                <Badge variant="outline" className="hidden sm:inline-flex border-amber-400/40 bg-amber-400/10 text-[9px] font-mono text-amber-200">
-                  NASA POWER · MODIS 250m
-                </Badge>
               </div>
-              <p className="hidden text-[10px] text-muted-foreground sm:block">
+              <p className="hidden truncate text-[10px] text-muted-foreground sm:block">
                 {t("Earth-Observation Agricultural Decision System")}
               </p>
             </div>
@@ -220,6 +315,15 @@ export function SinglePageDashboard() {
 
           {/* Top Actions */}
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <Link
+              href="/crop-health"
+              aria-label={t("Crop Health")}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-emerald-400/30 bg-emerald-400/5 px-2.5 text-xs font-medium text-emerald-200 transition-colors hover:bg-emerald-400/10"
+            >
+              <Leaf className="size-3.5" />
+              <span className="hidden sm:inline">{t("Crop Health")}</span>
+            </Link>
+
             {/* Export PDF Button */}
             <Button
               variant="outline"
@@ -269,20 +373,35 @@ export function SinglePageDashboard() {
               CHASH ORBIT — EXECUTIVE FIELD REPORT
             </h1>
             <p className="text-sm text-gray-600">
-              NASA Earth-Observation Climate Adaptation & 4-Year Crop Rotation Plan
+              NASA Earth-Observation Climate Adaptation & 4-Year Crop Rotation
+              Plan
             </p>
           </div>
           <div className="text-right font-mono text-xs text-gray-600">
-            <div><strong>Location:</strong> {analysis?.field.locationName || analysis?.field.name}</div>
-            <div><strong>Coordinates:</strong> {analysis && formatLatLng(analysis.field.latitude, analysis.field.longitude)}</div>
-            <div><strong>Area:</strong> {analysis?.field.area ? formatArea(analysis.field.area) : "Field boundary"}</div>
-            <div><strong>Date:</strong> {new Date().toLocaleDateString()}</div>
+            <div>
+              <strong>Location:</strong>{" "}
+              {analysis?.field.locationName || analysis?.field.name}
+            </div>
+            <div>
+              <strong>Coordinates:</strong>{" "}
+              {analysis &&
+                formatLatLng(analysis.field.latitude, analysis.field.longitude)}
+            </div>
+            <div>
+              <strong>Area:</strong>{" "}
+              {analysis?.field.area
+                ? formatArea(analysis.field.area)
+                : "Field boundary"}
+            </div>
+            <div>
+              <strong>Date:</strong> {new Date().toLocaleDateString()}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── MAIN SCROLLING CONTENT ────────────────────────────────────────── */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-4 sm:px-6 sm:py-6">
+      <main className="mx-auto w-full flex-1 px-4 py-4 sm:px-6 sm:py-6">
         {/* ── STAGE 1: FULL SATELLITE MAP & SEARCH (Centerpiece) ───────────── */}
         <section className="no-print space-y-3 mb-6 relative z-30">
           {/* Floating Search & Location Controls Bar */}
@@ -317,7 +436,7 @@ export function SinglePageDashboard() {
                     "rounded-full border px-2.5 py-1 text-[11px] font-mono transition-colors",
                     selected?.name === c.name
                       ? "border-amber-400/60 bg-amber-400/20 text-amber-200"
-                      : "border-white/10 bg-white/5 text-muted-foreground hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-200"
+                      : "border-white/10 bg-white/5 text-muted-foreground hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-200",
                   )}
                 >
                   {c.label}
@@ -328,7 +447,7 @@ export function SinglePageDashboard() {
 
           {/* Interactive Satellite Map Container */}
           <div className="relative z-10 rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-2xl">
-            <FieldMap
+            <PolygonMap
               latitude={mapLat}
               longitude={mapLng}
               zoom={mapZoom}
@@ -337,7 +456,22 @@ export function SinglePageDashboard() {
               showToolbar={true}
               initialPolygon={activePolygon?.coordinates ?? undefined}
               onPolygonChange={handlePolygonChange}
-              onPick={handleMapPick}
+              onLocationSelect={handleMapPick}
+              globeTarget={
+                activePolygon
+                  ? {
+                      latitude: activePolygon.centroid[1],
+                      longitude: activePolygon.centroid[0],
+                      name: t("Custom Field Boundary"),
+                    }
+                  : selected
+                    ? {
+                        latitude: selected.latitude,
+                        longitude: selected.longitude,
+                        name: selected.name,
+                      }
+                    : null
+              }
             />
 
             {/* Floating Live Polygon Area & Action Prompt */}
@@ -346,17 +480,25 @@ export function SinglePageDashboard() {
                 <MapPin className="size-4 text-amber-400 shrink-0" />
                 <div className="flex flex-col">
                   <span className="text-xs font-semibold text-foreground">
-                    {selected?.name || (activePolygon ? t("Custom Field Boundary") : t("Explore & Draw Field"))}
+                    {selected?.name ||
+                      (activePolygon
+                        ? t("Custom Field Boundary")
+                        : t("Explore & Draw Field"))}
                   </span>
                   {activePolygon && (
                     <span className="font-mono text-[10px] text-muted-foreground/80">
-                      {Math.abs(activePolygon.centroid[1]).toFixed(4)}° {activePolygon.centroid[1] >= 0 ? "N" : "S"},{" "}
-                      {Math.abs(activePolygon.centroid[0]).toFixed(4)}° {activePolygon.centroid[0] >= 0 ? "E" : "W"}
+                      {Math.abs(activePolygon.centroid[1]).toFixed(4)}°{" "}
+                      {activePolygon.centroid[1] >= 0 ? "N" : "S"},{" "}
+                      {Math.abs(activePolygon.centroid[0]).toFixed(4)}°{" "}
+                      {activePolygon.centroid[0] >= 0 ? "E" : "W"}
                     </span>
                   )}
                 </div>
                 {activePolygon && (
-                  <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/15 text-emerald-300 font-mono text-xs">
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-400/40 bg-emerald-400/15 text-emerald-300 font-mono text-xs"
+                  >
                     {formatArea(activePolygon.areaHa)}
                   </Badge>
                 )}
@@ -410,26 +552,49 @@ export function SinglePageDashboard() {
                       {t("Start Building Your Crop Rotation Plan")}
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
-                      {t("Use the full satellite map above to locate your farmland and draw your field polygon. Our NASA-powered engine calculates optimal 4-year rotations, climate risk scores, and crop suitabilities.")}
+                      {t(
+                        "Use the full satellite map above to locate your farmland and draw your field polygon. Our NASA-powered engine calculates optimal 4-year rotations, climate risk scores, and crop suitabilities.",
+                      )}
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">Step 1 · Locate</div>
-                    <p className="text-xs text-foreground font-medium">Search City or Use GPS</p>
-                    <p className="text-[11px] text-muted-foreground">Type any region, city name, or lat/lon coordinates to fly the map.</p>
+                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">
+                      Step 1 · Locate
+                    </div>
+                    <p className="text-xs text-foreground font-medium">
+                      Search City or Use GPS
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Type any region, city name, or lat/lon coordinates to fly
+                      the map.
+                    </p>
                   </div>
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">Step 2 · Outline</div>
-                    <p className="text-xs text-foreground font-medium">Draw Field Polygon</p>
-                    <p className="text-[11px] text-muted-foreground">Click corners on satellite imagery to measure real farm area.</p>
+                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">
+                      Step 2 · Outline
+                    </div>
+                    <p className="text-xs text-foreground font-medium">
+                      Draw Field Polygon
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Click corners on satellite imagery to measure real farm
+                      area.
+                    </p>
                   </div>
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">Step 3 · Analyze</div>
-                    <p className="text-xs text-foreground font-medium">NASA Climate Engine</p>
-                    <p className="text-[11px] text-muted-foreground">Get ranked crops, 4-year rotation, and heat/drought signals.</p>
+                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">
+                      Step 3 · Analyze
+                    </div>
+                    <p className="text-xs text-foreground font-medium">
+                      NASA Climate Engine
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Get ranked crops, 4-year rotation, and heat/drought
+                      signals.
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -437,47 +602,109 @@ export function SinglePageDashboard() {
 
             {/* State 3: Analysis Results (Rendered in the exact required order) */}
             {analysis && view !== "analyzing" && (
-              <div className="space-y-6">
-                {/* ── Section a: Verdict Card ── */}
-                <section id="verdict">
-                  <VerdictCard analysis={analysis} />
-                </section>
+              <div className="space-y-4">
+                <div
+                  role="tablist"
+                  aria-label={t("Field analysis sections")}
+                  className="no-print flex gap-1 overflow-x-auto rounded-xl border border-white/10 bg-white/[0.03] p-1.5"
+                >
+                  {RESULT_TABS.map(({ id, label, icon: Icon }) => {
+                    const active = activeResultTab === id;
+                    return (
+                      <button
+                        key={id}
+                        id={`analysis-tab-${id}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        aria-controls="analysis-panel"
+                        tabIndex={active ? 0 : -1}
+                        onClick={() => setDashboardTab(id)}
+                        onKeyDown={(event) => {
+                          const currentIndex = RESULT_TABS.findIndex(
+                            (tab) => tab.id === id,
+                          );
+                          let nextIndex = currentIndex;
+                          if (event.key === "ArrowRight") {
+                            nextIndex = (currentIndex + 1) % RESULT_TABS.length;
+                          } else if (event.key === "ArrowLeft") {
+                            nextIndex =
+                              (currentIndex - 1 + RESULT_TABS.length) %
+                              RESULT_TABS.length;
+                          } else if (event.key === "Home") {
+                            nextIndex = 0;
+                          } else if (event.key === "End") {
+                            nextIndex = RESULT_TABS.length - 1;
+                          } else {
+                            return;
+                          }
 
-                {/* ── Section b: Ranked Crops ── */}
-                <section id="ranked-crops">
-                  <RankedCropsSection analysis={analysis} />
-                </section>
+                          event.preventDefault();
+                          const nextTab = RESULT_TABS[nextIndex];
+                          setDashboardTab(nextTab.id);
+                          document
+                            .getElementById(`analysis-tab-${nextTab.id}`)
+                            ?.focus();
+                        }}
+                        className={cn(
+                          "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400",
+                          active
+                            ? "bg-amber-400/15 text-amber-100"
+                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                        )}
+                      >
+                        <Icon className="size-3.5" />
+                        {t(label)}
+                      </button>
+                    );
+                  })}
+                </div>
 
-                {/* ── Section c: 4-Year Rotation Timeline ── */}
-                <section id="rotation-timeline">
-                  <RotationTimelineSection analysis={analysis} />
-                </section>
+                <div
+                  id="analysis-panel"
+                  role="tabpanel"
+                  aria-labelledby={`analysis-tab-${activeResultTab}`}
+                  className="space-y-6"
+                >
+                  {activeResultTab === "signals" && (
+                    <SignalsPanel analysis={analysis} />
+                  )}
+                  {activeResultTab === "workspace" && (
+                    <CropWorkspace analysis={analysis} />
+                  )}
+                  {activeResultTab === "compare" && (
+                    <ComparePanel analysis={analysis} />
+                  )}
+                  {activeResultTab === "field" && (
+                    <div className="space-y-6">
+                      <section id="verdict">
+                        <VerdictCard analysis={analysis} />
+                      </section>
+                      <section id="ranked-crops">
+                        <RankedCropsSection analysis={analysis} />
+                      </section>
+                      <section id="rotation-timeline">
+                        <RotationTimelineSection analysis={analysis} />
+                      </section>
+                      <section id="scenario-sliders">
+                        <ScenarioPanel analysis={analysis} />
+                      </section>
+                      <section id="data-sources">
+                        <LearnPanel analysis={analysis} />
+                      </section>
 
-                {/* ── Section d: Climate & Risk Panel (Heat, Drought, Flood, Rainfall, NDVI) ── */}
-                <section id="climate-signals">
-                  <SignalsPanel analysis={analysis} />
-                </section>
-
-                {/* ── Section e: Interactive Scenario Sliders (-20% rain, +2 C) ── */}
-                <section id="scenario-sliders">
-                  <ScenarioPanel analysis={analysis} />
-                </section>
-
-                {/* ── Section f: Data Sources, Resolution, and Limitations ── */}
-                <section id="data-sources">
-                  <LearnPanel analysis={analysis} />
-                </section>
-
-                {/* Bottom Export PDF Button */}
-                <div className="no-print flex justify-center pt-2">
-                  <Button
-                    onClick={handlePrint}
-                    variant="outline"
-                    className="border-white/15 bg-white/5 hover:bg-white/10 text-foreground text-xs font-mono h-10 px-6"
-                  >
-                    <Printer className="mr-2 size-4 text-cyan-300" />
-                    <span>{t("Print / Export Field Plan (PDF)")}</span>
-                  </Button>
+                      <div className="no-print flex justify-center pt-2">
+                        <Button
+                          onClick={handlePrint}
+                          variant="outline"
+                          className="border-white/15 bg-white/5 hover:bg-white/10 text-foreground text-xs font-mono h-10 px-6"
+                        >
+                          <Printer className="mr-2 size-4 text-cyan-300" />
+                          <span>{t("Print / Export Field Plan (PDF)")}</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -487,7 +714,9 @@ export function SinglePageDashboard() {
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
       <footer className="no-print mt-auto border-t border-white/5 py-4 text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
-        {t("Chash Orbit · NASA Earth-Observation Decision System · NASA POWER (MERRA-2) · MODIS Terra (ORNL DAAC) · Sentinel-2 L2A")}
+        {t(
+          "Chash Orbit · NASA Earth-Observation Decision System · NASA POWER (MERRA-2) · MODIS Terra (ORNL DAAC) · Sentinel-2 L2A",
+        )}
       </footer>
 
       {/* ── PERSISTENT FLOATING AI ADVISOR CHATBOT (GEMINI 3.5 FLASH LITE) ─── */}

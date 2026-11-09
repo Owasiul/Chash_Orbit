@@ -8,8 +8,7 @@ import { AdvisorPanel } from './dashboard/AdvisorPanel';
 import {
   FieldOverview,
   SignalsPanel,
-  CropsPanel,
-  PlannerPanel,
+  CropWorkspace,
   ComparePanel,
   LearnPanel,
   ScenarioPanel,
@@ -37,7 +36,6 @@ export function FieldDashboard() {
     <div className="relative flex min-h-dvh w-full flex-col overflow-x-clip">
       <FieldNavigation />
 
-      
       <div
         aria-hidden
         className="h-[calc(4rem+env(safe-area-inset-top))] shrink-0 sm:h-20"
@@ -56,8 +54,9 @@ export function FieldDashboard() {
           >
             {tab === 'field' && <FieldOverview analysis={analysis} />}
             {tab === 'signals' && <SignalsPanel analysis={analysis} />}
-            {tab === 'crops' && <CropsPanel analysis={analysis} />}
-            {tab === 'planner' && <PlannerPanel analysis={analysis} />}
+            {(tab === 'workspace' || tab === 'crops' || tab === 'planner') && (
+              <CropWorkspace analysis={analysis} />
+            )}
             {tab === 'compare' && <ComparePanel analysis={analysis} />}
             {tab === 'scenario' && <ScenarioPanel analysis={analysis} />}
             {tab === 'learn' && <LearnPanel analysis={analysis} />}
@@ -66,7 +65,6 @@ export function FieldDashboard() {
         </AnimatePresence>
       </main>
 
-     
       <footer className="break-words border-t border-white/5 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 text-center font-mono text-[10px] uppercase leading-relaxed tracking-wider text-muted-foreground/50 text-balance sm:px-6 sm:pb-4 sm:tracking-widest">
         {t('Chash Orbit · NASA Earth-observation decision system · POWER · MODIS · GPM-corrected rainfall')}
       </footer>

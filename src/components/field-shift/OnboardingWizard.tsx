@@ -17,6 +17,7 @@ import { fetchEnvironment } from '@/lib/nasa/environment';
 import { useTranslation } from '@/lib/locale';
 
 const FieldMap = dynamic(() => import('@/components/field-shift/FieldMap'), { ssr: false });
+const PolygonMap = dynamic(() => import('@/components/field-shift/PolygonMap').then(m => m.PolygonMap), { ssr: false });
 
 const HolographicGlobe = dynamic(
   () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
@@ -583,15 +584,15 @@ export function OnboardingWizard() {
       </AnimatePresence>
 
       {/* Top bar */}
-      <header className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
+      <header className="relative z-10 flex items-center justify-between gap-3 px-4 pt-4 sm:px-10 sm:pt-6">
         <button
           type="button"
           onClick={back}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> {t('Back')}
         </button>
-        <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="min-w-0 truncate font-mono text-[10px] uppercase tracking-widest text-amber-200/80 text-right">
           {selected.name} · {number(Math.abs(selected.latitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.latitude >= 0 ? 'N' : 'S'} {number(Math.abs(selected.longitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.longitude >= 0 ? 'E' : 'W'}
         </div>
       </header>
@@ -620,10 +621,12 @@ export function OnboardingWizard() {
                   />
                   <div>
                     <p className="mb-2 text-xs text-muted-foreground">{t('Draw or refine your field boundary on the satellite map.')}</p>
-                    <FieldMap
+                    <PolygonMap
                       latitude={activePolygon?.centroid[1] ?? selected.latitude}
                       longitude={activePolygon?.centroid[0] ?? selected.longitude}
                       height={280}
+                      showToolbar
+                      enableDrawing
                       initialPolygon={activePolygon?.coordinates}
                       onPolygonChange={(res, feat) => {
                         if (res && res.valid && feat) {
@@ -642,7 +645,7 @@ export function OnboardingWizard() {
                           }
                         }
                       }}
-                      onPick={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })}
+                      onLocationSelect={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })}
                     />
                   </div>
                 </div>

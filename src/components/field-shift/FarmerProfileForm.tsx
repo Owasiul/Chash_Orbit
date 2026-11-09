@@ -2,22 +2,27 @@
 
 import * as React from "react";
 import {
-  SlidersHorizontal,
+  Ban,
+  Check,
   ChevronDown,
   ChevronUp,
-  Sprout,
   Droplets,
-  Sun,
-  ShieldCheck,
-  Coins,
+  Layers,
   Loader2,
-  Check,
-  Plus,
+  MoreHorizontal,
+  SlidersHorizontal,
+  Sparkles,
+  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
 import {
@@ -27,51 +32,160 @@ import {
 } from "@/lib/crops";
 import { useTranslation } from "@/lib/locale";
 
-const DEFAULT_CROPS = ["Wheat", "Chickpea", "Lentil", "Maize", "Potato"];
+
+const MIN_DESIRED_CROPS = 2;
+
+const CURRENT_CROP_QUICK: string[] = ["Rice", "Wheat", "Maize", "Potato"];
+const DESIRED_OVERFLOW_CROPS: string[] = ["Vegetables", "Fruit", "Other"];
+const PREFERRED_DEFAULT_CROPS: string[] = [
+  "Wheat",
+  "Maize",
+  "Potato",
+  "Tomato",
+  "Chickpea",
+  "Lentil",
+  "Mustard",
+];
+
+const QUICK_DESIRED_CROPS: string[] = ONBOARDING_CROP_OPTIONS.filter(
+  (crop) => !DESIRED_OVERFLOW_CROPS.includes(crop),
+) as string[];
+
+const CURRENT_CROP_OVERFLOW: string[] = ONBOARDING_CROP_OPTIONS.filter(
+  (crop) => !CURRENT_CROP_QUICK.includes(crop),
+) as string[];
+
+// Seven-candidate default from the design, but resolved against the real crop
+// catalog so we never preselect a key that cannot be rendered.
+const DEFAULT_CROPS: string[] = (() => {
+  const pool = QUICK_DESIRED_CROPS.length
+    ? QUICK_DESIRED_CROPS
+    : [...ONBOARDING_CROP_OPTIONS];
+  const preferred = PREFERRED_DEFAULT_CROPS.filter((crop) =>
+    pool.includes(crop),
+  );
+  const rest = pool.filter((crop) => !preferred.includes(crop));
+  const defaults = [...preferred, ...rest].slice(0, 7);
+  return defaults.length >= MIN_DESIRED_CROPS
+    ? defaults
+    : pool.slice(0, MIN_DESIRED_CROPS);
+})();
+
+const chipBase =
+  "inline-flex min-h-9 select-none items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] leading-tight whitespace-normal transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 sm:text-xs";
+const chipIdle =
+  "border-white/10 bg-white/[0.04] text-muted-foreground hover:border-white/20 hover:bg-white/[0.08] hover:text-foreground";
+const chipCurrentActive =
+  "border-amber-400/50 bg-amber-400/15 text-amber-100 shadow-[0_0_0_1px_rgba(251,191,36,0.08)]";
+const chipFallow =
+  "border-dashed border-white/20 bg-transparent text-muted-foreground hover:border-white/35 hover:bg-white/5 hover:text-foreground";
+const chipFallowActive = "border-dashed border-white/40 bg-white/10 text-foreground";
+const chipDesiredActive =
+  "border-emerald-400/50 bg-emerald-400/15 text-emerald-100 shadow-[0_0_0_1px_rgba(52,211,153,0.08)]";
+const iconBtn =
+  "inline-flex size-9 shrink-0 select-none items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50";
+const segmentBase =
+  "min-h-8 rounded-md px-1.5 py-1.5 text-center text-[10px] leading-tight whitespace-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 sm:text-[11px]";
+const menuCls =
+  "max-h-64 w-56 overflow-y-auto rounded-xl border-white/10 bg-card/95 p-1.5 shadow-2xl backdrop-blur sm:w-60";
+
+/* -------------------------------------------------------------------------- */
 
 export function FarmerProfileForm({
   onAnalyze,
   isAnalyzing = false,
+  defaultOpen = true,
 }: {
   onAnalyze: () => void;
   isAnalyzing?: boolean;
+  defaultOpen?: boolean;
 }) {
-  const { t, number } = useTranslation();
+  const { t, number, locale } = useTranslation();
   const inputs = useAppStore((s) => s.inputs);
   const setInputs = useAppStore((s) => s.setInputs);
   const activePolygon = useAppStore((s) => s.activePolygon);
   const selected = useAppStore((s) => s.selected);
 
-  const [isOpen, setIsOpen] = React.useState(true);
+  const bodyId = React.useId();
+  const [isOpen, setIsOpen] = React.useState(defaultOpen || isAnalyzing);
 
-  // Form states initialized from existing inputs or defaults
-  const [currentCrop, setCurrentCrop] = React.useState<string>(inputs?.currentCrop ?? "Rice");
+  // "Active Analysis" always reveals the body.
+  React.useEffect(() => {
+    if (isAnalyzing) setIsOpen(true);
+  }, [isAnalyzing]);
+
+  // Bangla needs more horizontal room and has no uppercase form.
+  const isBangla = locale === "bn-BD";
+  const labelCls = cn(
+    "text-[10px] font-medium text-muted-foreground/80 sm:text-[11px]",
+    isBangla ? "tracking-normal" : "font-mono uppercase tracking-[0.14em]",
+  );
+
+  // `number` is usually a formatter fn, but support Intl.NumberFormat too.
+  const formatCount = (value: number) => {
+    const formatter: unknown = number;
+    if (typeof formatter === "function") {
+      return (formatter as (n: number) => string)(value);
+    }
+    if (
+      formatter &&
+      typeof formatter === "object" &&
+      "format" in formatter &&
+      typeof (formatter as { format?: unknown }).format === "function"
+    ) {
+      return (formatter as { format: (n: number) => string }).format(value);
+    }
+    return String(value);
+  };
+
+  const [currentCrop, setCurrentCrop] = React.useState<string>(
+    inputs?.currentCrop ?? "Rice",
+  );
   const [desiredCrops, setDesiredCrops] = React.useState<string[]>(
-    inputs?.desiredCrops ?? DEFAULT_CROPS
+    inputs?.desiredCrops ?? DEFAULT_CROPS,
   );
   const [irrigation, setIrrigation] = React.useState<IrrigationType>(
-    inputs?.irrigation ?? "limited"
+    inputs?.irrigation ?? "limited",
   );
-  const [soilType, setSoilType] = React.useState<SoilType>(inputs?.soilType ?? "unknown");
-  const [priorities, setPriorities] = React.useState({
-    soil: inputs?.priorities.soil ?? 25,
-    water: inputs?.priorities.water ?? 35,
-    climate: inputs?.priorities.climate ?? 20,
-    income: inputs?.priorities.income ?? 20,
+  const [soilType, setSoilType] = React.useState<SoilType>(
+    inputs?.soilType ?? "unknown",
+  );
+  // Kept in the payload even though the redesign has no priority controls.
+  const [priorities] = React.useState({
+    soil: inputs?.priorities?.soil ?? 25,
+    water: inputs?.priorities?.water ?? 35,
+    climate: inputs?.priorities?.climate ?? 20,
+    income: inputs?.priorities?.income ?? 20,
   });
 
+  const candidateCount = formatCount(desiredCrops.length);
+  const currentCropLabel = currentCrop ? t(currentCrop) : t("Fallow");
+  const currentCropIsOverflow =
+    !!currentCrop && !CURRENT_CROP_QUICK.includes(currentCrop);
+  const atMinimum = desiredCrops.length <= MIN_DESIRED_CROPS;
+  const overflowSelectedCount = desiredCrops.filter((crop) =>
+    DESIRED_OVERFLOW_CROPS.includes(crop),
+  ).length;
+
+  const variantState = isAnalyzing
+    ? "active-analysis"
+    : isOpen
+      ? "expanded"
+      : "default";
+
   const toggleDesiredCrop = (crop: string) => {
-    if (desiredCrops.includes(crop)) {
-      if (desiredCrops.length > 2) {
-        setDesiredCrops(desiredCrops.filter((c) => c !== crop));
+    setDesiredCrops((prev) => {
+      if (prev.includes(crop)) {
+        if (prev.length <= MIN_DESIRED_CROPS) return prev;
+        return prev.filter((c) => c !== crop);
       }
-    } else {
-      setDesiredCrops([...desiredCrops, crop]);
-    }
+      return [...prev, crop];
+    });
   };
 
   const handleRun = () => {
-    // Sync store inputs
+    if (desiredCrops.length < MIN_DESIRED_CROPS) return;
+
     const lat = activePolygon?.centroid[1] ?? selected?.latitude ?? 24.3745;
     const lng = activePolygon?.centroid[0] ?? selected?.longitude ?? 88.6039;
     const area = activePolygon?.areaHa ?? 2.5;
@@ -93,211 +207,354 @@ export function FarmerProfileForm({
   };
 
   return (
-    <Card className="no-print border-white/10 bg-card/60 backdrop-blur transition-all">
-      {/* Collapsible Header */}
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex cursor-pointer items-center justify-between p-4 select-none hover:bg-white/[0.02]"
+    <Card
+      data-state={variantState}
+      className="no-print overflow-hidden rounded-2xl border-white/10 bg-card/70 shadow-[0_18px_50px_-30px_rgba(0,0,0,0.9)] backdrop-blur-xl transition-all"
+    >
+      {/* Header — Row, Space Between */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? bodyId : undefined}
+        className="flex w-full cursor-pointer select-none items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-white/[0.025] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400/40 sm:p-5"
       >
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="size-4 text-amber-400" />
-          <span className="font-mono text-xs uppercase tracking-wider font-semibold text-foreground">
+        <span className="flex min-w-0 items-center gap-2.5">
+          <span className="grid size-8 shrink-0 place-items-center rounded-lg border border-amber-400/20 bg-amber-400/10 text-amber-300">
+            <SlidersHorizontal className="size-4" />
+          </span>
+          <span
+            className={cn(
+              "truncate text-xs font-semibold text-foreground sm:text-sm",
+              !isBangla && "font-mono uppercase tracking-wider",
+            )}
+          >
             {t("Farmer Profile & Preferences")}
           </span>
-          <Badge variant="outline" className="ml-1 border-white/10 text-[9px] font-mono text-muted-foreground">
-            {currentCrop ? `${currentCrop} · ` : ""}{desiredCrops.length} {t("candidates")}
+        </span>
+
+        <span className="flex shrink-0 items-center gap-2">
+          <Badge
+            variant="outline"
+            className="max-w-[52vw] gap-1.5 truncate border-white/10 bg-white/[0.03] px-2.5 py-1 text-[9px] font-normal text-muted-foreground sm:max-w-none sm:text-[10px]"
+          >
+            <span
+              className={cn(
+                "size-1.5 shrink-0 rounded-full bg-emerald-400",
+                isAnalyzing && "animate-pulse bg-amber-300",
+              )}
+            />
+            <span className="truncate">
+              {currentCropLabel} - {candidateCount} {t("candidates")}
+            </span>
           </Badge>
-        </div>
-        <Button variant="ghost" size="icon-sm" className="size-6 text-muted-foreground">
-          {isOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-        </Button>
-      </div>
+          <span className="grid size-7 shrink-0 place-items-center rounded-md border border-white/10 bg-white/[0.03] text-muted-foreground">
+            {isOpen ? (
+              <ChevronUp className="size-4" aria-hidden />
+            ) : (
+              <ChevronDown className="size-4" aria-hidden />
+            )}
+          </span>
+        </span>
+      </button>
 
       {isOpen && (
-        <div className="border-t border-white/5 p-4 sm:p-5 space-y-4 text-xs">
-          {/* Current Crop */}
-          <div>
-            <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 block mb-1.5">
+        <div
+          id={bodyId}
+          role="region"
+          aria-label={t("Farmer Profile & Preferences")}
+          className="flex flex-col gap-5 border-t border-white/5 px-4 pb-5 pt-5 sm:px-6 sm:pb-6"
+        >
+          {/* Section 1 — Current Field Crop */}
+          <section
+            className="space-y-2.5"
+            aria-label={t("Current Field Crop (Previous harvest)")}
+          >
+            <span className={cn(labelCls, "block")}>
               {t("Current Field Crop (Previous harvest)")}
-            </label>
-            <div className="flex flex-wrap gap-1.5">
-              {["Rice", "Wheat", "Maize", "Potato", "None / Fallow"].map((c) => {
-                const isSelected = currentCrop === c || (c === "None / Fallow" && !currentCrop);
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCurrentCrop(c === "None / Fallow" ? "" : c)}
-                    className={cn(
-                      "rounded-md border px-2.5 py-1 text-xs transition-colors",
-                      isSelected
-                        ? "border-amber-400/50 bg-amber-400/15 text-amber-200 font-medium"
-                        : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
-                    )}
-                  >
-                    {t(c)}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Candidate Crops */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80">
-                {t("Crops Under Consideration")} ({desiredCrops.length})
-              </label>
-              <span className="text-[10px] text-muted-foreground/60">{t("Select at least 2")}</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {ONBOARDING_CROP_OPTIONS.filter((c) => c !== "Other" && c !== "Fruit" && c !== "Vegetables").map((c) => {
-                const isSelected = desiredCrops.includes(c);
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => toggleDesiredCrop(c)}
-                    className={cn(
-                      "flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors",
-                      isSelected
-                        ? "border-emerald-400/50 bg-emerald-400/15 text-emerald-200 font-medium"
-                        : "border-white/10 bg-white/5 text-muted-foreground/80 hover:bg-white/10"
-                    )}
-                  >
-                    {isSelected && <Check className="size-3" />}
-                    <span>{t(c)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Irrigation & Soil */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 block mb-1.5">
-                {t("Irrigation Access")}
-              </label>
-              <div className="grid grid-cols-3 gap-1">
-                {(["rainfed", "limited", "reliable"] as IrrigationType[]).map((irr) => (
-                  <button
-                    key={irr}
-                    type="button"
-                    onClick={() => setIrrigation(irr)}
-                    className={cn(
-                      "rounded border py-1 px-1.5 text-center text-[11px] capitalize transition-colors",
-                      irrigation === irr
-                        ? "border-cyan-400/50 bg-cyan-400/15 text-cyan-200 font-medium"
-                        : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
-                    )}
-                  >
-                    {t(irr)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 block mb-1.5">
-                {t("Soil Texture")}
-              </label>
-              <div className="grid grid-cols-4 gap-1">
-                {(["unknown", "sandy", "loamy", "clay"] as SoilType[]).map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setSoilType(s)}
-                    className={cn(
-                      "rounded border py-1 px-1 text-center text-[10px] capitalize transition-colors truncate",
-                      soilType === s
-                        ? "border-amber-400/50 bg-amber-400/15 text-amber-200 font-medium"
-                        : "border-white/10 bg-white/5 text-muted-foreground hover:bg-white/10"
-                    )}
-                  >
-                    {s === "unknown" ? t("Auto") : t(s)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Priority Weights */}
-          <div className="space-y-2 pt-1 border-t border-white/5">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/80 block">
-              {t("Farmer Priority Weights")}
             </span>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="space-y-1">
-                <div className="flex justify-between font-mono text-[9px] text-muted-foreground">
-                  <span>{t("Soil Health")}</span>
-                  <span>{number(priorities.soil)}%</span>
-                </div>
-                <Slider
-                  value={[priorities.soil]}
-                  onValueChange={([val]) => setPriorities({ ...priorities, soil: val })}
-                  max={60}
-                  step={5}
+
+            <div className="flex flex-wrap items-center gap-2">
+              {CURRENT_CROP_QUICK.map((crop) => {
+                const isSelected = currentCrop === crop;
+                return (
+                  <button
+                    key={crop}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => setCurrentCrop(crop)}
+                    className={cn(
+                      chipBase,
+                      isSelected ? chipCurrentActive : chipIdle,
+                    )}
+                  >
+                    {isSelected && <Check className="size-3 shrink-0" />}
+                    <span>{t(crop)}</span>
+                  </button>
+                );
+              })}
+
+              {/* Distinct neutral outlined pill */}
+              <button
+                type="button"
+                aria-pressed={!currentCrop}
+                onClick={() => setCurrentCrop("")}
+                className={cn(
+                  chipBase,
+                  !currentCrop ? chipFallowActive : chipFallow,
+                )}
+              >
+                {!currentCrop ? (
+                  <Check className="size-3 shrink-0" />
+                ) : (
+                  <Ban className="size-3 shrink-0" />
+                )}
+                <span>{t("None / Fallow")}</span>
+              </button>
+
+              {/* Surfaced selection when the user picked from the overflow menu */}
+              {currentCropIsOverflow && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentCrop("")}
+                  title={t("Clear")}
+                  className={cn(chipBase, chipCurrentActive)}
+                >
+                  <Check className="size-3 shrink-0" />
+                  <span>{t(currentCrop)}</span>
+                  <X className="size-3 shrink-0 opacity-60" />
+                </button>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={iconBtn}
+                    title={t("More crops")}
+                    aria-label={t("More crops")}
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={8} className={menuCls}>
+                  {CURRENT_CROP_OVERFLOW.map((crop) => {
+                    const isSelected = currentCrop === crop;
+                    return (
+                      <DropdownMenuItem
+                        key={crop}
+                        onClick={() => setCurrentCrop(crop)}
+                        className={cn(
+                          "flex items-center justify-between rounded-md text-xs",
+                          isSelected && "bg-amber-400/15 text-amber-200",
+                        )}
+                      >
+                        <span>{t(crop)}</span>
+                        {isSelected && (
+                          <Check className="size-3.5 text-amber-300" />
+                        )}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                  <DropdownMenuItem
+                    onClick={() => setCurrentCrop("")}
+                    className={cn(
+                      "flex items-center justify-between rounded-md text-xs",
+                      !currentCrop && "bg-white/10 text-foreground",
+                    )}
+                  >
+                    <span>{t("None / Fallow")}</span>
+                    {!currentCrop && <Check className="size-3.5" />}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </section>
+
+          {/* Section 2 — Crops Under Consideration */}
+          <section
+            className="space-y-2.5"
+            aria-label={t("Crops Under Consideration")}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={labelCls}>
+                {t("Crops Under Consideration")} ({candidateCount})
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground/60 sm:text-[11px]">
+                <span
+                  className={cn(
+                    "size-1.5 rounded-full",
+                    atMinimum ? "bg-amber-400" : "bg-emerald-400",
+                  )}
                 />
+                {t("Select at least 2")}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {QUICK_DESIRED_CROPS.map((crop) => {
+                const isSelected = desiredCrops.includes(crop);
+                const locked = isSelected && atMinimum;
+                return (
+                  <button
+                    key={crop}
+                    type="button"
+                    aria-pressed={isSelected}
+                    aria-disabled={locked || undefined}
+                    title={locked ? t("Select at least 2") : undefined}
+                    onClick={() => toggleDesiredCrop(crop)}
+                    className={cn(
+                      chipBase,
+                      isSelected ? chipDesiredActive : chipIdle,
+                      locked && "cursor-not-allowed opacity-90",
+                    )}
+                  >
+                    {isSelected && <Check className="size-3 shrink-0" />}
+                    <span>{t(crop)}</span>
+                  </button>
+                );
+              })}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(iconBtn, "relative")}
+                    title={t("More crops")}
+                    aria-label={t("More crops")}
+                  >
+                    <MoreHorizontal className="size-4" />
+                    {overflowSelectedCount > 0 && (
+                      <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-emerald-400 text-[9px] font-bold text-black">
+                        {formatCount(overflowSelectedCount)}
+                      </span>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={8} className={menuCls}>
+                  {DESIRED_OVERFLOW_CROPS.map((crop) => {
+                    const isSelected = desiredCrops.includes(crop);
+                    const locked = isSelected && atMinimum;
+                    return (
+                      <DropdownMenuItem
+                        key={crop}
+                        onClick={() => toggleDesiredCrop(crop)}
+                        className={cn(
+                          "flex items-center justify-between rounded-md text-xs",
+                          isSelected && "bg-emerald-400/15 text-emerald-200",
+                          locked && "opacity-70",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {isSelected && (
+                            <Check className="size-3.5 text-emerald-300" />
+                          )}
+                          {t(crop)}
+                        </span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </section>
+
+          {/* Section 3 — Environmental Context */}
+          <section className="space-y-2.5" aria-label={t("Environmental Context")}>
+            <span className={cn(labelCls, "block")}>
+              {t("Environmental Context")}
+            </span>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* Irrigation sub-card */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3.5 sm:p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Droplets className="size-3.5 shrink-0 text-cyan-300" />
+                  <span className={labelCls}>{t("Irrigation Access")}</span>
+                </div>
+                <div className="grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-black/20 p-1">
+                  {(["rainfed", "limited", "reliable"] as IrrigationType[]).map(
+                    (irr) => {
+                      const isSelected = irrigation === irr;
+                      return (
+                        <button
+                          key={irr}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => setIrrigation(irr)}
+                          className={cn(
+                            segmentBase,
+                            isSelected
+                              ? "bg-cyan-400/15 text-cyan-100 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.35)]"
+                              : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                          )}
+                        >
+                          {t(irr)}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <div className="flex justify-between font-mono text-[9px] text-muted-foreground">
-                  <span>{t("Water Saving")}</span>
-                  <span>{number(priorities.water)}%</span>
+              {/* Soil sub-card */}
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-3.5 sm:p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Layers className="size-3.5 shrink-0 text-amber-300" />
+                  <span className={labelCls}>{t("Soil Texture")}</span>
                 </div>
-                <Slider
-                  value={[priorities.water]}
-                  onValueChange={([val]) => setPriorities({ ...priorities, water: val })}
-                  max={60}
-                  step={5}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between font-mono text-[9px] text-muted-foreground">
-                  <span>{t("Climate Risk")}</span>
-                  <span>{number(priorities.climate)}%</span>
+                <div className="grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/20 p-1 sm:grid-cols-4">
+                  {(["unknown", "sandy", "loamy", "clay"] as SoilType[]).map(
+                    (soil) => {
+                      const isSelected = soilType === soil;
+                      return (
+                        <button
+                          key={soil}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => setSoilType(soil)}
+                          className={cn(
+                            segmentBase,
+                            isSelected
+                              ? "bg-amber-400/15 text-amber-100 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.35)]"
+                              : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                          )}
+                        >
+                          {soil === "unknown" ? t("Auto") : t(soil)}
+                        </button>
+                      );
+                    },
+                  )}
                 </div>
-                <Slider
-                  value={[priorities.climate]}
-                  onValueChange={([val]) => setPriorities({ ...priorities, climate: val })}
-                  max={60}
-                  step={5}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <div className="flex justify-between font-mono text-[9px] text-muted-foreground">
-                  <span>{t("Income / Profit")}</span>
-                  <span>{number(priorities.income)}%</span>
-                </div>
-                <Slider
-                  value={[priorities.income]}
-                  onValueChange={([val]) => setPriorities({ ...priorities, income: val })}
-                  max={60}
-                  step={5}
-                />
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Action button */}
-          <div className="pt-2">
+          {/* Footer CTA Bar */}
+          <div className="border-t border-white/5 pt-5">
             <Button
               onClick={handleRun}
               disabled={isAnalyzing}
-              className="w-full bg-gradient-to-r from-amber-400 to-amber-500 font-semibold text-black hover:from-amber-300 hover:to-amber-400 h-10 shadow-[0_0_15px_rgba(251,191,36,0.25)]"
+              aria-busy={isAnalyzing}
+              className={cn(
+                "group flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 px-4 text-xs font-semibold text-black shadow-[0_10px_30px_-10px_rgba(251,191,36,0.6)] transition-all hover:from-amber-200 hover:via-amber-300 hover:to-amber-400 hover:shadow-[0_14px_36px_-10px_rgba(251,191,36,0.75)] focus-visible:ring-2 focus-visible:ring-amber-200 sm:h-11 sm:text-sm",
+                isAnalyzing && "cursor-wait from-amber-400/80 to-amber-500/80",
+              )}
             >
               {isAnalyzing ? (
                 <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  <span>{t("Querying NASA POWER & Satellite Grid...")}</span>
+                  <Loader2 className="size-4 shrink-0 animate-spin" />
+                  <span className="leading-tight">
+                    {t("Querying NASA POWER & Satellite Grid...")}
+                  </span>
                 </>
               ) : (
                 <>
-                  <Sprout className="mr-2 size-4" />
-                  <span>{t("Analyze Field & Generate Rotation")}</span>
+                  <Sparkles className="size-4 shrink-0 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
+                  <span className="leading-tight">
+                    {t("Analyze Field & Generate Rotation")} ({candidateCount}{" "}
+                    {t("Crops")})
+                  </span>
                 </>
               )}
             </Button>

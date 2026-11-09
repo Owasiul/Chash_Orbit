@@ -3,7 +3,6 @@
 import * as React from 'react';
 import dynamic from 'next/dynamic';
 
-// Single scrolling dashboard for Phase 3 — Everything on ONE page
 const SinglePageDashboard = dynamic(
   () => import('./SinglePageDashboard').then(m => m.SinglePageDashboard),
   { ssr: false },
@@ -17,4 +16,3 @@ export function FieldShiftApp() {
 
   return <SinglePageDashboard />;
 }
-

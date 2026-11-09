@@ -360,7 +360,6 @@ export function LocationSearch({
         <div
           role="status"
           className={cn(
-            panelClass,
             'px-4 py-3 text-sm',
             error ? 'text-red-300' : 'text-muted-foreground',
           )}
@@ -373,7 +372,7 @@ export function LocationSearch({
         <div
           role="status"
           aria-live="polite"
-          className={cn(panelClass, 'px-4 py-3 text-sm text-muted-foreground')}
+          className="px-4 py-3 text-sm text-muted-foreground"
         >
           {t('Finding exact coordinates and country...')}
         </div>
@@ -382,7 +381,7 @@ export function LocationSearch({
         <div
           role="status"
           aria-live="polite"
-          className={cn(panelClass, 'px-4 py-3 text-sm text-amber-200')}
+          className="px-4 py-3 text-sm text-amber-200"
         >
           {t(selectionError)}
         </div>
