@@ -75,6 +75,7 @@ export interface SoilMoistureAnalysis {
   source: DataSource;
   status: DataStatus;
   attribution: string;
+  resolution?: string;
   dataQuality: SoilMoistureDataQuality;
 }
 
@@ -299,6 +300,7 @@ export function deriveSoilMoisture(
       source: 'DEMO',
       status: 'unavailable',
       attribution: 'Demo estimate (NASA POWER observations unreachable).',
+      resolution: '0.5° (~50 km derived water balance)',
       dataQuality: { validDays: 0, missingDays: 0, coveragePct: 0, isReliable: false },
     };
   }
@@ -373,6 +375,7 @@ export function deriveSoilMoisture(
       power.source === 'demo'
         ? 'Demo estimates (NASA POWER unreachable).'
         : 'Derived root-zone soil water balance driven by NASA POWER daily meteorology (MERRA-2). Live SMAP assimilation prepared for NSIDC/Earthdata integration.',
+    resolution: '0.5° (~50 km derived water balance)',
     dataQuality: {
       validDays: wb.validDays,
       missingDays: wb.missingDays,

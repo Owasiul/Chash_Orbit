@@ -485,6 +485,34 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
         </div>
       </motion.div>
 
+      <Card className="border-white/10 bg-stone-950/40 p-4 sm:p-5">
+        <div className="flex items-center gap-2">
+          <Info className="size-4 shrink-0 text-amber-300" aria-hidden="true" />
+          <h3 className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+            {t("What this analysis evaluates")}
+          </h3>
+        </div>
+        <ul className="mt-3 grid gap-x-6 gap-y-1.5 text-xs leading-relaxed text-stone-300 sm:grid-cols-2">
+          {[
+            "Annual and growing-season rainfall.",
+            "Heat-stress days.",
+            "Dry spells.",
+            "Temperature and rainfall trends.",
+            "Climate suitability for crops.",
+          ].map((item) => (
+            <li key={item} className="flex items-start gap-2">
+              <span className="mt-1.5 size-1 shrink-0 rounded-full bg-amber-300/70" />
+              <span>{t(item)}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 border-t border-white/5 pt-3 text-[11px] leading-relaxed text-stone-400">
+          {t(
+            "Resolution: approximately 0.5° × 0.5° for the relevant MERRA-2 meteorological fields. This is relatively coarse for individual farms.",
+          )}
+        </p>
+      </Card>
+
       {/* ── Bento grid: 4 climate cards ──────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-3 md:grid-cols-2 lg:grid-cols-2 ">
         {/* Temperature */}

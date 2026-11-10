@@ -1,27 +1,14 @@
-
-
-import type { PowerAnalysis } from './power';
-import {
-  getCached,
-  setCached,
-  CACHE_TTL,
-  type CacheKey,
-} from './cache';
-
+import type { PowerAnalysis } from "./power";
 
 export type DataSource =
-  | 'NASA_POWER'
-  | 'NASA_GPM_IMERG'
-  | 'NASA_SMAP'
-  | 'NASA_MODIS'
-  | 'DERIVED'
-  | 'DEMO';
+  | "NASA_POWER"
+  | "NASA_GPM_IMERG"
+  | "NASA_SMAP"
+  | "NASA_MODIS"
+  | "DERIVED"
+  | "DEMO";
 
-export type DataStatus =
-  | 'live'
-  | 'cached'
-  | 'fallback'
-  | 'unavailable';
+export type DataStatus = "live" | "cached" | "fallback" | "unavailable";
 
 export interface DataQuality {
   validDays: number;
@@ -36,16 +23,17 @@ export interface GpmDailySeries {
   precipitation: number[];
   source: DataSource;
   status: DataStatus;
-  product: 'IMERG_LATE' | 'IMERG_FINAL' | 'POWER_PRECTOTCORR' | 'DEMO';
+  product: "IMERG_FINAL" | "POWER_PRECTOTCORR" | "DEMO";
   spatialResolution: string;
   dataQuality: DataQuality;
 }
 
 export interface GpmMonthlySeries {
   months: string[]; // YYYYMM
-  precipitation: number[];
+  precipitation: number[]; // mm/day-equivalent monthly mean from NASA POWER PRECTOTCORR
   source: DataSource;
   status: DataStatus;
+  product: "POWER_PRECTOTCORR";
 }
 
 export interface RainfallAnalysis {
@@ -54,9 +42,9 @@ export interface RainfallAnalysis {
   growingSeasonDays: number;
   growingSeasonLabel: string;
 
-  // Anomaly is null when no valid location-specific historical baseline exists (Update B)
+  // Anomaly is null when no valid location-specific historical baseline exists
   anomalyPct: number | null;
-  anomalyBasis?: 'location-historical' | 'power-10yr';
+  anomalyBasis?: "location-historical" | "power-10yr";
 
   variability: number;
   monthlyVariability: number;
@@ -78,547 +66,311 @@ export interface RainfallAnalysis {
   source: DataSource;
   status: DataStatus;
   attribution: string;
+  resolution?: string;
   dataQuality: DataQuality;
 }
 
 export interface DeriveRainfallOptions {
+  /** Location-specific historical annual rainfall (mm). Used for the anomaly when provided. */
   historicalBaselineMm?: number | null;
+  /** If both dates are valid, the growing season is [plantingDate, harvestDate]. */
   cropCalendar?: {
     cropName?: string;
     plantingDate?: string; // YYYYMMDD or YYYY-MM-DD
-    harvestDate?: string;  // YYYYMMDD or YYYY-MM-DD
+    harvestDate?: string; // YYYYMMDD or YYYY-MM-DD
   };
+  /** Growing-season window length (days) when no crop calendar is given. Default: 90. */
   customAnalysisDays?: number;
-  minimumCoveragePct?: number; // default: 80%
+  /** Minimum % of valid days for the data to be flagged reliable. Default: 80. */
+  minimumCoveragePct?: number;
 }
 
 // ─────────────────────────────────────────────
-// Endpoints and Config
+// Config
 // ─────────────────────────────────────────────
 
-// NASA GES DISC Daily IMERG API / OPeNDAP Endpoint (Update A)
-const GES_DISC_IMERG_BASE =
-  process.env.NASA_GES_DISC_GPM_URL ||
-  'https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGDF.07';
+// GPM_3IMERGDF.07 is the Final daily product. GES DISC has moved to
+// Earthdata Cloud OPeNDAP; do not use the retired gpm1.gesdisc host or
+// invent a /point endpoint. A proper NetCDF/OPeNDAP subset adapter is needed
+// to decode the gridded file into one location's daily series.
+// NASA POWER (PRECTOTCORR) is the fallback, returned separately and never labelled IMERG.
 
-// NASA POWER Fallback Base (Daily PRECTOTCORR & Monthly IMERG_PRECTOT)
-const POWER_BASE = 'https://power.larc.nasa.gov/api/temporal';
-const GPM_TIMEOUT_MS = 20000;
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+const DEFAULT_GROWING_SEASON_DAYS = 90;
+const DEFAULT_MIN_COVERAGE_PCT = 80;
+const DRY_DAY_THRESHOLD_MM = 1;
+const POWER_RESOLUTION_LABEL = "~0.5° (~50 km, NASA POWER / MERRA-2)";
 
 // ─────────────────────────────────────────────
-// Date Helpers & Date Range Calculations
+// Helpers
 // ─────────────────────────────────────────────
 
-function formatDate(date: Date): string {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}${month}${day}`;
+// Rainfall can never be negative, so this also rejects fill values such as -999.
+function isValidRain(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
 
-function parseDateToTimestamp(dStr: string): number {
-  const clean = dStr.replace(/-/g, '');
-  const y = parseInt(clean.slice(0, 4), 10);
-  const m = parseInt(clean.slice(4, 6), 10) - 1;
-  const d = parseInt(clean.slice(6, 8), 10);
-  return Date.UTC(y, m, d);
+function validValues(values: number[] | undefined | null): number[] {
+  return (values ?? []).filter(isValidRain);
 }
 
-export function getGpmDateRange(days = 365, latencyDays = 2) {
-  const endDate = new Date();
-  endDate.setUTCHours(0, 0, 0, 0);
-  // IMERG Late has ~14-24h latency; Final has ~3-3.5 months latency.
-  endDate.setUTCDate(endDate.getUTCDate() - latencyDays);
-
-  const startDate = new Date(endDate);
-  startDate.setUTCDate(startDate.getUTCDate() - (days - 1));
-
-  return {
-    start: formatDate(startDate),
-    end: formatDate(endDate),
-    expectedDays: days,
-  };
+function sumValues(values: number[] | undefined | null): number {
+  return validValues(values).reduce((acc, value) => acc + value, 0);
 }
 
-// ─────────────────────────────────────────────
-// Validation & Missing Data Verification (Update D)
-// ─────────────────────────────────────────────
+function mean(values: number[] | undefined | null): number {
+  const arr = validValues(values);
+  return arr.length ? arr.reduce((acc, value) => acc + value, 0) / arr.length : 0;
+}
 
-function validateAndAssessQuality(
+function stdDev(values: number[] | undefined | null): number {
+  const arr = validValues(values);
+  if (arr.length < 2) return 0;
+  const m = mean(arr);
+  return Math.sqrt(arr.reduce((acc, value) => acc + (value - m) ** 2, 0) / arr.length);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+// "2025-03-14" or "20250314" -> 20250314 (comparable as a number)
+function toYyyymmdd(value: string | undefined): number | null {
+  if (!value) return null;
+  const digits = value.replace(/\D/g, "");
+  if (digits.length < 8) return null;
+  const parsed = Number.parseInt(digits.slice(0, 8), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * Average monthly rainfall (mm) per calendar month.
+ * Totals are summed per (month, year) first, then averaged across the years
+ * present, so a multi-year series is not inflated by summing every year together.
+ * `hasData` is false for months with no valid observation at all.
+ */
+function buildSeasonalPattern(
   dates: string[],
-  precipitation: number[],
-  expectedStart: string,
-  expectedEnd: string
-): { validDates: string[]; validPrecip: number[]; quality: DataQuality } {
-  if (!Array.isArray(dates) || !Array.isArray(precipitation)) {
-    throw new Error('Dates and precipitation must be valid arrays.');
+  values: number[],
+): { month: string; mm: number; hasData: boolean }[] {
+  const totals = new Map<number, Map<string, number>>();
+  const len = Math.min(dates.length, values.length);
+
+  for (let i = 0; i < len; i++) {
+    const value = values[i];
+    if (!isValidRain(value)) continue;
+
+    const digits = dates[i].replace(/\D/g, "");
+    if (digits.length < 6) continue;
+
+    const year = digits.slice(0, 4);
+    const monthIndex = Number.parseInt(digits.slice(4, 6), 10) - 1;
+    if (!Number.isFinite(monthIndex) || monthIndex < 0 || monthIndex > 11) continue;
+
+    const perYear = totals.get(monthIndex) ?? new Map<string, number>();
+    perYear.set(year, (perYear.get(year) ?? 0) + value);
+    totals.set(monthIndex, perYear);
   }
 
-  if (dates.length !== precipitation.length) {
-    throw new Error(
-      `Array length mismatch: dates has ${dates.length} entries, precipitation has ${precipitation.length}.`
-    );
-  }
+  return MONTH_NAMES.map((month, monthIndex) => {
+    const perYear = totals.get(monthIndex);
+    if (!perYear || perYear.size === 0) return { month, mm: 0, hasData: false };
+    const yearlyTotals = Array.from(perYear.values());
+    const avg = yearlyTotals.reduce((acc, v) => acc + v, 0) / yearlyTotals.length;
+    return { month, mm: round1(avg), hasData: true };
+  });
+}
 
-  const startTs = parseDateToTimestamp(expectedStart);
-  const endTs = parseDateToTimestamp(expectedEnd);
-  const expectedDays = Math.max(1, Math.round((endTs - startTs) / 86400000) + 1);
+/**
+ * Picks the growing-season values:
+ *  1. crop calendar window (planting -> harvest) if valid and present in the series
+ *  2. otherwise the last `customAnalysisDays` days (default 90)
+ */
+function selectGrowingSeason(
+  dates: string[],
+  values: number[],
+  options: DeriveRainfallOptions,
+): number[] {
+  const planting = toYyyymmdd(options.cropCalendar?.plantingDate);
+  const harvest = toYyyymmdd(options.cropCalendar?.harvestDate);
 
-  let validCount = 0;
-  const validDates: string[] = [];
-  const validPrecip: number[] = [];
-
-  for (let i = 0; i < dates.length; i++) {
-    const d = dates[i];
-    const p = precipitation[i];
-
-    if (/^\d{8}$/.test(d.replace(/-/g, '')) && typeof p === 'number' && Number.isFinite(p) && p >= 0 && p < 1500) {
-      validCount++;
-      validDates.push(d.replace(/-/g, ''));
-      validPrecip.push(p);
+  if (planting !== null && harvest !== null && harvest >= planting) {
+    const inSeason: number[] = [];
+    const len = Math.min(dates.length, values.length);
+    for (let i = 0; i < len; i++) {
+      const day = toYyyymmdd(dates[i]);
+      if (day !== null && day >= planting && day <= harvest) inSeason.push(values[i]);
     }
+    if (inSeason.length > 0) return inSeason;
   }
 
-  const missingDays = Math.max(0, expectedDays - validCount);
-  const coveragePct = Math.round((validCount / expectedDays) * 1000) / 10;
-  const isReliable = coveragePct >= 80 && validCount >= 30;
+  const requested = options.customAnalysisDays;
+  const windowDays =
+    typeof requested === "number" && Number.isFinite(requested) && requested >= 1
+      ? Math.floor(requested)
+      : DEFAULT_GROWING_SEASON_DAYS;
 
-  return {
-    validDates,
-    validPrecip,
-    quality: {
-      validDays: validCount,
-      expectedDays,
-      coveragePct,
-      missingDays,
-      isReliable,
-    },
-  };
+  return values.slice(Math.max(0, values.length - windowDays));
 }
 
 // ─────────────────────────────────────────────
-// GES DISC Daily GPM IMERG Fetcher
+// Data fetchers
 // ─────────────────────────────────────────────
 
-async function fetchFromGesDisc(
-  latitude: number,
-  longitude: number,
-  startDate: string,
-  endDate: string
-): Promise<{ dates: string[]; precipitation: number[] }> {
-  // If GES DISC credentials/service is configured in the environment:
-  const gesToken = process.env.EARTHDATA_TOKEN;
-  if (!gesToken && !process.env.ENABLE_GES_DISC_DIRECT) {
-    // Falls back gracefully to POWER PRECTOTCORR if direct GES DISC access is not setup
-    throw new Error('Direct GES DISC access not enabled; utilizing fallback.');
-  }
-
-  const url = new URL(`${GES_DISC_IMERG_BASE}/point`);
-  url.searchParams.set('lat', latitude.toFixed(4));
-  url.searchParams.set('lon', longitude.toFixed(4));
-  url.searchParams.set('start', startDate);
-  url.searchParams.set('end', endDate);
-
-  const res = await fetch(url.toString(), {
-    headers: {
-      Authorization: `Bearer ${gesToken}`,
-      Accept: 'application/json',
-    },
-    signal: AbortSignal.timeout(GPM_TIMEOUT_MS),
-  });
-
-  if (!res.ok) {
-    throw new Error(`NASA GES DISC HTTP ${res.status}`);
-  }
-
-  const data = (await res.json()) as { dates: string[]; precipitation: number[] };
-  return data;
-}
-
-// ─────────────────────────────────────────────
-// NASA POWER Fallback Fetcher (MERRA-2 PRECTOTCORR)
-// ─────────────────────────────────────────────
-
-async function fetchPowerFallbackSeries(
-  latitude: number,
-  longitude: number,
-  startDate: string,
-  endDate: string
-): Promise<{ dates: string[]; precipitation: number[] }> {
-  const url = new URL(`${POWER_BASE}/daily/point`);
-  url.search = new URLSearchParams({
-    parameters: 'PRECTOTCORR', // Daily precipitation in POWER (MERRA-2)
-    community: 'AG',
-    longitude: String(longitude),
-    latitude: String(latitude),
-    start: startDate,
-    end: endDate,
-    format: 'JSON',
-    'time-standard': 'UTC',
-  }).toString();
-
-  const response = await fetch(url.toString(), {
-    headers: { Accept: 'application/json' },
-    cache: 'no-store',
-    signal: AbortSignal.timeout(GPM_TIMEOUT_MS),
-  });
-
-  if (!response.ok) {
-    throw new Error(`NASA POWER API HTTP ${response.status}`);
-  }
-
-  const raw = (await response.json()) as {
-    properties?: {
-      parameter?: Record<string, Record<string, number>>;
-    };
-  };
-
-  const rainfallData = raw.properties?.parameter?.['PRECTOTCORR'];
-  if (!rainfallData) {
-    throw new Error('NASA POWER response missing PRECTOTCORR parameter.');
-  }
-
-  const observations = Object.entries(rainfallData)
-    .filter(([date]) => /^\d{8}$/.test(date))
-    .sort(([a], [b]) => a.localeCompare(b));
-
-  return {
-    dates: observations.map(([d]) => d),
-    precipitation: observations.map(([, v]) => (v < 0 ? 0 : v)),
-  };
-}
-
-// ─────────────────────────────────────────────
-// Public Daily Series Retrieval
-// ─────────────────────────────────────────────
-
+// Stub: returns null until an OPeNDAP / NetCDF subset adapter for IMERG is written.
+// Callers fall back to NASA POWER.
 export async function fetchGpmRainfallSeries(
-  latitude: number,
-  longitude: number,
-  customRange?: { startDate: string; endDate: string }
-): Promise<GpmDailySeries> {
-  if (
-    !Number.isFinite(latitude) ||
-    !Number.isFinite(longitude) ||
-    latitude < -90 ||
-    latitude > 90 ||
-    longitude < -180 ||
-    longitude > 180
-  ) {
-    throw new Error('Invalid coordinates supplied.');
-  }
-
-  const range: { start: string; end: string } = customRange
-    ? {
-        start: customRange.startDate.replace(/-/g, ''),
-        end: customRange.endDate.replace(/-/g, ''),
-      }
-    : getGpmDateRange(365, 2);
-  const cacheKey: CacheKey = {
-    source: 'gpm',
-    latitude,
-    longitude,
-    dateRange: `${range.start}-${range.end}`,
-    parameters: 'IMERG_OR_PRECTOTCORR',
-  };
-
-  // Check database cache
-  const cached = await getCached<GpmDailySeries>(cacheKey, CACHE_TTL.GPM).catch(() => null);
-  if (
-    cached?.data?.dates?.length &&
-    cached?.data?.precipitation?.length &&
-    cached.data.dates.length === cached.data.precipitation.length
-  ) {
-    return {
-      ...cached.data,
-      status: 'cached',
-    };
-  }
-
-  // Attempt 1: NASA GES DISC (Direct Daily GPM IMERG)
-  try {
-    const rawGpm = await fetchFromGesDisc(latitude, longitude, range.start, range.end);
-    const { validDates, validPrecip, quality } = validateAndAssessQuality(
-      rawGpm.dates,
-      rawGpm.precipitation,
-      range.start,
-      range.end
-    );
-
-    const series: GpmDailySeries = {
-      dates: validDates,
-      precipitation: validPrecip,
-      source: 'NASA_GPM_IMERG',
-      status: 'live',
-      product: 'IMERG_LATE',
-      spatialResolution: '0.1° (~10 km)',
-      dataQuality: quality,
-    };
-
-    await setCached(cacheKey, series, CACHE_TTL.GPM).catch(() => {});
-    return series;
-  } catch (gesErr) {
-    // Attempt 2: NASA POWER PRECTOTCORR Fallback (Clearly labeled as POWER fallback)
-    const rawPower = await fetchPowerFallbackSeries(latitude, longitude, range.start, range.end);
-    const { validDates, validPrecip, quality } = validateAndAssessQuality(
-      rawPower.dates,
-      rawPower.precipitation,
-      range.start,
-      range.end
-    );
-
-    const series: GpmDailySeries = {
-      dates: validDates,
-      precipitation: validPrecip,
-      source: 'NASA_POWER',
-      status: 'fallback',
-      product: 'POWER_PRECTOTCORR',
-      spatialResolution: '0.5° × 0.625°',
-      dataQuality: quality,
-    };
-
-    await setCached(cacheKey, series, CACHE_TTL.GPM).catch(() => {});
-    return series;
-  }
+  _latitude: number,
+  _longitude: number,
+  _days = 365,
+): Promise<GpmDailySeries | null> {
+  return null;
 }
 
-// ─────────────────────────────────────────────
-// NASA POWER True Monthly IMERG Endpoint
-// ─────────────────────────────────────────────
-
+// Stub: same as above for monthly data.
 export async function fetchGpmMonthlySeries(
-  latitude: number,
-  longitude: number,
-  startYear: number,
-  endYear: number
-): Promise<GpmMonthlySeries> {
-  const url = new URL(`${POWER_BASE}/monthly/point`);
-  url.search = new URLSearchParams({
-    parameters: 'IMERG_PRECTOT', // Verified monthly parameter in NASA POWER
-    community: 'AG',
-    longitude: String(longitude),
-    latitude: String(latitude),
-    start: String(startYear),
-    end: String(endYear),
-    format: 'JSON',
-  }).toString();
-
-  const res = await fetch(url.toString(), {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(GPM_TIMEOUT_MS),
-  });
-
-  if (!res.ok) {
-    throw new Error(`NASA POWER Monthly IMERG API error: HTTP ${res.status}`);
-  }
-
-  const data = (await res.json()) as {
-    properties?: {
-      parameter?: Record<string, Record<string, number>>;
-    };
-  };
-
-  const rawMonthly = data.properties?.parameter?.['IMERG_PRECTOT'] || {};
-  const months: string[] = [];
-  const precipitation: number[] = [];
-
-  for (const [ym, val] of Object.entries(rawMonthly)) {
-    // POWER monthly keys include 13 (annual total); filter for 12 months (01..12)
-    if (/^\d{4}(0[1-9]|1[0-2])$/.test(ym) && typeof val === 'number' && val >= 0) {
-      months.push(ym);
-      precipitation.push(val);
-    }
-  }
-
-  return {
-    months,
-    precipitation,
-    source: 'NASA_GPM_IMERG',
-    status: 'live',
-  };
+  _latitude: number,
+  _longitude: number,
+): Promise<GpmMonthlySeries | null> {
+  return null;
 }
 
 // ─────────────────────────────────────────────
-// Statistical Calculations
-// ─────────────────────────────────────────────
-
-function sum(values: number[]): number {
-  return values.reduce((acc, v) => (Number.isFinite(v) ? acc + v : acc), 0);
-}
-
-function standardDeviation(values: number[]): number {
-  const valid = values.filter((v) => Number.isFinite(v));
-  if (valid.length < 2) return 0;
-  const avg = sum(valid) / valid.length;
-  const variance = sum(valid.map((v) => (v - avg) ** 2)) / valid.length;
-  return Math.sqrt(variance);
-}
-
-function monthlyTotals(
-  dates: string[],
-  precipitation: number[]
-): { month: string; mm: number }[] {
-  const buckets = Array(12).fill(0);
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  for (let i = 0; i < dates.length; i++) {
-    const d = dates[i].replace(/-/g, '');
-    const m = Number(d.slice(4, 6)) - 1;
-    const p = precipitation[i];
-    if (m >= 0 && m < 12 && Number.isFinite(p) && p >= 0) {
-      buckets[m] += p;
-    }
-  }
-
-  return monthNames.map((month, idx) => ({
-    month,
-    mm: Math.round(buckets[idx] * 10) / 10,
-  }));
-}
-
-function analyzeDrySpells(
-  dates: string[],
-  precipitation: number[]
-): { drySpells: number; maxConsecutiveDryDays: number } {
-  let currentDryDays = 0;
-  let drySpells = 0;
-  let maxConsecutive = 0;
-  let prevTs: number | null = null;
-
-  const closeSpell = () => {
-    if (currentDryDays >= 3) {
-      drySpells++;
-    }
-    if (currentDryDays > maxConsecutive) {
-      maxConsecutive = currentDryDays;
-    }
-    currentDryDays = 0;
-  };
-
-  for (let i = 0; i < dates.length; i++) {
-    const curTs = parseDateToTimestamp(dates[i]);
-    if (prevTs !== null && curTs - prevTs > 86400000) {
-      closeSpell(); // Break consecutive count if there is a data gap
-    }
-
-    const p = precipitation[i];
-    if (Number.isFinite(p) && p < 1.0) {
-      currentDryDays++;
-    } else {
-      closeSpell();
-    }
-    prevTs = curTs;
-  }
-  closeSpell();
-
-  return { drySpells, maxConsecutiveDryDays: maxConsecutive };
-}
-
-// ─────────────────────────────────────────────
-// Rainfall Analysis Engine
+// Analysis
 // ─────────────────────────────────────────────
 
 export function deriveRainfall(
   power: PowerAnalysis,
-  latitude: number,
-  anomalyOverridePct: number | null = null,
-  gpm: GpmDailySeries | null = null,
-  options: DeriveRainfallOptions = {}
+  _latitude: number, // kept so existing callers don't break; not needed by the current logic
+  anomalyPct: number | null = null,
+  gpmData?: GpmDailySeries | null,
+  options: DeriveRainfallOptions = {},
 ): RainfallAnalysis {
-  // Select active series
-  const activeDates = gpm?.dates?.length ? gpm.dates : power.series?.dates || [];
-  const activePrecip = gpm?.precipitation?.length ? gpm.precipitation : power.series?.prectotcorr || [];
+  // Use GPM only if it actually contains valid data, so the source label always
+  // matches the numbers that were really used.
+  const gpm = gpmData && validValues(gpmData.precipitation).length > 0 ? gpmData : null;
 
-  const { validDates, validPrecip, quality } = validateAndAssessQuality(
-    activeDates,
-    activePrecip,
-    activeDates[0] || '20240101',
-    activeDates[activeDates.length - 1] || '20241231'
-  );
+  const dates = gpm ? gpm.dates : power.series.dates;
+  const series = gpm ? gpm.precipitation : power.series.prectotcorr;
+  const source: DataSource = gpm ? gpm.source : "NASA_POWER";
+  const status: DataStatus = gpm ? gpm.status : "fallback";
 
-  const annualRainfall = Math.round(sum(validPrecip) * 10) / 10;
-  const monthlyPattern = monthlyTotals(validDates, validPrecip);
-  const monthlyValues = monthlyPattern.map((m) => m.mm);
-  const monthlyStdDev = Math.round(standardDeviation(monthlyValues) * 10) / 10;
-  const meanMonthly = sum(monthlyValues) / (monthlyValues.length || 1);
-  const cvPct = meanMonthly > 0 ? Math.round((monthlyStdDev / meanMonthly) * 1000) / 10 : 0;
+  // ── Totals ──
+  const annualRainfall = sumValues(series);
 
-  const { drySpells, maxConsecutiveDryDays } = analyzeDrySpells(validDates, validPrecip);
+  // ── Growing season ──
+  const growingSeason = selectGrowingSeason(dates, series, options);
+  const growingSeasonRainfall = sumValues(growingSeason);
+  const growingSeasonDays = growingSeason.length;
+  const validSeasonDays = validValues(growingSeason).length;
 
-  // Growing-season calculation: crop-specific calendar or analysis window (Update C)
-  let growingSeasonRainfall = 0;
-  let growingSeasonDays = 0;
-  let growingSeasonLabel = 'Recent 90-day observation window';
+  // Thresholds were designed for a 90-day window, so normalise to 90 days.
+  const per90Days =
+    validSeasonDays > 0 ? (growingSeasonRainfall / validSeasonDays) * DEFAULT_GROWING_SEASON_DAYS : 0;
+  const growingSeasonLabel =
+    validSeasonDays === 0 ? "Unknown" : per90Days < 150 ? "Dry" : per90Days < 350 ? "Moderate" : "Wet";
 
-  if (options.cropCalendar?.plantingDate) {
-    const pTs = parseDateToTimestamp(options.cropCalendar.plantingDate);
-    const hTs = options.cropCalendar.harvestDate
-      ? parseDateToTimestamp(options.cropCalendar.harvestDate)
-      : Date.now();
-
-    const cropPrecip: number[] = [];
-    for (let i = 0; i < validDates.length; i++) {
-      const ts = parseDateToTimestamp(validDates[i]);
-      if (ts >= pTs && ts <= hTs) {
-        cropPrecip.push(validPrecip[i]);
-      }
+  // ── Dry days (missing data is NOT a dry day; it breaks the run) ──
+  let dryRun = 0;
+  let maxConsecutiveDryDays = 0;
+  for (const value of growingSeason) {
+    if (!isValidRain(value)) {
+      dryRun = 0;
+    } else if (value < DRY_DAY_THRESHOLD_MM) {
+      dryRun += 1;
+      maxConsecutiveDryDays = Math.max(maxConsecutiveDryDays, dryRun);
+    } else {
+      dryRun = 0;
     }
-    growingSeasonRainfall = Math.round(sum(cropPrecip) * 10) / 10;
-    growingSeasonDays = cropPrecip.length;
-    growingSeasonLabel = `${options.cropCalendar.cropName || 'Crop'} growing season (${options.cropCalendar.plantingDate} to ${options.cropCalendar.harvestDate || 'present'})`;
-  } else {
-    // Default fallback window (configurable or 90 days)
-    const windowDays = options.customAnalysisDays || 90;
-    const sliceCount = Math.min(windowDays, validPrecip.length);
-    const recentSlice = validPrecip.slice(validPrecip.length - sliceCount);
-    growingSeasonRainfall = Math.round(sum(recentSlice) * 10) / 10;
-    growingSeasonDays = sliceCount;
-    growingSeasonLabel = `Last ${sliceCount} days`;
   }
 
-  // Location-Specific Baseline Anomaly (Update B)
-  let anomalyPct: number | null = null;
-  let anomalyBasis: RainfallAnalysis['anomalyBasis'] = undefined;
+  // ── Variability ──
+  const variability = stdDev(series);
+  const seasonal = buildSeasonalPattern(dates, series);
+  const monthlyVariability = stdDev(seasonal.filter((entry) => entry.hasData).map((entry) => entry.mm));
+  const meanRain = mean(series); // mean of valid days only
+  const coefficientOfVariationPct = meanRain > 0 ? (variability / meanRain) * 100 : 0;
 
-  if (options.historicalBaselineMm && options.historicalBaselineMm > 0) {
-    anomalyPct = Math.round(((annualRainfall - options.historicalBaselineMm) / options.historicalBaselineMm) * 100);
-    anomalyBasis = 'location-historical';
-  } else if (anomalyOverridePct !== null && Number.isFinite(anomalyOverridePct)) {
-    anomalyPct = Math.round(anomalyOverridePct);
-    anomalyBasis = 'power-10yr';
+  // ── Trend (always from NASA POWER, so it is labelled that way) ──
+  const trendMmPerYear = Number.isFinite(power.tenYearRainfallTrend) ? power.tenYearRainfallTrend : null;
+
+  // ── Data quality ──
+  const minimumCoveragePct = clamp(options.minimumCoveragePct ?? DEFAULT_MIN_COVERAGE_PCT, 0, 100);
+  const expectedDays = Math.max(1, series.length);
+  const validDays = validValues(series).length;
+  const coveragePct = clamp((validDays / expectedDays) * 100, 0, 100);
+  const computedQuality: DataQuality = {
+    validDays,
+    expectedDays,
+    coveragePct: round1(coveragePct),
+    missingDays: Math.max(0, expectedDays - validDays),
+    isReliable: validDays > 0 && coveragePct >= minimumCoveragePct,
+  };
+
+  // ── Anomaly ──
+  // Priority: explicit anomalyPct > historicalBaselineMm > POWER baseline (only when
+  // GPM data is used; comparing POWER with itself would always give ~0%).
+  let resolvedAnomaly: number | null = null;
+  let anomalyBasis: RainfallAnalysis["anomalyBasis"];
+
+  const baselineMm = options.historicalBaselineMm;
+  if (anomalyPct != null && Number.isFinite(anomalyPct)) {
+    resolvedAnomaly = anomalyPct;
+    anomalyBasis = "location-historical";
+  } else if (typeof baselineMm === "number" && Number.isFinite(baselineMm) && baselineMm > 0) {
+    resolvedAnomaly = ((annualRainfall - baselineMm) / baselineMm) * 100;
+    anomalyBasis = "location-historical";
+  } else if (gpm && Number.isFinite(power.annualRainfall) && power.annualRainfall > 0) {
+    // Assumes power.annualRainfall is the NASA POWER baseline for this location.
+    resolvedAnomaly = ((annualRainfall - power.annualRainfall) / power.annualRainfall) * 100;
+    anomalyBasis = "power-10yr";
   }
 
-  const isGpmActive = gpm && gpm.source === 'NASA_GPM_IMERG' && gpm.status === 'live';
-  const source: DataSource = isGpmActive ? 'NASA_GPM_IMERG' : 'NASA_POWER';
-  const status: DataStatus = gpm?.status || (power.source === 'demo' ? 'unavailable' : 'fallback');
-
-  const attribution = isGpmActive
-    ? 'NASA GPM IMERG (GPM_3IMERGDL Late daily precipitation, ~0.1° resolution via NASA GES DISC). Rainfall trend uses NASA POWER PRECTOTCORR separately.'
-    : 'NASA POWER PRECTOTCORR (MERRA-2 atmospheric reanalysis precipitation). Fallback used because direct NASA GES DISC GPM IMERG was unavailable.';
+  const attribution =
+    source === "NASA_GPM_IMERG"
+      ? "GPM IMERG Final daily precipitation; trend and baseline reference from NASA POWER PRECTOTCORR."
+      : "NASA POWER PRECTOTCORR daily precipitation (fallback; GPM IMERG not available for this location).";
 
   return {
-    annualRainfall,
-    growingSeasonRainfall,
+    annualRainfall: round1(annualRainfall),
+    growingSeasonRainfall: round1(growingSeasonRainfall),
     growingSeasonDays,
     growingSeasonLabel,
-    anomalyPct,
-    anomalyBasis,
-    variability: Math.round(standardDeviation(validPrecip) * 100) / 100,
-    monthlyVariability: monthlyStdDev,
-    coefficientOfVariationPct: cvPct,
-    drySpells,
+    anomalyPct: resolvedAnomaly === null ? null : round1(resolvedAnomaly),
+    anomalyBasis: resolvedAnomaly === null ? undefined : anomalyBasis,
+    variability: round1(variability),
+    monthlyVariability: round1(monthlyVariability),
+    coefficientOfVariationPct: round1(coefficientOfVariationPct),
+    drySpells: power.drySpells,
     maxConsecutiveDryDays,
-    seasonalPattern: monthlyPattern,
-    rainfallTrendMmPerYear: Number.isFinite(power.tenYearRainfallTrend)
-      ? Math.round(power.tenYearRainfallTrend * 10) / 10
-      : null,
-    recentTrend: Number.isFinite(power.tenYearRainfallTrend)
-      ? Math.round(power.tenYearRainfallTrend * 10) / 10
-      : null,
-    trendSource: 'NASA POWER PRECTOTCORR 10-year historical precipitation trend',
+    seasonalPattern: seasonal.map(({ month, mm }) => ({ month, mm })),
+    rainfallTrendMmPerYear: trendMmPerYear == null ? null : round1(trendMmPerYear),
+    // No real recent-window trend is available, so don't fabricate one.
+    recentTrend: null,
+    trendSource: "NASA POWER 10-year trend",
     source,
     status,
     attribution,
-    dataQuality: quality,
+    resolution: gpm?.spatialResolution ?? POWER_RESOLUTION_LABEL,
+    dataQuality: gpm?.dataQuality ?? computedQuality,
   };
+}
+
+export async function getRainfallSummary(
+  power: PowerAnalysis,
+  latitude: number,
+  longitude: number,
+  anomalyPct: number | null = null,
+  options: DeriveRainfallOptions = {},
+): Promise<RainfallAnalysis> {
+  const gpmData = await fetchGpmRainfallSeries(latitude, longitude, 365).catch((error: unknown) => {
+    console.warn("GPM IMERG fetch failed, falling back to NASA POWER:", error);
+    return null;
+  });
+  return deriveRainfall(power, latitude, anomalyPct, gpmData, options);
 }

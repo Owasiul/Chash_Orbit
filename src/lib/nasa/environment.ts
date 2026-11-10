@@ -28,6 +28,7 @@ export interface Environment {
     tenYearTrend: number;
     source: DataSource;
     attribution: string;
+    resolution?: string;
   };
   rainfall: RainfallAnalysis;
   soilMoisture: SoilMoistureAnalysis;
@@ -222,6 +223,7 @@ export async function fetchEnvironment(
       tenYearTrend: Math.round(power.tenYearTempTrend * 1000) / 1000,
       source: powerSrc,
       attribution: power.attribution,
+      resolution: power.resolution ?? "0.5° × 0.5° (~50 km MERRA-2)",
     },
     rainfall,
     soilMoisture,
