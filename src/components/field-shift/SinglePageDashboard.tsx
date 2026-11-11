@@ -299,6 +299,7 @@ export function SinglePageDashboard() {
               width={50}
               height={50}
               priority
+              style={{ width: "auto", height: "auto" }}
             />
 
             <div className="min-w-0">
@@ -487,10 +488,7 @@ export function SinglePageDashboard() {
                   </span>
                   {activePolygon && (
                     <span className="font-mono text-[10px] text-muted-foreground/80">
-                      {Math.abs(activePolygon.centroid[1]).toFixed(4)}°{" "}
-                      {activePolygon.centroid[1] >= 0 ? "N" : "S"},{" "}
-                      {Math.abs(activePolygon.centroid[0]).toFixed(4)}°{" "}
-                      {activePolygon.centroid[0] >= 0 ? "E" : "W"}
+                      {`${Math.abs(activePolygon.centroid[1]).toFixed(4)}° ${activePolygon.centroid[1] >= 0 ? "N" : "S"}, ${Math.abs(activePolygon.centroid[0]).toFixed(4)}° ${activePolygon.centroid[0] >= 0 ? "E" : "W"}`}
                     </span>
                   )}
                 </div>
@@ -521,7 +519,7 @@ export function SinglePageDashboard() {
           <div ref={resultsRef} className="lg:col-span-8 space-y-6 pb-16">
             {/* State 1: Currently Analyzing Loading Skeleton */}
             {view === "analyzing" && (
-              <Card className="border-amber-400/30 bg-card/60 p-6 space-y-5 animate-pulse">
+              <Card key="analyzing-skeleton" className="border-amber-400/30 bg-card/60 p-6 space-y-5 animate-pulse">
                 <div className="flex items-center gap-3">
                   <Loader2 className="size-5 animate-spin text-amber-400" />
                   <span className="font-mono text-sm uppercase tracking-wider text-amber-200 font-medium">
@@ -542,7 +540,7 @@ export function SinglePageDashboard() {
 
             {/* State 2: Welcome Prompt before any analysis */}
             {!analysis && view !== "analyzing" && (
-              <Card className="border-white/10 bg-card/40 p-6 sm:p-8 space-y-5">
+              <Card key="welcome-prompt" className="border-white/10 bg-card/40 p-6 sm:p-8 space-y-5">
                 <div className="flex items-start gap-4">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300 border border-amber-400/20">
                     <Sparkles className="size-5" />
@@ -602,7 +600,7 @@ export function SinglePageDashboard() {
 
             {/* State 3: Analysis Results (Rendered in the exact required order) */}
             {analysis && view !== "analyzing" && (
-              <div className="space-y-4">
+              <div key="analysis-results" className="space-y-4">
                 <div
                   role="tablist"
                   aria-label={t("Field analysis sections")}

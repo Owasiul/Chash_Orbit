@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import dynamic from 'next/dynamic';
+import '@/lib/patch-dom';
 
 const SinglePageDashboard = dynamic(
   () => import('./SinglePageDashboard').then(m => m.SinglePageDashboard),
