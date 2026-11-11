@@ -11,7 +11,7 @@
   "llm-api-key-is-not-configured": "LLM API key is not configured",
   "failed-to-process-chat-message": "Failed to process chat message",
   "failed-to-generate-explanation": "Failed to generate explanation",
-  "failed-to-persist-farm": "Could not save farm. Check that DATABASE_URL points to a running PostgreSQL database and that npm run db:push has been run.",
+  "failed-to-persist-farm": "Failed to persist farm.",
   "location-search-is-temporarily-unavailable-p": "Location search is temporarily unavailable. Please try again shortly.",
   "farm-not-found": "Farm not found",
   "the-selected-language-could-not-be-saved": "The selected language could not be saved.",

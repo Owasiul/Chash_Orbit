@@ -16,7 +16,7 @@ import {
   type ResolvedLocation,
 } from "@/lib/location-geocoding";
 import type { GeoResult } from "@/lib/location";
-import Image from "next/image";
+
 
 const FieldMap = dynamic(() => import("@/components/field-shift/FieldMap"), {
   ssr: false,
@@ -207,15 +207,6 @@ export function HomeScreen() {
       </div>
 
       <header className="pointer-events-none relative z-10 flex items-start justify-between px-6 pt-6 sm:px-10 sm:pt-8">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/Logo.webp"
-            alt="Logo"
-            width={50}
-            height={50}
-            priority
-          />
-        </div>
         <Link
           href="/crop-health"
           className="glass-panel pointer-events-auto inline-flex items-center gap-2 rounded-full border border-emerald-300/25 px-3 py-2 text-xs font-medium text-emerald-100 transition-colors hover:border-emerald-300/50 hover:bg-emerald-400/10 sm:px-4 sm:text-sm"
@@ -265,7 +256,7 @@ export function HomeScreen() {
                 <button
                   type="button"
                   onClick={() => setView("onboarding")}
-                  className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-linear-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-amber-100"
+                  className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-amber-100"
                 >
                   <span className="flex items-center gap-2">
                     <Sparkles className="size-4 text-amber-300" />

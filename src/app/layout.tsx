@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import LanguageSwitcher from "@/components/language-switcher";
 import { Toaster } from "@/components/ui/toaster";
 import { LocaleProvider } from "@/lib/locale";
 import { getRequestLocale } from "@/lib/locale-server";
@@ -55,13 +54,43 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getRequestLocale();
   return (
-    <html lang={locale} dir="ltr" className="dark starfield" suppressHydrationWarning>
+    <html
+      lang={locale}
+      dir="ltr"
+      className="dark starfield notranslate"
+      translate="no"
+      suppressHydrationWarning
+    >
+      <head>
+        <meta name="google" content="notranslate" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined') {
+                var origRemoveChild = Node.prototype.removeChild;
+                Node.prototype.removeChild = function(child) {
+                  if (child.parentNode !== this) {
+                    return child.parentNode ? child.parentNode.removeChild(child) : child;
+                  }
+                  return origRemoveChild.apply(this, arguments);
+                };
+                var origInsertBefore = Node.prototype.insertBefore;
+                Node.prototype.insertBefore = function(newNode, refNode) {
+                  if (refNode && refNode.parentNode !== this) {
+                    return refNode.parentNode ? refNode.parentNode.insertBefore(newNode, refNode) : this.appendChild(newNode);
+                  }
+                  return origInsertBefore.apply(this, arguments);
+                };
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen flex flex-col`}
       >
         <LocaleProvider initialLocale={locale}>
           {children}
-          <LanguageSwitcher />
           <Toaster />
         </LocaleProvider>
       </body>

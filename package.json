@@ -2,6 +2,7 @@
   "name": "chash-orbit",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "engines": {
     "node": ">=20.9.0"
   },
@@ -60,6 +61,7 @@
     "@reactuses/core": "^6.0.5",
     "@tanstack/react-query": "^5.82.0",
     "@tanstack/react-table": "^8.21.3",
+    "@turf/turf": "^7.4.0",
     "ai": "^7.0.137",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -70,6 +72,7 @@
     "input-otp": "^1.4.2",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.525.0",
+    "maplibre-gl": "^6.16.0",
     "next": "^16.1.1",
     "next-auth": "^4.24.11",
     "next-intl": "^4.14.9",
@@ -79,7 +82,6 @@
     "react-day-picker": "^9.8.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.60.0",
-    "react-is": "^19.3.0",
     "react-leaflet": "^5.0.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^3.0.3",
@@ -89,6 +91,8 @@
     "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "terra-draw": "^1.39.0",
+    "terra-draw-maplibre-gl-adapter": "^1.5.0",
     "three": "^0.186.1",
     "topojson-client": "^3.1.0",
     "uuid": "^11.1.0",
@@ -114,7 +118,7 @@
   },
   "overrides": {
     "recharts": {
-      "react-is": "$react-is"
+      "react-is": "^18.3.1"
     }
   }
 }

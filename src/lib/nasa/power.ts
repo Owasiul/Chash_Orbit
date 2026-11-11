@@ -1,10 +1,10 @@
-// Chash Orbit — NASA POWER integration (LIVE)
-// Docs: https://power.larc.nasa.gov/docs/services/api/v1/
-// Provides daily and monthly temperature, precipitation, and related
-// meteorological parameters for any point on Earth.
-
 const POWER_BASE = 'https://power.larc.nasa.gov/api/temporal';
 const NASA_API_KEY = process.env.NASA_API_KEY;
+
+// POWER parameter groups. Kept in two separate requests so that if POWER rejects
+// or lacks one of the newer agro parameters, the core analysis still works.
+const CORE_PARAMS = 'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M';
+const AGRO_PARAMS = 'ALLSKY_SFC_SW_DWN,EVPTRNS,EVLAND,TSOIL1,GWETPROF';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 export interface PowerDailySeries {
@@ -15,6 +15,14 @@ export interface PowerDailySeries {
   prectotcorr: number[];    // corrected precipitation mm/day
   rh2m: number[];           // relative humidity %
   ws10m: number[];          // wind speed at 10m m/s
+
+  // Agro parameters (optional: absent if the extra POWER request fails).
+  // Arrays are aligned 1:1 with `dates`; missing values are NaN.
+  allskySfcSwDwn?: number[]; // solar radiation: crop photosynthesis & growing conditions
+  evptrns?: number[];        // transpiration: plant water-use estimation
+  evland?: number[];         // land evaporation: surface water loss
+  tsoil1?: number[];         // soil temperature (layer 1): soil-temperature monitoring
+  gwetprof?: number[];       // profile soil wetness (0-1): modelled soil-water context
 }
 
 export interface PowerAnalysis {
@@ -29,8 +37,17 @@ export interface PowerAnalysis {
   drySpells: number;          // consecutive dry (>3d <1mm) spells in last 90d
   tenYearTempTrend: number;   // °C/year (slope), from monthly climatology
   tenYearRainfallTrend: number; // mm/year slope
+
+  // Agro averages over the latest 90-day window (null if the data is unavailable).
+  solarRadiationAvg?: number | null;   // ALLSKY_SFC_SW_DWN mean
+  transpirationAvg?: number | null;    // EVPTRNS mean
+  landEvaporationAvg?: number | null;  // EVLAND mean
+  soilTempAvg?: number | null;         // TSOIL1 mean °C
+  soilWetnessAvg?: number | null;      // GWETPROF mean (0-1)
+
   source: 'live' | 'cached' | 'demo';
   attribution: string;
+  resolution?: string;
 }
 
 // ── Date helpers ────────────────────────────────────────────────────────────
@@ -53,11 +70,39 @@ function last10YearRange(end = new Date()): { start: string; end: string } {
   return { start: String(lastFull - 9), end: String(lastFull) };
 }
 
-// ── API call ────────────────────────────────────────────────────────────────
+// ── API call with retry & exponential backoff ────────────────────────────────
 interface PowerRawResponse {
   properties?: {
     parameter?: Record<string, Record<string, number | null>>;
   };
+}
+
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  retries = 2,
+  backoffMs = 500,
+): Promise<Response> {
+  let attempt = 0;
+  while (true) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      if ([429, 500, 502, 503, 504].includes(res.status) && attempt < retries) {
+        attempt++;
+        await new Promise(r => setTimeout(r, backoffMs * 2 ** (attempt - 1)));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (attempt < retries) {
+        attempt++;
+        await new Promise(r => setTimeout(r, backoffMs * 2 ** (attempt - 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 async function fetchPower(
@@ -72,12 +117,11 @@ async function fetchPower(
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (NASA_API_KEY) headers['X-Api-Key'] = NASA_API_KEY;
 
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     headers,
-    // POWER can be slow on cold cache; give it generous timeouts.
     next: { revalidate: 0 },
-    signal: AbortSignal.timeout(20000),
-  });
+    signal: AbortSignal.timeout(18000),
+  }, 2, 600);
   if (!res.ok) {
     throw new Error(`POWER ${temporal} HTTP ${res.status}`);
   }
@@ -85,24 +129,46 @@ async function fetchPower(
 }
 
 // ── Series extraction ───────────────────────────────────────────────────────
+// Map a POWER parameter block onto a fixed list of dates (-999 / null -> NaN).
+function alignToDates(
+  param: Record<string, number | null> | undefined,
+  dates: string[],
+): number[] {
+  return dates.map(d => {
+    const v = param?.[d];
+    return v == null || v === -999 ? NaN : v;
+  });
+}
+
 function extractSeries(raw: PowerRawResponse): PowerDailySeries {
   const p = raw.properties?.parameter;
   if (!p) throw new Error('POWER: missing parameter block');
   const t2m = p.T2M ?? {};
   const dates = Object.keys(t2m).filter(k => k !== '-999').sort();
-  const toNumArr = (param: Record<string, number | null>) =>
-    dates.map(d => {
-      const v = param[d];
-      return v == null || v === -999 ? NaN : v;
-    });
   return {
     dates,
-    t2m: toNumArr(p.T2M ?? {}),
-    t2mMax: toNumArr(p.T2M_MAX ?? {}),
-    t2mMin: toNumArr(p.T2M_MIN ?? {}),
-    prectotcorr: toNumArr(p.PRECTOTCORR ?? {}),
-    rh2m: toNumArr(p.RH2M ?? {}),
-    ws10m: toNumArr(p.WS10M ?? {}),
+    t2m: alignToDates(p.T2M, dates),
+    t2mMax: alignToDates(p.T2M_MAX, dates),
+    t2mMin: alignToDates(p.T2M_MIN, dates),
+    prectotcorr: alignToDates(p.PRECTOTCORR, dates),
+    rh2m: alignToDates(p.RH2M, dates),
+    ws10m: alignToDates(p.WS10M, dates),
+  };
+}
+
+// Agro parameters, aligned to the core series' dates. Returns {} if the request failed.
+function extractAgroSeries(
+  raw: PowerRawResponse | null,
+  dates: string[],
+): Partial<PowerDailySeries> {
+  const p = raw?.properties?.parameter;
+  if (!p) return {};
+  return {
+    allskySfcSwDwn: alignToDates(p.ALLSKY_SFC_SW_DWN, dates),
+    evptrns: alignToDates(p.EVPTRNS, dates),
+    evland: alignToDates(p.EVLAND, dates),
+    tsoil1: alignToDates(p.TSOIL1, dates),
+    gwetprof: alignToDates(p.GWETPROF, dates),
   };
 }
 
@@ -133,6 +199,12 @@ function linearSlope(years: number[], vals: number[]): number {
   }
   return den === 0 ? 0 : num / den;
 }
+// Mean of the last `days` values; null when the series is missing or all-NaN.
+function recentMeanOrNull(a: number[] | undefined, days = 90): number | null {
+  if (!a || a.length === 0) return null;
+  const m = mean(a.slice(Math.max(0, a.length - days)));
+  return Number.isNaN(m) ? null : m;
+}
 
 // ── Public API ───────────────────────────────────────────────────────────────
 export async function fetchPowerAnalysis(
@@ -144,16 +216,18 @@ export async function fetchPowerAnalysis(
   const daily = last365Range(now);
   const monthly = last10YearRange(now);
 
-  // ── Fetch daily series ─────────────────────────────────────────────────
-  const dailyRaw = await fetchPower(
-    'daily',
-    latitude,
-    longitude,
-    daily.start,
-    daily.end,
-    'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M',
-  );
-  const series = extractSeries(dailyRaw);
+  // ── Fetch daily series (core + agro in parallel) ───────────────────────
+  // Core failure throws (as before). Agro failure is non-fatal -> null.
+  const [dailyRaw, agroRaw] = await Promise.all([
+    fetchPower('daily', latitude, longitude, daily.start, daily.end, CORE_PARAMS),
+    fetchPower('daily', latitude, longitude, daily.start, daily.end, AGRO_PARAMS)
+      .catch((): PowerRawResponse | null => null),
+  ]);
+  const coreSeries = extractSeries(dailyRaw);
+  const series: PowerDailySeries = {
+    ...coreSeries,
+    ...extractAgroSeries(agroRaw, coreSeries.dates),
+  };
 
   // ── Fetch monthly series for trend (T2M + PRECTOTCORR) ─────────────────
   let tenYearTempTrend = 0;
@@ -226,7 +300,13 @@ export async function fetchPowerAnalysis(
     drySpells,
     tenYearTempTrend,
     tenYearRainfallTrend,
+    solarRadiationAvg: recentMeanOrNull(series.allskySfcSwDwn),
+    transpirationAvg: recentMeanOrNull(series.evptrns),
+    landEvaporationAvg: recentMeanOrNull(series.evland),
+    soilTempAvg: recentMeanOrNull(series.tsoil1),
+    soilWetnessAvg: recentMeanOrNull(series.gwetprof),
     source: 'live',
     attribution: 'NASA POWER (Prediction Of Worldwide Energy Resources), NASA Langley Research Center',
+    resolution: '0.5° × 0.5° (~50 km MERRA-2 assimilation grid, queried at field centroid)',
   };
 }

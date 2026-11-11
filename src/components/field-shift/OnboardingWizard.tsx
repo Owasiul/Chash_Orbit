@@ -17,6 +17,7 @@ import { fetchEnvironment } from '@/lib/nasa/environment';
 import { useTranslation } from '@/lib/locale';
 
 const FieldMap = dynamic(() => import('@/components/field-shift/FieldMap'), { ssr: false });
+const PolygonMap = dynamic(() => import('@/components/field-shift/PolygonMap').then(m => m.PolygonMap), { ssr: false });
 
 const HolographicGlobe = dynamic(
   () => import('@/components/globe/HolographicGlobe').then(m => m.HolographicGlobe),
@@ -472,6 +473,8 @@ function PrioritiesStep({
 export function OnboardingWizard() {
   const { locale, t, number } = useTranslation();
   const selected = useAppStore(s => s.selected);
+  const activePolygon = useAppStore(s => s.activePolygon);
+  const setActivePolygon = useAppStore(s => s.setActivePolygon);
   const setView = useAppStore(s => s.setView);
   const setSelected = useAppStore(s => s.setSelected);
   const runAnalysis = useAppStore(s => s.runAnalysis);
@@ -486,8 +489,8 @@ export function OnboardingWizard() {
   // Step 1
   const [cropSelections, setCropSelections] = React.useState<CropSelection[]>([]);
   // Step 2
-  const [area, setArea] = React.useState('5');
-  const [areaUnit, setAreaUnit] = React.useState<'acres' | 'hectares'>('acres');
+  const [area, setArea] = React.useState(activePolygon ? activePolygon.areaHa.toFixed(2) : '5');
+  const [areaUnit, setAreaUnit] = React.useState<'acres' | 'hectares'>(activePolygon ? 'hectares' : 'acres');
   const [currentCrop, setCurrentCrop] = React.useState('Rice');
   const [irrigation, setIrrigation] = React.useState<Irrigation>('limited');
   const [soil, setSoil] = React.useState<Soil>('unknown');
@@ -527,15 +530,16 @@ export function OnboardingWizard() {
   const submit = () =>
     runAnalysis(
       {
-        latitude: selected.latitude,
-        longitude: selected.longitude,
-        area: parseFloat(area) || undefined,
+        latitude: activePolygon?.centroid[1] ?? selected.latitude,
+        longitude: activePolygon?.centroid[0] ?? selected.longitude,
+        area: parseFloat(area) || activePolygon?.areaHa || undefined,
         areaUnit,
         currentCrop: currentCrop === 'None / fallow' ? null : currentCrop,
         desiredCrops: cropSelections.map(s => s.name),
         irrigation,
         soilType: soil,
         priorities,
+        polygon: activePolygon?.coordinates,
       },
       {
         locationName: [selected.name, selected.admin1, selected.country].filter(Boolean).join(', '),
@@ -580,15 +584,15 @@ export function OnboardingWizard() {
       </AnimatePresence>
 
       {/* Top bar */}
-      <header className="relative z-10 flex items-center justify-between px-6 pt-6 sm:px-10">
+      <header className="relative z-10 flex items-center justify-between gap-3 px-4 pt-4 sm:px-10 sm:pt-6">
         <button
           type="button"
           onClick={back}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-muted-foreground hover:bg-white/10 hover:text-foreground"
         >
           <ArrowLeft className="size-4" /> {t('Back')}
         </button>
-        <div className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="min-w-0 truncate font-mono text-[10px] uppercase tracking-widest text-amber-200/80 text-right">
           {selected.name} · {number(Math.abs(selected.latitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.latitude >= 0 ? 'N' : 'S'} {number(Math.abs(selected.longitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.longitude >= 0 ? 'E' : 'W'}
         </div>
       </header>
@@ -616,9 +620,33 @@ export function OnboardingWizard() {
                     soil={soil} setSoil={setSoil}
                   />
                   <div>
-                    <p className="mb-2 text-xs text-muted-foreground">{t('Tap the map to refine your field location. Environmental analysis uses this pin.')}</p>
-                    <FieldMap latitude={selected.latitude} longitude={selected.longitude} height={280}
-                      onPick={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })} />
+                    <p className="mb-2 text-xs text-muted-foreground">{t('Draw or refine your field boundary on the satellite map.')}</p>
+                    <PolygonMap
+                      latitude={activePolygon?.centroid[1] ?? selected.latitude}
+                      longitude={activePolygon?.centroid[0] ?? selected.longitude}
+                      height={280}
+                      showToolbar
+                      enableDrawing
+                      initialPolygon={activePolygon?.coordinates}
+                      onPolygonChange={(res, feat) => {
+                        if (res && res.valid && feat) {
+                          const coords = feat.geometry?.coordinates?.[0];
+                          if (coords) {
+                            setActivePolygon({
+                              coordinates: coords,
+                              areaHa: res.areaHa,
+                              areaAcres: res.areaAcres,
+                              centroid: res.centroid,
+                              bbox: res.bbox,
+                              geojson: feat,
+                            });
+                            setArea(res.areaHa.toFixed(2));
+                            setAreaUnit('hectares');
+                          }
+                        }
+                      }}
+                      onLocationSelect={({ latitude, longitude }) => setSelected({ ...selected, id: -1, name: 'Pinned field', latitude, longitude })}
+                    />
                   </div>
                 </div>
               )}

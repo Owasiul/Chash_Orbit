@@ -1,0 +1,3691 @@
+[
+  {
+    "id": "rice-paddy",
+    "name": "Rice",
+    "scientificName": "Oryza sativa",
+    "aliases": [
+      "Paddy",
+      "Dhan",
+      "Oryza",
+      "Asian Rice"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "kharif",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      10,
+      11
+    ],
+    "growingDays": [
+      110,
+      140
+    ],
+    "temp": {
+      "absMin": 15,
+      "optMin": 22,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 800,
+      "optMinMm": 1100,
+      "optMaxMm": 2000,
+      "absMaxMm": 3500
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "clay",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 4.5,
+      "optMin": 5.5,
+      "optMax": 7,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "low",
+      "flood": "high",
+      "salinity": "low"
+    },
+    "baseIncome": 72,
+    "soilBenefits": "Builds organic carbon under anaerobic paddy soils; depletes residual soil nitrogen."
+  },
+  {
+    "id": "wheat-bread",
+    "name": "Wheat",
+    "scientificName": "Triticum aestivum",
+    "aliases": [
+      "Common Wheat",
+      "Bread Wheat",
+      "Gom"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11,
+      12
+    ],
+    "harvestMonths": [
+      3,
+      4
+    ],
+    "growingDays": [
+      110,
+      140
+    ],
+    "temp": {
+      "absMin": 4,
+      "optMin": 14,
+      "optMax": 23,
+      "absMax": 32
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 450,
+      "optMaxMm": 750,
+      "absMaxMm": 1200
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 68,
+    "soilBenefits": "Global staple cereal; deep fibrous root system opens soil; excels after nitrogen-fixing pulses."
+  },
+  {
+    "id": "maize-corn",
+    "name": "Maize",
+    "scientificName": "Zea mays",
+    "aliases": [
+      "Corn",
+      "Bhutta",
+      "Sweetcorn"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "kharif",
+    "plantingMonths": [
+      5,
+      6,
+      7
+    ],
+    "harvestMonths": [
+      9,
+      10
+    ],
+    "growingDays": [
+      90,
+      120
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 18,
+      "optMax": 30,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 500,
+      "optMaxMm": 850,
+      "absMaxMm": 1400
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.2,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 70,
+    "soilBenefits": "High biomass producer; extensive root system improves subsoil permeability; heavy nitrogen feeder."
+  },
+  {
+    "id": "barley",
+    "name": "Barley",
+    "scientificName": "Hordeum vulgare",
+    "aliases": [
+      "Jau",
+      "Cereal Barley"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      3,
+      4
+    ],
+    "growingDays": [
+      90,
+      120
+    ],
+    "temp": {
+      "absMin": 3,
+      "optMin": 12,
+      "optMax": 22,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 380,
+      "optMaxMm": 650,
+      "absMaxMm": 1000
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 6,
+      "optMin": 6.5,
+      "optMax": 8,
+      "max": 9
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "high"
+    },
+    "baseIncome": 64,
+    "soilBenefits": "Exceptional salinity and drought tolerance; valuable cool-season cereal for marginal lands."
+  },
+  {
+    "id": "sorghum",
+    "name": "Sorghum",
+    "scientificName": "Sorghum bicolor",
+    "aliases": [
+      "Jowar",
+      "Milo",
+      "Great Millet"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "kharif",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      10,
+      11
+    ],
+    "growingDays": [
+      100,
+      130
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 22,
+      "optMax": 34,
+      "absMax": 42
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 700,
+      "absMaxMm": 1100
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 8,
+      "max": 8.8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "medium",
+      "salinity": "medium"
+    },
+    "baseIncome": 60,
+    "soilBenefits": "Deep root penetration up to 2m shatters hardpans; suspends growth in dry spells without dying."
+  },
+  {
+    "id": "pearl-millet",
+    "name": "Pearl Millet",
+    "scientificName": "Pennisetum glaucum",
+    "aliases": [
+      "Bajra",
+      "Bulrush Millet"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "kharif",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      9,
+      10
+    ],
+    "growingDays": [
+      75,
+      95
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 24,
+      "optMax": 35,
+      "absMax": 44
+    },
+    "water": {
+      "absMinMm": 180,
+      "optMinMm": 300,
+      "optMaxMm": 550,
+      "absMaxMm": 900
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.2,
+      "optMin": 6,
+      "optMax": 7.8,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 58,
+    "soilBenefits": "Extreme heat and drought hardiness; succeeds in light sandy soils where other grains fail."
+  },
+  {
+    "id": "finger-millet",
+    "name": "Finger Millet",
+    "scientificName": "Eleusine coracana",
+    "aliases": [
+      "Ragi",
+      "African Millet"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "kharif",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      10,
+      11
+    ],
+    "growingDays": [
+      95,
+      125
+    ],
+    "temp": {
+      "absMin": 11,
+      "optMin": 20,
+      "optMax": 30,
+      "absMax": 37
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 500,
+      "optMaxMm": 750,
+      "absMaxMm": 1100
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 65,
+    "soilBenefits": "High calcium and mineral density; robust resilience to erratic rains and rustic soils."
+  },
+  {
+    "id": "oats",
+    "name": "Oats",
+    "scientificName": "Avena sativa",
+    "aliases": [
+      "Jai",
+      "Oat Grain"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      2,
+      3
+    ],
+    "growingDays": [
+      90,
+      120
+    ],
+    "temp": {
+      "absMin": 3,
+      "optMin": 12,
+      "optMax": 20,
+      "absMax": 28
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 450,
+      "optMaxMm": 700,
+      "absMaxMm": 1050
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 4.8,
+      "optMin": 5.5,
+      "optMax": 7,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "medium",
+      "flood": "medium",
+      "salinity": "low"
+    },
+    "baseIncome": 62,
+    "soilBenefits": "Excellent cool-weather cover and cereal crop; suppresses soil-borne fungal pathogens."
+  },
+  {
+    "id": "rye",
+    "name": "Rye",
+    "scientificName": "Secale cereale",
+    "aliases": [
+      "Winter Rye",
+      "Cereal Rye"
+    ],
+    "family": "Poaceae",
+    "category": "cereal",
+    "season": "rabi",
+    "plantingMonths": [
+      9,
+      10,
+      11
+    ],
+    "harvestMonths": [
+      3,
+      4
+    ],
+    "growingDays": [
+      100,
+      130
+    ],
+    "temp": {
+      "absMin": 1,
+      "optMin": 10,
+      "optMax": 18,
+      "absMax": 26
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 600,
+      "absMaxMm": 900
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 4.5,
+      "optMin": 5.5,
+      "optMax": 7.2,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 60,
+    "soilBenefits": "Exceptional winter hardiness and root exudates that suppress early weed emergence."
+  },
+  {
+    "id": "quinoa",
+    "name": "Quinoa",
+    "scientificName": "Chenopodium quinoa",
+    "aliases": [
+      "Quinua",
+      "Inca Grain"
+    ],
+    "family": "Amaranthaceae",
+    "category": "cereal",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      2,
+      3
+    ],
+    "growingDays": [
+      90,
+      120
+    ],
+    "temp": {
+      "absMin": 2,
+      "optMin": 12,
+      "optMax": 20,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 180,
+      "optMinMm": 300,
+      "optMaxMm": 500,
+      "absMaxMm": 800
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 8.2,
+      "max": 9
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "high"
+    },
+    "baseIncome": 82,
+    "soilBenefits": "Super-grain with extraordinary salinity tolerance (halophyte); thrives in harsh arid soils."
+  },
+  {
+    "id": "chickpea",
+    "name": "Chickpea",
+    "scientificName": "Cicer arietinum",
+    "aliases": [
+      "Garbanzo",
+      "Gram",
+      "Chana"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      2,
+      3
+    ],
+    "growingDays": [
+      100,
+      125
+    ],
+    "temp": {
+      "absMin": 6,
+      "optMin": 15,
+      "optMax": 26,
+      "absMax": 34
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 300,
+      "optMaxMm": 500,
+      "absMaxMm": 900
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.8,
+      "max": 8.8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 76,
+    "soilBenefits": "Biological nitrogen fixation (up to 60-80 kg N/ha); enhances phosphorus mobilization via root exudates."
+  },
+  {
+    "id": "lentil",
+    "name": "Lentil",
+    "scientificName": "Lens culinaris",
+    "aliases": [
+      "Masoor",
+      "Red Lentil",
+      "Brown Lentil"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      2,
+      3
+    ],
+    "growingDays": [
+      95,
+      120
+    ],
+    "temp": {
+      "absMin": 5,
+      "optMin": 14,
+      "optMax": 24,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 180,
+      "optMinMm": 250,
+      "optMaxMm": 450,
+      "absMaxMm": 800
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "loamy",
+      "sandy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 74,
+    "soilBenefits": "Fixes atmospheric nitrogen; ideal rotation partner following rainy-season cereals like rice and maize."
+  },
+  {
+    "id": "soybean",
+    "name": "Soybean",
+    "scientificName": "Glycine max",
+    "aliases": [
+      "Soya",
+      "Soy",
+      "Bhatmas"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "kharif",
+    "plantingMonths": [
+      5,
+      6,
+      7
+    ],
+    "harvestMonths": [
+      9,
+      10
+    ],
+    "growingDays": [
+      95,
+      125
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 20,
+      "optMax": 30,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 500,
+      "optMaxMm": 800,
+      "absMaxMm": 1300
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "medium",
+      "salinity": "low"
+    },
+    "baseIncome": 78,
+    "soilBenefits": "High nodulation capacity; leaves significant nitrogen residual in soil for following winter grains."
+  },
+  {
+    "id": "mungbean",
+    "name": "Mung",
+    "scientificName": "Vigna radiata",
+    "aliases": [
+      "Green Gram",
+      "Moong",
+      "Mung Bean"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "summer",
+    "plantingMonths": [
+      3,
+      4
+    ],
+    "harvestMonths": [
+      5,
+      6
+    ],
+    "growingDays": [
+      60,
+      75
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 24,
+      "optMax": 34,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 320,
+      "optMaxMm": 550,
+      "absMaxMm": 900
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6.2,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 68,
+    "soilBenefits": "Ultra-fast catch crop (60-70 days); fixes 30-50 kg N/ha; slots smoothly between rabi harvest and kharif sowing."
+  },
+  {
+    "id": "urad-bean",
+    "name": "Black Gram",
+    "scientificName": "Vigna mungo",
+    "aliases": [
+      "Urad",
+      "Mash Kalai",
+      "Black Lentil"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "summer",
+    "plantingMonths": [
+      3,
+      4,
+      7
+    ],
+    "harvestMonths": [
+      5,
+      6,
+      9
+    ],
+    "growingDays": [
+      70,
+      90
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 24,
+      "optMax": 34,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 650,
+      "absMaxMm": 1000
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6.5,
+      "optMax": 7.5,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 70,
+    "soilBenefits": "Short-duration legume; enriches surface soil humus and fixes ambient nitrogen."
+  },
+  {
+    "id": "pigeonpea",
+    "name": "Pigeonpea",
+    "scientificName": "Cajanus cajan",
+    "aliases": [
+      "Arhar",
+      "Tur",
+      "Red Gram"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "kharif",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      11,
+      12,
+      1
+    ],
+    "growingDays": [
+      140,
+      180
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 20,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 550,
+      "optMaxMm": 950,
+      "absMaxMm": 1500
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 75,
+    "soilBenefits": "Deep taproot mines subsoil moisture and nutrients; heavy leaf drop creates natural mulch."
+  },
+  {
+    "id": "cowpea",
+    "name": "Cowpea",
+    "scientificName": "Vigna unguiculata",
+    "aliases": [
+      "Black-eyed Pea",
+      "Lobia"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "summer",
+    "plantingMonths": [
+      4,
+      5,
+      6
+    ],
+    "harvestMonths": [
+      7,
+      8
+    ],
+    "growingDays": [
+      70,
+      95
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 22,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 650,
+      "absMaxMm": 1100
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 66,
+    "soilBenefits": "Thrives on acidic and infertile sandy soils; fast ground cover reduces erosion."
+  },
+  {
+    "id": "groundnut",
+    "name": "Groundnut",
+    "scientificName": "Arachis hypogaea",
+    "aliases": [
+      "Peanut",
+      "Mungphali",
+      "Earthnut"
+    ],
+    "family": "Fabaceae",
+    "category": "oilseed",
+    "season": "kharif",
+    "plantingMonths": [
+      5,
+      6
+    ],
+    "harvestMonths": [
+      9,
+      10
+    ],
+    "growingDays": [
+      105,
+      135
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 22,
+      "optMax": 30,
+      "absMax": 36
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 450,
+      "optMaxMm": 700,
+      "absMaxMm": 1100
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.3,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 79,
+    "soilBenefits": "Dual-purpose oilseed and legume; fixes nitrogen while pegging pods aerate surface soil."
+  },
+  {
+    "id": "green-pea",
+    "name": "Green Pea",
+    "scientificName": "Pisum sativum",
+    "aliases": [
+      "Field Pea",
+      "Garden Pea",
+      "Matar"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      1,
+      2
+    ],
+    "growingDays": [
+      70,
+      95
+    ],
+    "temp": {
+      "absMin": 4,
+      "optMin": 13,
+      "optMax": 20,
+      "absMax": 26
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 650,
+      "absMaxMm": 950
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.8,
+      "optMin": 6.2,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 80,
+    "soilBenefits": "High cash value vegetable legume; contributes active nodule nitrogen to garden beds."
+  },
+  {
+    "id": "cluster-bean",
+    "name": "Cluster Bean",
+    "scientificName": "Cyamopsis tetragonoloba",
+    "aliases": [
+      "Guar",
+      "Gavar"
+    ],
+    "family": "Fabaceae",
+    "category": "pulse",
+    "season": "kharif",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      9,
+      10
+    ],
+    "growingDays": [
+      80,
+      105
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 25,
+      "optMax": 35,
+      "absMax": 42
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 350,
+      "optMaxMm": 550,
+      "absMaxMm": 850
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 6.5,
+      "optMin": 7,
+      "optMax": 8.5,
+      "max": 9
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "high"
+    },
+    "baseIncome": 72,
+    "soilBenefits": "Arid climate champion; deep roots break compacted soils; source of industrial guar gum."
+  },
+  {
+    "id": "mustard-brown",
+    "name": "Mustard",
+    "scientificName": "Brassica juncea",
+    "aliases": [
+      "Indian Mustard",
+      "Sarson",
+      "Rai"
+    ],
+    "family": "Brassicaceae",
+    "category": "oilseed",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      2,
+      3
+    ],
+    "growingDays": [
+      100,
+      125
+    ],
+    "temp": {
+      "absMin": 6,
+      "optMin": 14,
+      "optMax": 24,
+      "absMax": 32
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 350,
+      "optMaxMm": 600,
+      "absMaxMm": 950
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 76,
+    "soilBenefits": "Deep taproot loosens subsoil hardpans; biofumigant glucosinolates suppress nematodes."
+  },
+  {
+    "id": "sunflower",
+    "name": "Sunflower",
+    "scientificName": "Helianthus annuus",
+    "aliases": [
+      "Surajmukhi",
+      "Common Sunflower"
+    ],
+    "family": "Asteraceae",
+    "category": "oilseed",
+    "season": "kharif",
+    "plantingMonths": [
+      5,
+      6,
+      7
+    ],
+    "harvestMonths": [
+      8,
+      9,
+      10
+    ],
+    "growingDays": [
+      85,
+      110
+    ],
+    "temp": {
+      "absMin": 8,
+      "optMin": 18,
+      "optMax": 28,
+      "absMax": 36
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 500,
+      "optMaxMm": 750,
+      "absMaxMm": 1200
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 75,
+    "soilBenefits": "Stout taproot extracts residual moisture from lower soil layers; day-length insensitive."
+  },
+  {
+    "id": "sesame",
+    "name": "Sesame",
+    "scientificName": "Sesamum indicum",
+    "aliases": [
+      "Til",
+      "Gingelly",
+      "Sesam"
+    ],
+    "family": "Pedaliaceae",
+    "category": "oilseed",
+    "season": "kharif",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      9,
+      10
+    ],
+    "growingDays": [
+      80,
+      100
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 24,
+      "optMax": 32,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 650,
+      "absMaxMm": 1000
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6.2,
+      "optMax": 7.5,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 78,
+    "soilBenefits": "High temperature tolerance; survives drought on light soils where other cash crops dry out."
+  },
+  {
+    "id": "flaxseed",
+    "name": "Linseed",
+    "scientificName": "Linum usitatissimum",
+    "aliases": [
+      "Flax",
+      "Tisi",
+      "Flaxseed"
+    ],
+    "family": "Linaceae",
+    "category": "oilseed",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      2,
+      3
+    ],
+    "growingDays": [
+      110,
+      135
+    ],
+    "temp": {
+      "absMin": 4,
+      "optMin": 14,
+      "optMax": 22,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 650,
+      "absMaxMm": 950
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "clay",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 70,
+    "soilBenefits": "Valuable omega-3 oilseed; grows well on heavy clay soils with good moisture retention."
+  },
+  {
+    "id": "safflower",
+    "name": "Safflower",
+    "scientificName": "Carthamus tinctorius",
+    "aliases": [
+      "Kardi",
+      "False Saffron"
+    ],
+    "family": "Asteraceae",
+    "category": "oilseed",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      3,
+      4
+    ],
+    "growingDays": [
+      115,
+      145
+    ],
+    "temp": {
+      "absMin": 6,
+      "optMin": 16,
+      "optMax": 28,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 350,
+      "optMaxMm": 600,
+      "absMaxMm": 900
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "clay",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 6,
+      "optMin": 6.5,
+      "optMax": 8,
+      "max": 8.8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "high"
+    },
+    "baseIncome": 69,
+    "soilBenefits": "Very deep taproot (down to 2.5m) extracts subsoil water and residual nutrients on dry vertisols."
+  },
+  {
+    "id": "potato",
+    "name": "Potato",
+    "scientificName": "Solanum tuberosum",
+    "aliases": [
+      "Alu",
+      "Irish Potato",
+      "Spud"
+    ],
+    "family": "Solanaceae",
+    "category": "tuber",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      1,
+      2,
+      3
+    ],
+    "growingDays": [
+      90,
+      120
+    ],
+    "temp": {
+      "absMin": 7,
+      "optMin": 15,
+      "optMax": 22,
+      "absMax": 28
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 500,
+      "optMaxMm": 750,
+      "absMaxMm": 1200
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 4.8,
+      "optMin": 5.5,
+      "optMax": 6.5,
+      "max": 7.5
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 85,
+    "soilBenefits": "High cash value tuber; requires light friable soil; intensive tillage aerates topsoil."
+  },
+  {
+    "id": "sweet-potato",
+    "name": "Sweet Potato",
+    "scientificName": "Ipomoea batatas",
+    "aliases": [
+      "Misti Alu",
+      "Kumara",
+      "Camote"
+    ],
+    "family": "Convolvulaceae",
+    "category": "tuber",
+    "season": "kharif",
+    "plantingMonths": [
+      5,
+      6,
+      7
+    ],
+    "harvestMonths": [
+      9,
+      10,
+      11
+    ],
+    "growingDays": [
+      100,
+      130
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 20,
+      "optMax": 28,
+      "absMax": 35
+    },
+    "water": {
+      "absMinMm": 400,
+      "optMinMm": 600,
+      "optMaxMm": 900,
+      "absMaxMm": 1400
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 4.5,
+      "optMin": 5.5,
+      "optMax": 6.8,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 78,
+    "soilBenefits": "Dense ground vine canopy suppresses weeds and prevents erosion; modest fertilizer demand."
+  },
+  {
+    "id": "tomato",
+    "name": "Tomato",
+    "scientificName": "Solanum lycopersicum",
+    "aliases": [
+      "Tamatar",
+      "Love Apple"
+    ],
+    "family": "Solanaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      9,
+      10,
+      11
+    ],
+    "harvestMonths": [
+      1,
+      2,
+      3
+    ],
+    "growingDays": [
+      80,
+      110
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 18,
+      "optMax": 27,
+      "absMax": 34
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 550,
+      "optMaxMm": 800,
+      "absMaxMm": 1300
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 82,
+    "soilBenefits": "High return horticulture crop; requires well-drained fertile loam with balanced potassium."
+  },
+  {
+    "id": "eggplant",
+    "name": "Eggplant",
+    "scientificName": "Solanum melongena",
+    "aliases": [
+      "Brinjal",
+      "Aubergine",
+      "Baingan",
+      "Begun"
+    ],
+    "family": "Solanaceae",
+    "category": "vegetable",
+    "season": "year_round",
+    "plantingMonths": [
+      4,
+      5,
+      6,
+      9,
+      10
+    ],
+    "harvestMonths": [
+      7,
+      8,
+      9,
+      12,
+      1
+    ],
+    "growingDays": [
+      90,
+      120
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 21,
+      "optMax": 29,
+      "absMax": 35
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 550,
+      "optMaxMm": 850,
+      "absMaxMm": 1300
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 80,
+    "soilBenefits": "Prolific vegetable with long harvesting cycle; thrives in warm sunny climates."
+  },
+  {
+    "id": "hot-pepper",
+    "name": "Chili",
+    "scientificName": "Capsicum annuum",
+    "aliases": [
+      "Hot Pepper",
+      "Chilli",
+      "Mirch",
+      "Morich"
+    ],
+    "family": "Solanaceae",
+    "category": "vegetable",
+    "season": "kharif",
+    "plantingMonths": [
+      5,
+      6,
+      10
+    ],
+    "harvestMonths": [
+      8,
+      9,
+      1,
+      2
+    ],
+    "growingDays": [
+      85,
+      115
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 20,
+      "optMax": 28,
+      "absMax": 35
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 500,
+      "optMaxMm": 750,
+      "absMaxMm": 1200
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6.2,
+      "optMax": 7.2,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 84,
+    "soilBenefits": "High cash margin cash vegetable; capsaicin content benefits from bright sunshine and warm nights."
+  },
+  {
+    "id": "onion",
+    "name": "Onion",
+    "scientificName": "Allium cepa",
+    "aliases": [
+      "Pyaj",
+      "Peyaj",
+      "Bulb Onion"
+    ],
+    "family": "Amaryllidaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11,
+      12
+    ],
+    "harvestMonths": [
+      3,
+      4
+    ],
+    "growingDays": [
+      90,
+      120
+    ],
+    "temp": {
+      "absMin": 7,
+      "optMin": 15,
+      "optMax": 24,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 450,
+      "optMaxMm": 650,
+      "absMaxMm": 1000
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.8,
+      "optMin": 6.2,
+      "optMax": 7,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 86,
+    "soilBenefits": "Shallow root system benefits from friable topsoil; sulphur-rich bulbs command stable market value."
+  },
+  {
+    "id": "garlic",
+    "name": "Garlic",
+    "scientificName": "Allium sativum",
+    "aliases": [
+      "Lahsun",
+      "Rosun"
+    ],
+    "family": "Amaryllidaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      3,
+      4
+    ],
+    "growingDays": [
+      120,
+      150
+    ],
+    "temp": {
+      "absMin": 5,
+      "optMin": 13,
+      "optMax": 22,
+      "absMax": 28
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 400,
+      "optMaxMm": 600,
+      "absMaxMm": 900
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.8,
+      "optMin": 6.2,
+      "optMax": 7.2,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 88,
+    "soilBenefits": "Natural antibacterial and anti-fungal root exudates; durable shelf life post-cure."
+  },
+  {
+    "id": "okra",
+    "name": "Okra",
+    "scientificName": "Abelmoschus esculentus",
+    "aliases": [
+      "Lady's Finger",
+      "Bhindi",
+      "Gombo",
+      "Dherosh"
+    ],
+    "family": "Malvaceae",
+    "category": "vegetable",
+    "season": "summer",
+    "plantingMonths": [
+      3,
+      4,
+      6
+    ],
+    "harvestMonths": [
+      5,
+      6,
+      8,
+      9
+    ],
+    "growingDays": [
+      60,
+      85
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 24,
+      "optMax": 34,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 550,
+      "optMaxMm": 800,
+      "absMaxMm": 1300
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.8,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 75,
+    "soilBenefits": "Continuous picker with heavy vegetative mulch after harvest; excellent warm-season adaptability."
+  },
+  {
+    "id": "cabbage",
+    "name": "Cabbage",
+    "scientificName": "Brassica oleracea var. capitata",
+    "aliases": [
+      "Bandhakopi",
+      "Patta Gobhi",
+      "Head Cabbage"
+    ],
+    "family": "Brassicaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      9,
+      10,
+      11
+    ],
+    "harvestMonths": [
+      12,
+      1,
+      2
+    ],
+    "growingDays": [
+      80,
+      105
+    ],
+    "temp": {
+      "absMin": 4,
+      "optMin": 14,
+      "optMax": 20,
+      "absMax": 26
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 450,
+      "optMaxMm": 650,
+      "absMaxMm": 950
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.2,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 77,
+    "soilBenefits": "High yield potential per unit area; leaves significant crop residue when turned in."
+  },
+  {
+    "id": "cauliflower",
+    "name": "Cauliflower",
+    "scientificName": "Brassica oleracea var. botrytis",
+    "aliases": [
+      "Phool Gobhi",
+      "Fulkopi"
+    ],
+    "family": "Brassicaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      9,
+      10,
+      11
+    ],
+    "harvestMonths": [
+      12,
+      1,
+      2
+    ],
+    "growingDays": [
+      75,
+      100
+    ],
+    "temp": {
+      "absMin": 5,
+      "optMin": 15,
+      "optMax": 22,
+      "absMax": 28
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 450,
+      "optMaxMm": 650,
+      "absMaxMm": 950
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.8,
+      "optMin": 6.2,
+      "optMax": 7.2,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 80,
+    "soilBenefits": "High commercial value curd; requires steady soil moisture during curd initiation."
+  },
+  {
+    "id": "carrot",
+    "name": "Carrot",
+    "scientificName": "Daucus carota",
+    "aliases": [
+      "Gajar",
+      "Gajor"
+    ],
+    "family": "Apiaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      1,
+      2
+    ],
+    "growingDays": [
+      80,
+      105
+    ],
+    "temp": {
+      "absMin": 5,
+      "optMin": 15,
+      "optMax": 21,
+      "absMax": 27
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 450,
+      "optMaxMm": 650,
+      "absMaxMm": 900
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 7.5
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 79,
+    "soilBenefits": "Taproot loosens subsoil; requires stones-free deep sandy loam for straight roots."
+  },
+  {
+    "id": "radish",
+    "name": "Radish",
+    "scientificName": "Raphanus sativus",
+    "aliases": [
+      "Mooli",
+      "Mula",
+      "Daikon"
+    ],
+    "family": "Brassicaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      9,
+      10,
+      11
+    ],
+    "harvestMonths": [
+      11,
+      12,
+      1
+    ],
+    "growingDays": [
+      35,
+      55
+    ],
+    "temp": {
+      "absMin": 5,
+      "optMin": 14,
+      "optMax": 20,
+      "absMax": 26
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 350,
+      "optMaxMm": 500,
+      "absMaxMm": 750
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 70,
+    "soilBenefits": "Fastest vegetable crop (35-45 days); bio-drilling taproot perforates compacted topsoil."
+  },
+  {
+    "id": "spinach",
+    "name": "Spinach",
+    "scientificName": "Spinacia oleracea",
+    "aliases": [
+      "Palak",
+      "Palong"
+    ],
+    "family": "Amaranthaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11,
+      12
+    ],
+    "harvestMonths": [
+      11,
+      12,
+      1,
+      2
+    ],
+    "growingDays": [
+      40,
+      60
+    ],
+    "temp": {
+      "absMin": 3,
+      "optMin": 12,
+      "optMax": 18,
+      "absMax": 24
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 350,
+      "optMaxMm": 500,
+      "absMaxMm": 750
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 6,
+      "optMin": 6.5,
+      "optMax": 7.5,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 74,
+    "soilBenefits": "Rapid cycle leafy green; multi-cut harvesting provides continuous weekly farm cashflow."
+  },
+  {
+    "id": "cucumber",
+    "name": "Cucumber",
+    "scientificName": "Cucumis sativus",
+    "aliases": [
+      "Kheera",
+      "Shosha"
+    ],
+    "family": "Cucurbitaceae",
+    "category": "vegetable",
+    "season": "summer",
+    "plantingMonths": [
+      3,
+      4,
+      6
+    ],
+    "harvestMonths": [
+      5,
+      6,
+      8
+    ],
+    "growingDays": [
+      55,
+      75
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 20,
+      "optMax": 28,
+      "absMax": 34
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 500,
+      "optMaxMm": 750,
+      "absMaxMm": 1100
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 78,
+    "soilBenefits": "High water-content vine vegetable; thrives on sunny trellises or elevated field ridges."
+  },
+  {
+    "id": "cotton",
+    "name": "Cotton",
+    "scientificName": "Gossypium hirsutum",
+    "aliases": [
+      "Kapas",
+      "Upland Cotton"
+    ],
+    "family": "Malvaceae",
+    "category": "fiber",
+    "season": "kharif",
+    "plantingMonths": [
+      5,
+      6
+    ],
+    "harvestMonths": [
+      10,
+      11,
+      12
+    ],
+    "growingDays": [
+      150,
+      180
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 22,
+      "optMax": 34,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 400,
+      "optMinMm": 650,
+      "optMaxMm": 1000,
+      "absMaxMm": 1500
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "clay",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6.5,
+      "optMax": 8,
+      "max": 8.8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 82,
+    "soilBenefits": "Deep taproot extracts subsoil reserves; requires dry warm weather during boll ripening."
+  },
+  {
+    "id": "jute",
+    "name": "Jute",
+    "scientificName": "Corchorus olitorius",
+    "aliases": [
+      "Pat",
+      "Golden Fiber",
+      "Tossa Jute"
+    ],
+    "family": "Malvaceae",
+    "category": "fiber",
+    "season": "kharif",
+    "plantingMonths": [
+      4,
+      5
+    ],
+    "harvestMonths": [
+      8,
+      9
+    ],
+    "growingDays": [
+      110,
+      135
+    ],
+    "temp": {
+      "absMin": 15,
+      "optMin": 24,
+      "optMax": 34,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 1000,
+      "optMinMm": 1400,
+      "optMaxMm": 2200,
+      "absMaxMm": 3000
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "low",
+      "flood": "high",
+      "salinity": "low"
+    },
+    "baseIncome": 74,
+    "soilBenefits": "High biomass fiber crop; massive leaf fall (3-4 tonnes/ha) enriches soil humus; flood tolerant."
+  },
+  {
+    "id": "sugarcane",
+    "name": "Sugarcane",
+    "scientificName": "Saccharum officinarum",
+    "aliases": [
+      "Ganna",
+      "Akh",
+      "Noble Cane"
+    ],
+    "family": "Poaceae",
+    "category": "cash_crop",
+    "season": "year_round",
+    "plantingMonths": [
+      2,
+      3,
+      10,
+      11
+    ],
+    "harvestMonths": [
+      1,
+      2,
+      3,
+      12
+    ],
+    "growingDays": [
+      300,
+      365
+    ],
+    "temp": {
+      "absMin": 15,
+      "optMin": 24,
+      "optMax": 34,
+      "absMax": 42
+    },
+    "water": {
+      "absMinMm": 1000,
+      "optMinMm": 1500,
+      "optMaxMm": 2500,
+      "absMaxMm": 3500
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 7.8,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "medium",
+      "salinity": "medium"
+    },
+    "baseIncome": 85,
+    "soilBenefits": "Gigantic biomass accumulator (C4 photosynthesis); heavy trash mulch conserves soil moisture."
+  },
+  {
+    "id": "banana",
+    "name": "Banana",
+    "scientificName": "Musa acuminata",
+    "aliases": [
+      "Kela",
+      "Plantain",
+      "Kola"
+    ],
+    "family": "Musaceae",
+    "category": "fruit",
+    "season": "year_round",
+    "plantingMonths": [
+      3,
+      4,
+      5,
+      9,
+      10
+    ],
+    "harvestMonths": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "growingDays": [
+      270,
+      365
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 23,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 1000,
+      "optMinMm": 1500,
+      "optMaxMm": 2200,
+      "absMaxMm": 3000
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 89,
+    "soilBenefits": "Continuous year-round fruit production; heavy potassium consumer; pseudostem mulch recycles organic matter."
+  },
+  {
+    "id": "mango",
+    "name": "Mango",
+    "scientificName": "Mangifera indica",
+    "aliases": [
+      "Aam",
+      "King of Fruits"
+    ],
+    "family": "Anacardiaceae",
+    "category": "fruit",
+    "season": "year_round",
+    "plantingMonths": [
+      7,
+      8
+    ],
+    "harvestMonths": [
+      5,
+      6,
+      7
+    ],
+    "growingDays": [
+      150,
+      180
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 24,
+      "optMax": 32,
+      "absMax": 42
+    },
+    "water": {
+      "absMinMm": 600,
+      "optMinMm": 1000,
+      "optMaxMm": 1800,
+      "absMaxMm": 2800
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 90,
+    "soilBenefits": "Perennial deep-rooted tree; prevents soil erosion and stabilizes watershed moisture balances."
+  },
+  {
+    "id": "papaya",
+    "name": "Papaya",
+    "scientificName": "Carica papaya",
+    "aliases": [
+      "Papita",
+      "Pawpaw"
+    ],
+    "family": "Caricaceae",
+    "category": "fruit",
+    "season": "year_round",
+    "plantingMonths": [
+      2,
+      3,
+      6,
+      7
+    ],
+    "harvestMonths": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      1
+    ],
+    "growingDays": [
+      240,
+      300
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 22,
+      "optMax": 30,
+      "absMax": 36
+    },
+    "water": {
+      "absMinMm": 800,
+      "optMinMm": 1200,
+      "optMaxMm": 1800,
+      "absMaxMm": 2600
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 6,
+      "optMin": 6.5,
+      "optMax": 7.2,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 86,
+    "soilBenefits": "Fast-yielding fruit tree (starts within 8-9 months); highly sensitive to waterlogging (demands drainage)."
+  },
+  {
+    "id": "watermelon",
+    "name": "Watermelon",
+    "scientificName": "Citrullus lanatus",
+    "aliases": [
+      "Tarbooj",
+      "Tormuj"
+    ],
+    "family": "Cucurbitaceae",
+    "category": "fruit",
+    "season": "summer",
+    "plantingMonths": [
+      2,
+      3
+    ],
+    "harvestMonths": [
+      5,
+      6
+    ],
+    "growingDays": [
+      75,
+      95
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 22,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 500,
+      "optMaxMm": 700,
+      "absMaxMm": 1100
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 83,
+    "soilBenefits": "Ideal riverbed and sandy riverbank crop; deep taproot taps subterranean water tables."
+  },
+  {
+    "id": "cassava",
+    "name": "Cassava",
+    "scientificName": "Manihot esculenta",
+    "aliases": [
+      "Manioc",
+      "Yuca",
+      "Tapioca"
+    ],
+    "family": "Euphorbiaceae",
+    "category": "tuber",
+    "season": "year_round",
+    "plantingMonths": [
+      4,
+      5,
+      6
+    ],
+    "harvestMonths": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "growingDays": [
+      240,
+      360
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 22,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 500,
+      "optMinMm": 800,
+      "optMaxMm": 1500,
+      "absMaxMm": 2500
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 4.5,
+      "optMin": 5.5,
+      "optMax": 7,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 75,
+    "soilBenefits": "Drought-hardy starch reserve; survives extreme dry spells by shedding foliage and re-sprouting."
+  },
+  {
+    "id": "taro",
+    "name": "Taro",
+    "scientificName": "Colocasia esculenta",
+    "aliases": [
+      "Colocasia",
+      "Kochu",
+      "Dasheen"
+    ],
+    "family": "Araceae",
+    "category": "tuber",
+    "season": "kharif",
+    "plantingMonths": [
+      3,
+      4,
+      5
+    ],
+    "harvestMonths": [
+      9,
+      10,
+      11
+    ],
+    "growingDays": [
+      180,
+      240
+    ],
+    "temp": {
+      "absMin": 15,
+      "optMin": 23,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 1000,
+      "optMinMm": 1500,
+      "optMaxMm": 2500,
+      "absMaxMm": 3500
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "clay",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 5.8,
+      "optMax": 7,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "low",
+      "flood": "high",
+      "salinity": "low"
+    },
+    "baseIncome": 78,
+    "soilBenefits": "Tolerates waterlogged, swampy and low-lying delta soils where few other root crops can survive."
+  },
+  {
+    "id": "yam",
+    "name": "Yam",
+    "scientificName": "Dioscorea alata",
+    "aliases": [
+      "Greater Yam",
+      "Chupri Alu"
+    ],
+    "family": "Dioscoreaceae",
+    "category": "tuber",
+    "season": "kharif",
+    "plantingMonths": [
+      3,
+      4,
+      5
+    ],
+    "harvestMonths": [
+      11,
+      12,
+      1
+    ],
+    "growingDays": [
+      210,
+      270
+    ],
+    "temp": {
+      "absMin": 15,
+      "optMin": 24,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 800,
+      "optMinMm": 1200,
+      "optMaxMm": 1800,
+      "absMaxMm": 2600
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 5.5,
+      "optMax": 6.8,
+      "max": 7.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 80,
+    "soilBenefits": "Long-storing nutritious root; thrives under partial agroforestry shade and trellises."
+  },
+  {
+    "id": "tea",
+    "name": "Tea",
+    "scientificName": "Camellia sinensis",
+    "aliases": [
+      "Chai",
+      "Tea Bush"
+    ],
+    "family": "Theaceae",
+    "category": "cash_crop",
+    "season": "year_round",
+    "plantingMonths": [
+      6,
+      7,
+      8
+    ],
+    "harvestMonths": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "growingDays": [
+      300,
+      365
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 18,
+      "optMax": 26,
+      "absMax": 34
+    },
+    "water": {
+      "absMinMm": 1200,
+      "optMinMm": 1600,
+      "optMaxMm": 2500,
+      "absMaxMm": 3500
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 4.2,
+      "optMin": 4.8,
+      "optMax": 5.8,
+      "max": 6.5
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 92,
+    "soilBenefits": "Requires acid soils (pH 4.5-5.5) on sloping hillsides with flawless internal drainage."
+  },
+  {
+    "id": "coffee-arabica",
+    "name": "Coffee",
+    "scientificName": "Coffea arabica",
+    "aliases": [
+      "Arabica Coffee",
+      "Kafi"
+    ],
+    "family": "Rubiaceae",
+    "category": "cash_crop",
+    "season": "year_round",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      10,
+      11,
+      12,
+      1
+    ],
+    "growingDays": [
+      270,
+      365
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 16,
+      "optMax": 24,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 1000,
+      "optMinMm": 1400,
+      "optMaxMm": 2000,
+      "absMaxMm": 2800
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 5.5,
+      "optMax": 6.5,
+      "max": 7.2
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 94,
+    "soilBenefits": "Highland agroforestry anchor; shaded coffee preserves forest canopy and biodiversity."
+  },
+  {
+    "id": "ginger",
+    "name": "Ginger",
+    "scientificName": "Zingiber officinale",
+    "aliases": [
+      "Adrak",
+      "Ada"
+    ],
+    "family": "Zingiberaceae",
+    "category": "cash_crop",
+    "season": "kharif",
+    "plantingMonths": [
+      4,
+      5
+    ],
+    "harvestMonths": [
+      12,
+      1,
+      2
+    ],
+    "growingDays": [
+      210,
+      260
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 22,
+      "optMax": 30,
+      "absMax": 36
+    },
+    "water": {
+      "absMinMm": 1000,
+      "optMinMm": 1400,
+      "optMaxMm": 2000,
+      "absMaxMm": 2800
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 6.8,
+      "max": 7.5
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 91,
+    "soilBenefits": "High gross return spice; thrives in warm humid climates under light intercrop shade."
+  },
+  {
+    "id": "turmeric",
+    "name": "Turmeric",
+    "scientificName": "Curcuma longa",
+    "aliases": [
+      "Haldi",
+      "Holud"
+    ],
+    "family": "Zingiberaceae",
+    "category": "cash_crop",
+    "season": "kharif",
+    "plantingMonths": [
+      4,
+      5,
+      6
+    ],
+    "harvestMonths": [
+      1,
+      2,
+      3
+    ],
+    "growingDays": [
+      240,
+      290
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 22,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 1000,
+      "optMinMm": 1500,
+      "optMaxMm": 2200,
+      "absMaxMm": 3000
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.2,
+      "max": 7.8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 88,
+    "soilBenefits": "Curcumin-rich rhizome; excellent intercrop with sugarcane, pigeonpea, or orchard trees."
+  },
+  {
+    "id": "cardamom",
+    "name": "Cardamom",
+    "scientificName": "Elettaria cardamomum",
+    "aliases": [
+      "Elaichi",
+      "Elachi",
+      "Queen of Spices"
+    ],
+    "family": "Zingiberaceae",
+    "category": "cash_crop",
+    "season": "year_round",
+    "plantingMonths": [
+      6,
+      7
+    ],
+    "harvestMonths": [
+      9,
+      10,
+      11,
+      12,
+      1
+    ],
+    "growingDays": [
+      300,
+      365
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 16,
+      "optMax": 24,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 1400,
+      "optMinMm": 1800,
+      "optMaxMm": 2800,
+      "absMaxMm": 4000
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "loamy"
+    ],
+    "phRange": {
+      "min": 4.5,
+      "optMin": 5.5,
+      "optMax": 6.5,
+      "max": 7
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 96,
+    "soilBenefits": "Ultra-high value spice crop; strictly requires humid rainforest shade and deep humus leaf mulch."
+  },
+  {
+    "id": "coriander",
+    "name": "Coriander",
+    "scientificName": "Coriandrum sativum",
+    "aliases": [
+      "Dhania",
+      "Cilantro"
+    ],
+    "family": "Apiaceae",
+    "category": "vegetable",
+    "season": "rabi",
+    "plantingMonths": [
+      10,
+      11
+    ],
+    "harvestMonths": [
+      1,
+      2
+    ],
+    "growingDays": [
+      60,
+      85
+    ],
+    "temp": {
+      "absMin": 6,
+      "optMin": 15,
+      "optMax": 23,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 200,
+      "optMinMm": 350,
+      "optMaxMm": 500,
+      "absMaxMm": 750
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "depleter",
+    "soilTextures": [
+      "loamy",
+      "sandy",
+      "clay"
+    ],
+    "phRange": {
+      "min": 5.8,
+      "optMin": 6.2,
+      "optMax": 7.5,
+      "max": 8.2
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 75,
+    "soilBenefits": "Fast herb and seed spice; aromatic blossoms attract predatory insects and pollinators."
+  },
+  {
+    "id": "guava",
+    "name": "Guava",
+    "scientificName": "Psidium guajava",
+    "aliases": [
+      "Amrood",
+      "Peyara"
+    ],
+    "family": "Myrtaceae",
+    "category": "fruit",
+    "season": "year_round",
+    "plantingMonths": [
+      6,
+      7,
+      8
+    ],
+    "harvestMonths": [
+      8,
+      9,
+      11,
+      12,
+      1
+    ],
+    "growingDays": [
+      120,
+      150
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 22,
+      "optMax": 32,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 600,
+      "optMinMm": 1000,
+      "optMaxMm": 1600,
+      "absMaxMm": 2500
+    },
+    "rootDepth": "medium",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "loamy",
+      "clay",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 7.8,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "medium",
+      "salinity": "medium"
+    },
+    "baseIncome": 84,
+    "soilBenefits": "Highly adaptable fruit tree; tolerates flooding and mild salinity better than citrus."
+  },
+  {
+    "id": "pomegranate",
+    "name": "Pomegranate",
+    "scientificName": "Punica granatum",
+    "aliases": [
+      "Anar",
+      "Dalim"
+    ],
+    "family": "Lythraceae",
+    "category": "fruit",
+    "season": "year_round",
+    "plantingMonths": [
+      7,
+      8,
+      1,
+      2
+    ],
+    "harvestMonths": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "growingDays": [
+      150,
+      180
+    ],
+    "temp": {
+      "absMin": 6,
+      "optMin": 20,
+      "optMax": 34,
+      "absMax": 44
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 500,
+      "optMaxMm": 850,
+      "absMaxMm": 1300
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6.5,
+      "optMax": 8,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "high"
+    },
+    "baseIncome": 91,
+    "soilBenefits": "Excellent drought and salt tolerance; high export market value for arid / semi-arid regions."
+  },
+  {
+    "id": "apple",
+    "name": "Apple",
+    "scientificName": "Malus domestica",
+    "aliases": [
+      "Seb",
+      "Apple Tree"
+    ],
+    "family": "Rosaceae",
+    "category": "fruit",
+    "season": "rabi",
+    "plantingMonths": [
+      1,
+      2
+    ],
+    "harvestMonths": [
+      8,
+      9,
+      10
+    ],
+    "growingDays": [
+      150,
+      180
+    ],
+    "temp": {
+      "absMin": -2,
+      "optMin": 12,
+      "optMax": 22,
+      "absMax": 30
+    },
+    "water": {
+      "absMinMm": 500,
+      "optMinMm": 700,
+      "optMaxMm": 1000,
+      "absMaxMm": 1500
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7,
+      "max": 7.5
+    },
+    "tolerances": {
+      "heat": "low",
+      "drought": "low",
+      "flood": "low",
+      "salinity": "low"
+    },
+    "baseIncome": 92,
+    "soilBenefits": "Temperate deciduous fruit; requires 800-1200 winter chilling hours (<7°C) for flower set."
+  },
+  {
+    "id": "grape",
+    "name": "Grape",
+    "scientificName": "Vitis vinifera",
+    "aliases": [
+      "Angoor",
+      "Grapevine"
+    ],
+    "family": "Vitaceae",
+    "category": "fruit",
+    "season": "year_round",
+    "plantingMonths": [
+      1,
+      2,
+      10
+    ],
+    "harvestMonths": [
+      3,
+      4,
+      7,
+      8
+    ],
+    "growingDays": [
+      120,
+      160
+    ],
+    "temp": {
+      "absMin": 5,
+      "optMin": 16,
+      "optMax": 26,
+      "absMax": 36
+    },
+    "water": {
+      "absMinMm": 350,
+      "optMinMm": 500,
+      "optMaxMm": 800,
+      "absMaxMm": 1300
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6.5,
+      "optMax": 7.8,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "medium",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 93,
+    "soilBenefits": "Deep exploratory root system; dry harvest weather prevents fungal downy and powdery mildew."
+  },
+  {
+    "id": "moringa",
+    "name": "Moringa",
+    "scientificName": "Moringa oleifera",
+    "aliases": [
+      "Drumstick",
+      "Sahjan",
+      "Sajna",
+      "Miracle Tree"
+    ],
+    "family": "Moringaceae",
+    "category": "vegetable",
+    "season": "year_round",
+    "plantingMonths": [
+      6,
+      7,
+      8
+    ],
+    "harvestMonths": [
+      1,
+      2,
+      3,
+      4,
+      11,
+      12
+    ],
+    "growingDays": [
+      180,
+      240
+    ],
+    "temp": {
+      "absMin": 10,
+      "optMin": 22,
+      "optMax": 34,
+      "absMax": 44
+    },
+    "water": {
+      "absMinMm": 250,
+      "optMinMm": 500,
+      "optMaxMm": 900,
+      "absMaxMm": 1600
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 8,
+      "max": 9
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 87,
+    "soilBenefits": "Superfood tree with deep tuberous roots; leaves and pods offer exceptional vitamin and protein density."
+  },
+  {
+    "id": "dragon-fruit",
+    "name": "Dragon Fruit",
+    "scientificName": "Selenicereus undatus",
+    "aliases": [
+      "Pitaya",
+      "Pitahaya"
+    ],
+    "family": "Cactaceae",
+    "category": "fruit",
+    "season": "summer",
+    "plantingMonths": [
+      3,
+      4,
+      5
+    ],
+    "harvestMonths": [
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "growingDays": [
+      120,
+      160
+    ],
+    "temp": {
+      "absMin": 8,
+      "optMin": 20,
+      "optMax": 32,
+      "absMax": 40
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 550,
+      "optMaxMm": 900,
+      "absMaxMm": 1500
+    },
+    "rootDepth": "shallow",
+    "nitrogenEffect": "neutral",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5.5,
+      "optMin": 6,
+      "optMax": 7.2,
+      "max": 8
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 95,
+    "soilBenefits": "Climbing cactus with CAM photosynthesis (ultra-efficient water use); high premium dessert fruit."
+  },
+  {
+    "id": "dhaincha-sesbania",
+    "name": "Dhaincha",
+    "scientificName": "Sesbania bispinosa",
+    "aliases": [
+      "Sesbania",
+      "Canabina"
+    ],
+    "family": "Fabaceae",
+    "category": "cover_crop",
+    "season": "summer",
+    "plantingMonths": [
+      4,
+      5,
+      6
+    ],
+    "harvestMonths": [
+      6,
+      7,
+      8
+    ],
+    "growingDays": [
+      45,
+      60
+    ],
+    "temp": {
+      "absMin": 14,
+      "optMin": 24,
+      "optMax": 34,
+      "absMax": 42
+    },
+    "water": {
+      "absMinMm": 450,
+      "optMinMm": 700,
+      "optMaxMm": 1200,
+      "absMaxMm": 2200
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "clay",
+      "loamy",
+      "sandy"
+    ],
+    "phRange": {
+      "min": 4.5,
+      "optMin": 5.5,
+      "optMax": 8.5,
+      "max": 9.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "medium",
+      "flood": "high",
+      "salinity": "high"
+    },
+    "baseIncome": 50,
+    "soilBenefits": "Premier green manure for flooded plying; fixes 80-120 kg N/ha; breaks saline and sodic soil crusts."
+  },
+  {
+    "id": "sunn-hemp",
+    "name": "Sunnhemp",
+    "scientificName": "Crotalaria juncea",
+    "aliases": [
+      "Sunn Hemp",
+      "Sanai",
+      "Indian Hemp"
+    ],
+    "family": "Fabaceae",
+    "category": "cover_crop",
+    "season": "summer",
+    "plantingMonths": [
+      4,
+      5,
+      6
+    ],
+    "harvestMonths": [
+      6,
+      7
+    ],
+    "growingDays": [
+      50,
+      70
+    ],
+    "temp": {
+      "absMin": 12,
+      "optMin": 22,
+      "optMax": 32,
+      "absMax": 38
+    },
+    "water": {
+      "absMinMm": 300,
+      "optMinMm": 500,
+      "optMaxMm": 800,
+      "absMaxMm": 1400
+    },
+    "rootDepth": "deep",
+    "nitrogenEffect": "fixer",
+    "soilTextures": [
+      "sandy",
+      "loamy"
+    ],
+    "phRange": {
+      "min": 5,
+      "optMin": 6,
+      "optMax": 7.5,
+      "max": 8.5
+    },
+    "tolerances": {
+      "heat": "high",
+      "drought": "high",
+      "flood": "low",
+      "salinity": "medium"
+    },
+    "baseIncome": 52,
+    "soilBenefits": "Rapid nitrogen fixation and nematode suppression; produces 20-30 tonnes green biomass in 60 days."
+  }
+]

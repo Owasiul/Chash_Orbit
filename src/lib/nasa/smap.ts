@@ -1,103 +1,393 @@
-// Chash Orbit — Soil moisture service
-// NASA SMAP data is delivered via NSIDC / AppEEARS, which require Earthdata
-// authentication and are not available as a simple unauthenticated REST endpoint
-// for live demos. This module therefore derives a soil-moisture estimate from
-// NASA POWER precipitation + a simple water-balance model, and clearly labels
-// the source as "derived" rather than claiming live SMAP.
-
 import type { PowerAnalysis } from './power';
 
+
+export type DataSource =
+  | 'NASA_POWER'
+  | 'NASA_GPM_IMERG'
+  | 'NASA_SMAP'
+  | 'NASA_MODIS'
+  | 'DERIVED'
+  | 'DEMO';
+
+export type DataStatus =
+  | 'live'
+  | 'cached'
+  | 'fallback'
+  | 'unavailable';
+
+export interface EnvironmentalObservation<T = number> {
+  value: T;
+  unit: string;
+  source: DataSource;
+  status: DataStatus;
+  measurement: 'surface' | 'root-zone' | 'profile';
+  confidence: 'high' | 'medium' | 'low';
+  datasetName?: string;
+  observationDate?: string;
+  spatialResolution?: string;
+}
+
+export interface SoilMoistureDataQuality {
+  validDays: number;
+  missingDays: number;
+  coveragePct: number;
+  isReliable: boolean;
+}
+
+export interface CropGrowthStage {
+  stage: 'initial' | 'development' | 'mid-season' | 'late-season';
+  durationDays: number;
+  kc: number;
+}
+
 export interface SoilMoistureAnalysis {
-  // current surface soil moisture, mm (equivalent water depth in top ~5cm)
-  currentMm: number;
-  // percentage of a notional field capacity (0..100)
-  currentPct: number;
-  // seasonal deficit (mm) — shortfall vs crop demand over last 90 days
+  // Root-zone storage (top ~1 metre) (Section 2.2)
+  rootZoneWaterMm: number;
+  rootZoneWaterPct: number;
+  rootZoneCapacityMm: number;
+
+  // Backward compatibility aliases
+  /** @deprecated Use rootZoneWaterMm to clarify layer distinction. */
+  currentMm?: number;
+  /** @deprecated Use rootZoneWaterPct to clarify layer distinction. */
+  currentPct?: number;
+
+  // NASA POWER Model Assimilation Layers (Section 3.C)
+  surfaceSoilWetnessPct?: number | null; // GWETTOP (0-5cm)
+  rootZoneSoilWetnessPct?: number | null; // GWETROOT (~1m)
+  profileSoilWetnessPct?: number | null; // GWETPROF (full profile)
+
+  // Evapotranspiration metrics (Section 2.3)
+  referenceEtMmPerDay: number;
+  cropEtMmPerDay: number;
+  totalGrowingSeasonEtcMm: number;
+
+  // Crop-stage water deficit (Section 2.4)
   seasonalDeficit: number;
-  // 10-year trend in moisture (% per year) — derived from rainfall trend
-  tenYearTrend: number;
-  // label: "derived" | "demo"
-  source: 'derived' | 'demo';
+  effectiveRainfallMm: number;
+
+  // Separate, honest trend exposure (Section 2.5)
+  rainfallTrendMmPerYear: number | null;
+  soilMoistureTrendPctPerYear: number | null; // null until direct SMAP time-series is active
+  /** @deprecated Replaced by rainfallTrendMmPerYear & soilMoistureTrendPctPerYear */
+  tenYearTrend?: number | null;
+
+  source: DataSource;
+  status: DataStatus;
+  attribution: string;
+  resolution?: string;
+  dataQuality: SoilMoistureDataQuality;
+}
+
+export interface SoilCondition {
+  texture: 'sandy' | 'loamy' | 'clay' | 'unknown';
+  organicMatter: 'low' | 'medium' | 'high';
+  organicMatterProxyConfidence: 'low' | 'medium';
+  organicMatterProxyNote: string;
+  moistureCondition: 'deficit' | 'adequate' | 'surplus';
+  nitrogenBalance: 'depleting' | 'stable' | 'building';
+  nitrogenRotationNote: string;
+  erosionRisk: 'low' | 'medium' | 'high';
+  erosionRiskFactors: {
+    slopeFactor: string;
+    vegetationCoverFactor: string;
+    rainfallIntensityFactor: string;
+  };
+  waterRetention: 'low' | 'medium' | 'high' | 'unknown';
+  source: DataSource;
   attribution: string;
 }
 
-// Simple monthly water-balance model. Bucket capacity ~150mm (representing the
-// top ~1m root-zone store). Daily ET estimated from temperature via a modified
-// Hargreaves expression; precipitation adds to the bucket; ET removes from it.
-function waterBalance(prec: number[], t2m: number[], capacity = 150): number[] {
+// ─────────────────────────────────────────────
+// Soil Capacity & Texture Modeling (Section 2.2)
+// ─────────────────────────────────────────────
+
+export function getAvailableWaterCapacity(
+  texture: 'sandy' | 'loamy' | 'clay' | 'unknown',
+  rootingDepthM = 1.0
+): number {
+  // Available Water Capacity (mm/m):
+  // Sandy: ~90 mm/m, Loamy: ~160 mm/m, Clay: ~190 mm/m, Unknown: 150 mm/m standard
+  const awcTable: Record<string, number> = {
+    sandy: 90,
+    loamy: 160,
+    clay: 190,
+    unknown: 150,
+  };
+  const awc = awcTable[texture] || 150;
+  return Math.round(awc * rootingDepthM);
+}
+
+// ─────────────────────────────────────────────
+// Evapotranspiration Calculations (Section 2.3)
+// ─────────────────────────────────────────────
+
+/**
+ * Calculates extraterrestrial radiation (Ra) in mm/day equivalent from latitude and DOY (FAO-56)
+ */
+function calculateExtraterrestrialRadiation(latDeg: number, dayOfYear: number): number {
+  const latRad = (latDeg * Math.PI) / 180.0;
+  const delta = 0.409 * Math.sin(((2 * Math.PI) / 365.0) * dayOfYear - 1.39);
+  const tanTan = -Math.tan(latRad) * Math.tan(delta);
+  const ws = Math.acos(Math.max(-1.0, Math.min(1.0, tanTan)));
+  const dr = 1 + 0.033 * Math.cos(((2 * Math.PI) / 365.0) * dayOfYear);
+  // Gsc = 0.0820 MJ/m2/min
+  const raMj = ((24 * 60) / Math.PI) * 0.082 * dr * (
+    ws * Math.sin(latRad) * Math.sin(delta) +
+    Math.cos(latRad) * Math.cos(delta) * Math.sin(ws)
+  );
+  return 0.408 * Math.max(0, raMj);
+}
+
+/**
+ * Reference Evapotranspiration (ET0) using NASA POWER solar radiation + temperature
+ */
+export function calculateReferenceET0(
+  tMean: number,
+  tMax: number | null,
+  tMin: number | null,
+  solarRadMJ: number | null,
+  latDeg: number,
+  dayOfYear: number
+): number {
+  // Option 1A: FAO-56 Radiation Method using NASA POWER ALLSKY_SFC_SW_DWN (MJ/m2/day)
+  if (Number.isFinite(solarRadMJ) && (solarRadMJ as number) > 0 && Number.isFinite(tMean)) {
+    const delta = (4098 * (0.6108 * Math.exp((17.27 * tMean) / (tMean + 237.3)))) / Math.pow(tMean + 237.3, 2);
+    const gamma = 0.067; // Psychrometric constant (kPa/°C)
+    const et0 = 0.408 * (delta / (delta + gamma)) * (solarRadMJ as number);
+    return Math.max(0.5, Math.min(15.0, et0));
+  }
+
+  // Option 1B: Full Hargreaves-Samani method with Ra and Diurnal Range
+  const ra = calculateExtraterrestrialRadiation(latDeg, dayOfYear);
+  if (Number.isFinite(tMax) && Number.isFinite(tMin) && Number.isFinite(tMean) && (tMax as number) > (tMin as number)) {
+    const td = Math.max(0.5, (tMax as number) - (tMin as number));
+    const et0 = 0.0023 * (tMean + 17.8) * Math.sqrt(td) * ra;
+    return Math.max(0.5, Math.min(15.0, et0));
+  }
+
+  // Fallback: Modified Temperature-Ra method with assumed diurnal range
+  if (Number.isFinite(tMean)) {
+    const assumedTd = 10.0;
+    const et0 = 0.0023 * (tMean + 17.8) * Math.sqrt(assumedTd) * ra;
+    return Math.max(0.5, Math.min(12.0, et0));
+  }
+
+  return 3.0; // Default climatological reference
+}
+
+// ─────────────────────────────────────────────
+// Robust Root-Zone Water-Balance Model (Section 2.1)
+// ─────────────────────────────────────────────
+
+interface WaterBalanceResult {
+  store: number[];
+  validDays: number;
+  missingDays: number;
+  coveragePct: number;
+  isReliable: boolean;
+  dailyEtc: number[];
+}
+
+function waterBalance(
+  prec: number[],
+  t2m: number[],
+  capacity = 150,
+  kc = 1.0,
+  latitude = 23.8,
+  dates: string[] = []
+): WaterBalanceResult {
   const store: number[] = [];
-  let bucket = capacity * 0.5; // start half-full
+  const dailyEtc: number[] = [];
+  let bucket = capacity * 0.5; // Start at 50% available capacity
+  let validDays = 0;
+  let missingDays = 0;
+
   for (let i = 0; i < prec.length; i++) {
-    const p = prec[i] || 0;
+    const p = prec[i];
     const t = t2m[i];
-    // Hargreaves-ish PET (mm/day) with a sanity clamp
-    const pet = Number.isNaN(t) ? 2 : Math.max(0.5, Math.min(10, 0.0023 * (t + 17.8) * Math.sqrt(Math.max(0, t - 5))));
-    bucket = Math.max(0, Math.min(capacity, bucket + p - pet));
+
+    // Do NOT treat missing observations as zero or guess 2 mm/day PET (Section 2.1)
+    if (!Number.isFinite(p) || !Number.isFinite(t)) {
+      missingDays++;
+      store.push(bucket);
+      dailyEtc.push(0);
+      continue;
+    }
+
+    validDays++;
+
+    // Determine Day of Year from date string if present
+    let doy = 180;
+    if (dates[i] && dates[i].length >= 8) {
+      const clean = dates[i].replace(/-/g, '');
+      const d = new Date(Date.UTC(+clean.slice(0, 4), +clean.slice(4, 6) - 1, +clean.slice(6, 8)));
+      const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 0));
+      doy = Math.floor((d.getTime() - start.getTime()) / 86400000);
+    }
+
+    const et0 = calculateReferenceET0(t, null, null, null, latitude, doy);
+    const etc = et0 * kc;
+    dailyEtc.push(etc);
+
+    // Infiltration and storage constraint
+    bucket = Math.max(0, Math.min(capacity, bucket + p - etc));
     store.push(bucket);
   }
-  return store;
+
+  const total = prec.length || 1;
+  const coveragePct = Math.round((validDays / total) * 1000) / 10;
+
+  return {
+    store,
+    validDays,
+    missingDays,
+    coveragePct,
+    isReliable: coveragePct >= 80,
+    dailyEtc,
+  };
+}
+
+// ─────────────────────────────────────────────
+// Seasonal Water Deficit (Section 2.4)
+// D = ETc - Peffective - I - DeltaS
+// ─────────────────────────────────────────────
+
+function calculateEffectiveRainfall(precipitationMm: number[]): number {
+  let effective = 0;
+  for (const p of precipitationMm) {
+    if (Number.isFinite(p) && p > 2.0) {
+      // USDA-SCS daily approximation: daily rain <= 2mm is lost to canopy interception & surface evaporation
+      effective += Math.max(0, (p - 2.0) * 0.8);
+    }
+  }
+  return Math.round(effective * 10) / 10;
 }
 
 export function deriveSoilMoisture(
   power: PowerAnalysis,
   cropWaterMm: number,
+  options: {
+    soilTexture?: 'sandy' | 'loamy' | 'clay' | 'unknown';
+    rootingDepthM?: number;
+    cropKc?: number;
+    latitude?: number;
+    irrigationAppliedMm?: number;
+    analysisDays?: number;
+  } = {}
 ): SoilMoistureAnalysis {
-  // If POWER failed and produced NaNs, fall through to a demo value.
-  if (Number.isNaN(power.annualRainfall)) {
+  const texture = options.soilTexture || 'unknown';
+  const capacity = getAvailableWaterCapacity(texture, options.rootingDepthM || 1.0);
+  const kc = options.cropKc || 1.0;
+  const lat = options.latitude ?? 23.8;
+  const irrigation = options.irrigationAppliedMm || 0;
+
+  if (Number.isNaN(power.annualRainfall) || !power.series?.dates?.length) {
     return {
+      rootZoneWaterMm: 0,
+      rootZoneWaterPct: 0,
+      rootZoneCapacityMm: capacity,
       currentMm: 0,
       currentPct: 0,
+      referenceEtMmPerDay: 0,
+      cropEtMmPerDay: 0,
+      totalGrowingSeasonEtcMm: 0,
       seasonalDeficit: 0,
-      tenYearTrend: 0,
-      source: 'demo',
-      attribution: 'Demo estimate (NASA POWER unreachable).',
+      effectiveRainfallMm: 0,
+      rainfallTrendMmPerYear: null,
+      soilMoistureTrendPctPerYear: null,
+      tenYearTrend: null,
+      source: 'DEMO',
+      status: 'unavailable',
+      attribution: 'Demo estimate (NASA POWER observations unreachable).',
+      resolution: '0.5° (~50 km derived water balance)',
+      dataQuality: { validDays: 0, missingDays: 0, coveragePct: 0, isReliable: false },
     };
   }
 
   const s = power.series;
   const n = s.dates.length;
-  const recent90 = Math.max(0, n - 90);
-  const store = waterBalance(s.prectotcorr, s.t2m);
-  const recent90Store = store.slice(recent90);
-  const currentMm = recent90Store.length
-    ? recent90Store[recent90Store.length - 1]
-    : 0;
-  const currentPct = Math.max(0, Math.min(100, (currentMm / 150) * 100));
+  const windowDays = Math.min(n, options.analysisDays || 90);
+  const startIndex = Math.max(0, n - windowDays);
 
-  // Seasonal deficit = (crop water need over 90 days) - (actual rainfall over 90d).
-  // cropWaterMm is the whole-season need; assume a ~120-day season.
-  const cropNeed90 = cropWaterMm * (90 / 120);
-  const actual90 = power.growingSeasonRainfall;
-  const seasonalDeficit = Math.max(0, cropNeed90 - actual90);
+  const precSlice = s.prectotcorr.slice(startIndex);
+  const t2mSlice = s.t2m.slice(startIndex);
+  const datesSlice = s.dates.slice(startIndex);
 
-  // Trend: scale POWER's rainfall trend into a moisture trend (%/year)
-  // Assume 1mm/year rainfall change ≈ 0.5% moisture change (illustrative).
-  const tenYearTrend = power.tenYearRainfallTrend * 0.05;
+  const wb = waterBalance(precSlice, t2mSlice, capacity, kc, lat, datesSlice);
+
+  const currentMm = wb.store.length ? wb.store[wb.store.length - 1] : 0;
+  const currentPct = Math.max(0, Math.min(100, (currentMm / capacity) * 100));
+
+  // Physical Water Deficit Equation (Section 2.4): D = ETc - Peffective - I - DeltaS
+  const totalEtc = wb.dailyEtc.reduce((a, b) => a + b, 0);
+  const effectiveRainfall = calculateEffectiveRainfall(precSlice);
+  const storageStart = wb.store[0] || (capacity * 0.5);
+  const storageEnd = currentMm;
+  const deltaStorage = storageStart - storageEnd; // Positive delta S indicates soil storage buffer supplied water
+
+  const physicalDeficit = Math.max(0, totalEtc - effectiveRainfall - irrigation - deltaStorage);
+
+  const avgEt0 = wb.dailyEtc.length ? totalEtc / (wb.dailyEtc.length * kc) : 0;
+  const avgEtc = wb.dailyEtc.length ? totalEtc / wb.dailyEtc.length : 0;
+
+  // NASA POWER Model-based Soil Wetness Parameters (Section 3.C)
+  const powerAny = power as any;
+  const surfaceWetness = powerAny.series?.gwettop?.length
+    ? Math.round(powerAny.series.gwettop[powerAny.series.gwettop.length - 1] * 100)
+    : null;
+  const rootWetness = powerAny.series?.gwetroot?.length
+    ? Math.round(powerAny.series.gwetroot[powerAny.series.gwetroot.length - 1] * 100)
+    : null;
+  const profileWetness = powerAny.series?.gwetprof?.length
+    ? Math.round(powerAny.series.gwetprof[powerAny.series.gwetprof.length - 1] * 100)
+    : null;
 
   return {
+    rootZoneWaterMm: Math.round(currentMm * 10) / 10,
+    rootZoneWaterPct: Math.round(currentPct * 10) / 10,
+    rootZoneCapacityMm: capacity,
+
     currentMm: Math.round(currentMm * 10) / 10,
     currentPct: Math.round(currentPct * 10) / 10,
-    seasonalDeficit: Math.round(seasonalDeficit * 10) / 10,
-    tenYearTrend: Math.round(tenYearTrend * 1000) / 1000,
-    source: power.source === 'demo' ? 'demo' : 'derived',
-    attribution: power.source === 'demo'
-      ? 'Demo estimate (NASA POWER unreachable). Values are illustrative.'
-      : 'Derived estimate from NASA POWER precipitation + a water-balance model. Live NASA SMAP data requires authenticated NSIDC/AppEEARS access.',
+
+    surfaceSoilWetnessPct: surfaceWetness,
+    rootZoneSoilWetnessPct: rootWetness,
+    profileSoilWetnessPct: profileWetness,
+
+    referenceEtMmPerDay: Math.round(avgEt0 * 10) / 10,
+    cropEtMmPerDay: Math.round(avgEtc * 10) / 10,
+    totalGrowingSeasonEtcMm: Math.round(totalEtc * 10) / 10,
+
+    seasonalDeficit: Math.round(physicalDeficit * 10) / 10,
+    effectiveRainfallMm: effectiveRainfall,
+
+    // Removed arbitrary 0.05 scaling (Section 2.5)
+    rainfallTrendMmPerYear: Number.isFinite(power.tenYearRainfallTrend)
+      ? Math.round(power.tenYearRainfallTrend * 10) / 10
+      : null,
+    soilMoistureTrendPctPerYear: null, // Scientifically honest: no direct SMAP time-series yet
+    tenYearTrend: null,
+
+    source: power.source === 'demo' ? 'DEMO' : 'DERIVED',
+    status: power.source === 'demo' ? 'unavailable' : 'fallback',
+    attribution:
+      power.source === 'demo'
+        ? 'Demo estimates (NASA POWER unreachable).'
+        : 'Derived root-zone soil water balance driven by NASA POWER daily meteorology (MERRA-2). Live SMAP assimilation prepared for NSIDC/Earthdata integration.',
+    resolution: '0.5° (~50 km derived water balance)',
+    dataQuality: {
+      validDays: wb.validDays,
+      missingDays: wb.missingDays,
+      coveragePct: wb.coveragePct,
+      isReliable: wb.isReliable,
+    },
   };
 }
 
-// Soil texture inference — never claims NASA direct measurement; derived from
-// regional/climatic signals when farmer selects "I don't know".
-export interface SoilCondition {
-  texture: 'sandy' | 'loamy' | 'clay' | 'unknown';
-  organicMatter: 'low' | 'medium' | 'high';
-  moistureCondition: 'deficit' | 'adequate' | 'surplus';
-  nitrogenBalance: 'depleting' | 'stable' | 'building';
-  erosionRisk: 'low' | 'medium' | 'high';
-  waterRetention: 'low' | 'medium' | 'high';
-  source: 'derived' | 'demo';
-  attribution: string;
-}
+// ─────────────────────────────────────────────
+// Soil Condition Inferences (Section 2.6)
+// ─────────────────────────────────────────────
 
 export function deriveSoilCondition(
   soilType: 'sandy' | 'loamy' | 'clay' | 'unknown',
@@ -105,39 +395,77 @@ export function deriveSoilCondition(
   sm: SoilMoistureAnalysis,
   ndvi: number,
   currentCropIsLegume: boolean,
+  options: {
+    slope?: 'flat' | 'gentle' | 'moderate' | 'steep';
+    peakDailyRainfallMm?: number;
+    nodulationActive?: boolean;
+  } = {}
 ): SoilCondition {
-  const texture = soilType === 'unknown' ? 'loamy' : soilType;
-  // Erosion risk — high if heavy rain variability + sandy + low vegetation
-  let erosionRisk: SoilCondition['erosionRisk'] = 'low';
-  if (power.rainfallVariability > 8 && (texture === 'sandy' || ndvi < 0.3)) erosionRisk = 'high';
-  else if (power.rainfallVariability > 4 || texture === 'sandy') erosionRisk = 'medium';
+  // Do NOT assume loamy if unknown (Section 2.6)
+  const texture = soilType;
 
-  // Water retention
+  // Water retention: accurately reflecting uncertainty when texture is unknown
   const waterRetention: SoilCondition['waterRetention'] =
-    texture === 'clay' ? 'high' : texture === 'loamy' ? 'medium' : 'low';
+    texture === 'clay' ? 'high' : texture === 'loamy' ? 'medium' : texture === 'sandy' ? 'low' : 'unknown';
 
-  // Organic matter estimate from NDVI + texture
-  const organicMatter: SoilCondition['organicMatter'] =
-    ndvi > 0.5 ? 'high' : ndvi > 0.3 ? 'medium' : 'low';
+  // Organic matter proxy: Greenness (NDVI) does not directly measure organic matter
+  const organicMatter: SoilCondition['organicMatter'] = ndvi > 0.55 ? 'high' : ndvi > 0.35 ? 'medium' : 'low';
+  const organicMatterProxyConfidence: SoilCondition['organicMatterProxyConfidence'] =
+    texture === 'unknown' ? 'low' : 'medium';
+  const organicMatterProxyNote =
+    'NDVI reflects vegetative canopy vigor and serves only as an indirect proxy for biological soil activity. Direct soil testing is recommended for verified SOC levels.';
 
-  // Moisture condition from soil moisture pct
+  // Moisture condition evaluated against root-zone capacity percentage
   const moistureCondition: SoilCondition['moistureCondition'] =
-    sm.currentPct < 30 ? 'deficit' : sm.currentPct > 70 ? 'surplus' : 'adequate';
+    sm.rootZoneWaterPct < 30 ? 'deficit' : sm.rootZoneWaterPct > 75 ? 'surplus' : 'adequate';
 
-  // Nitrogen balance — legumes build N, cereals deplete
-  const nitrogenBalance: SoilCondition['nitrogenBalance'] = currentCropIsLegume
-    ? 'building'
-    : 'depleting';
+  // Nitrogen balance: Crop-specific rotation guidance and stress conditions
+  let nitrogenBalance: SoilCondition['nitrogenBalance'] = 'depleting';
+  let nitrogenRotationNote = 'Cereal / non-legume cropping depletes soil nitrogen; replenishing rotation recommended.';
+
+  if (currentCropIsLegume) {
+    if (sm.rootZoneWaterPct < 25) {
+      nitrogenBalance = 'stable';
+      nitrogenRotationNote =
+        'Legume cultivated, but severe root-zone moisture deficit inhibits Rhizobium nodule nitrogen fixation.';
+    } else {
+      nitrogenBalance = 'building';
+      nitrogenRotationNote =
+        'Symbiotic biological nitrogen fixation active. Recommended to leave biomass residues post-harvest.';
+    }
+  }
+
+  // Erosion risk: Multifactorial (slope, vegetation cover, rainfall intensity, texture)
+  const slope = options.slope || 'gentle';
+  const peakRain = options.peakDailyRainfallMm ?? (power.rainfallVariability * 3.5);
+
+  const slopeScore = slope === 'steep' ? 3 : slope === 'moderate' ? 2 : slope === 'gentle' ? 1 : 0;
+  const coverScore = ndvi < 0.25 ? 3 : ndvi < 0.45 ? 2 : 0; // Low NDVI leaves topsoil exposed
+  const rainScore = peakRain > 45 || power.rainfallVariability > 8 ? 2 : peakRain > 25 ? 1 : 0;
+  const textureErodibility = texture === 'sandy' ? 1 : 0;
+
+  const totalErosionScore = slopeScore + coverScore + rainScore + textureErodibility;
+  const erosionRisk: SoilCondition['erosionRisk'] =
+    totalErosionScore >= 5 ? 'high' : totalErosionScore >= 2 ? 'medium' : 'low';
 
   return {
     texture,
     organicMatter,
+    organicMatterProxyConfidence,
+    organicMatterProxyNote,
     moistureCondition,
     nitrogenBalance,
+    nitrogenRotationNote,
     erosionRisk,
+    erosionRiskFactors: {
+      slopeFactor: `Slope category: ${slope}`,
+      vegetationCoverFactor: ndvi > 0.45 ? 'Adequate canopy protection' : 'Sparse cover, high raindrop impact',
+      rainfallIntensityFactor:
+        rainScore >= 2 ? 'High storm intensity detected' : 'Moderate rainfall intensity',
+    },
     waterRetention,
-    source: 'derived',
+    source: 'DERIVED',
     attribution:
-      'Derived from regional signals, NASA POWER rainfall patterns, vegetation index, and farmer-reported soil texture. NOT direct NASA measurement.',
+      'Derived through multi-criteria environmental modeling (NASA POWER rainfall variability, NDVI canopy protection, and user field topography). Not a direct soil lab assay.',
   };
 }

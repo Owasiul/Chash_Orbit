@@ -16,14 +16,18 @@ export interface NdviObservation {
 export interface VegetationAnalysis {
   ndvi: number;                 // 0..1 — observed (live) or estimated (derived/demo)
   health: 'poor' | 'moderate' | 'good' | 'vigorous';
-  // `ndvi` is the value shown for the month (observed when live, else model);
-  // `model` is always the POWER-driven model, so the UI can compare the two.
   seasonalPattern: { month: string; ndvi: number | null; model: number }[];
   observations?: NdviObservation[];
   observedDate?: string;        // date of the most recent MODIS composite used
   recentTrend: number;          // NDVI change per year
   source: 'live' | 'cached' | 'derived' | 'demo';
   attribution: string;
+  resolution?: string;
+  areaWindowKm?: number;
+  ndviLoading?: boolean;
+  sentinel2SceneId?: string | null;
+  sentinel2Date?: string | null;
+  sentinel2CloudCover?: number | null;
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -169,15 +173,26 @@ function slopePerYear(obs: NdviObservation[]): number {
 export function deriveVegetation(
   power: PowerAnalysis,
   lat: number,
-  modis: ModisNdviResult | null = null,
+  arg3?: number | ModisNdviResult | null,
+  arg4?: ModisNdviResult | null,
+  polygon?: [number, number][],
+  sentinel?: { sceneId: string; datetime?: string; cloudCoverPct?: number } | null,
 ): VegetationAnalysis {
+  let lng = 0;
+  let modis: ModisNdviResult | null = null;
+  if (typeof arg3 === 'number') {
+    lng = arg3;
+    modis = arg4 ?? null;
+  } else {
+    modis = (arg3 as ModisNdviResult | null) ?? null;
+  }
   const model = seasonalModel(power);
+  const { totalWindowKm } = computePolygonKmWindow(polygon);
 
-  if (modis && modis.observations.length) {
+  if (modis && modis.observations && modis.observations.length) {
     const obs = modis.observations;
     const byMonth: Record<number, number[]> = {};
     for (const o of obs) (byMonth[Number(o.date.slice(5, 7)) - 1] ||= []).push(o.ndvi);
-    // Median of the last 3 composites (~48 days) damps single-scene cloud noise.
     const current = Math.round(median(obs.slice(-3).map(o => o.ndvi)) * 100) / 100;
     return {
       ndvi: current,
@@ -192,20 +207,81 @@ export function deriveVegetation(
       recentTrend: Math.round(slopePerYear(obs) * 1000) / 1000,
       source: modis.source,
       attribution: 'NASA MODIS Terra MOD13Q1 (250 m, 16-day NDVI) via ORNL DAAC MODIS/VIIRS Land Product Subsets.',
+      resolution: '250 m (NASA MODIS Terra MOD13Q1)',
+      areaWindowKm: (modis as any).areaWindowKm ?? totalWindowKm,
+      ndviLoading: false,
+      sentinel2SceneId: sentinel?.sceneId ?? null,
+      sentinel2Date: sentinel?.datetime ?? null,
+      sentinel2CloudCover: sentinel?.cloudCoverPct ?? null,
     };
   }
 
   const isDemo = power.source === 'demo' || Number.isNaN(power.annualRainfall);
-  const current = model[new Date().getUTCMonth()] ?? 0.3;
+  let current = model[new Date().getUTCMonth()] ?? 0.3;
+  if (isSouthAsia(lat, lng)) {
+    current = applyRegionalBias(current, lat, lng);
+  }
   return {
     ndvi: current,
     health: healthOf(current),
     seasonalPattern: MONTHS.map((month, i) => ({ month, ndvi: model[i], model: model[i] })),
-    // Tie trend to rainfall trend (positive rainfall -> rising NDVI); illustrative.
     recentTrend: isDemo ? 0 : Math.round(power.tenYearRainfallTrend * 0.001 * 1000) / 1000,
     source: isDemo ? 'demo' : 'derived',
     attribution: isDemo
       ? 'Demo estimate (NASA POWER unreachable). Values are illustrative.'
       : 'Derived estimate from NASA POWER precipitation and temperature climatology (live MODIS NDVI was not available in time).',
+    resolution: '0.5° × 0.5° (~50 km derived from NASA POWER climatology)',
+    areaWindowKm: totalWindowKm,
+    ndviLoading: false,
+    sentinel2SceneId: sentinel?.sceneId ?? null,
+    sentinel2Date: sentinel?.datetime ?? null,
+    sentinel2CloudCover: sentinel?.cloudCoverPct ?? null,
   };
+}
+
+// ── Polygon window, regional South Asia bias & inflight status ──────────────
+export function computePolygonKmWindow(polygon?: [number, number][] | { coordinates?: [number, number][] }): { kmAboveBelow: number; kmLeftRight: number; totalWindowKm: number } {
+  const coords: [number, number][] | undefined = Array.isArray(polygon)
+    ? polygon
+    : Array.isArray(polygon?.coordinates)
+      ? polygon.coordinates
+      : undefined;
+  if (!coords || coords.length < 3) return { kmAboveBelow: 0, kmLeftRight: 0, totalWindowKm: 0.25 };
+  let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+  for (const [lng, lat] of coords) {
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+  }
+  const deltaLat = maxLat - minLat;
+  const deltaLng = maxLng - minLng;
+  const avgLat = (minLat + maxLat) / 2;
+  const heightKm = deltaLat * 111;
+  const widthKm = deltaLng * 111 * Math.cos((avgLat * Math.PI) / 180);
+
+  // If smaller than 500m across, single 250m pixel is appropriate
+  const kmAboveBelow = Math.min(10, Math.max(0, Math.round(heightKm / 2)));
+  const kmLeftRight = Math.min(10, Math.max(0, Math.round(widthKm / 2)));
+  const totalWindowKm = Math.max(0.25, Math.max(kmAboveBelow * 2, kmLeftRight * 2));
+  return { kmAboveBelow, kmLeftRight, totalWindowKm };
+}
+
+export function isSouthAsia(lat: number, lng: number): boolean {
+  return lat >= 6 && lat <= 37 && lng >= 68 && lng <= 98;
+}
+
+export function applyRegionalBias(rawNdvi: number, lat: number, lng: number): number {
+  if (isSouthAsia(lat, lng)) {
+    return Math.max(0.05, Math.min(0.85, Math.round((rawNdvi - 0.28) * 100) / 100));
+  }
+  return rawNdvi;
+}
+
+export function isModisInflight(lat: number, lng: number): boolean {
+  const flightKeyPrefix = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+  for (const key of inflight.keys()) {
+    if (key.includes(flightKeyPrefix)) return true;
+  }
+  return false;
 }

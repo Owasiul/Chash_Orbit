@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import type { Environment } from '@/lib/nasa/environment';
+import type { VegetationAnalysis } from '@/lib/nasa/modis';
 import { revivePowerSeries } from '@/lib/nasa/revive-power';
 import type {
   AnalysisResult,
@@ -23,6 +24,7 @@ export type View =
 export type DashboardTab =
   | 'field'
   | 'signals'
+  | 'workspace'
   | 'crops'
   | 'planner'
   | 'compare'
@@ -55,7 +57,7 @@ export interface FullAnalysis {
   cropCompatibility: AnalysisResult['cropCompatibility'];
   recommendations: AnalysisResult['recommendations'];
   rotationPlan: AnalysisResult['rotationPlan'];
-  sources: { name: string; source: 'live' | 'cached' | 'demo' | 'derived'; attribution: string }[];
+  sources: { name: string; source: 'live' | 'cached' | 'demo' | 'derived'; attribution: string; resolution?: string }[];
 }
 
 function reviveAnalysis(analysis: FullAnalysis): FullAnalysis {
@@ -64,12 +66,24 @@ function reviveAnalysis(analysis: FullAnalysis): FullAnalysis {
   return { ...analysis, environment: { ...analysis.environment, rawPower: revivePowerSeries(power) } };
 }
 
+export interface PolygonData {
+  coordinates: [number, number][];
+  areaHa: number;
+  areaAcres: number;
+  centroid: [number, number];
+  bbox: [number, number, number, number];
+  geojson?: any;
+}
+
 interface AppState {
   view: View;
   dashboardTab: DashboardTab;
 
   // Selected location (from globe search)
   selected: GeoResult | null;
+
+  // Active drawn polygon boundary and metrics
+  activePolygon: PolygonData | null;
 
   // Farmer inputs collected during onboarding
   inputs: FarmerInputs | null;
@@ -83,8 +97,10 @@ interface AppState {
   setView: (v: View) => void;
   setDashboardTab: (t: DashboardTab) => void;
   setSelected: (g: GeoResult | null) => void;
+  setActivePolygon: (p: PolygonData | null) => void;
   setInputs: (i: FarmerInputs) => void;
   setAnalysis: (a: FullAnalysis | null) => void;
+  updateVegetation: (veg: VegetationAnalysis) => void;
   setAdvisorChatHistory: (history: any[]) => void;
   setAdvisorReport: (report: any | null) => void;
   // Saves the inputs, shows the analyzing screen, and calls the analyze API.
@@ -96,6 +112,7 @@ export const useAppStore = create<AppState>((set) => ({
   view: 'home',
   dashboardTab: 'field',
   selected: null,
+  activePolygon: null,
   inputs: null,
   analysis: null,
   advisorChatHistory: [],
@@ -103,8 +120,22 @@ export const useAppStore = create<AppState>((set) => ({
   setView: (v) => set({ view: v }),
   setDashboardTab: (t) => set({ dashboardTab: t }),
   setSelected: (g) => set({ selected: g }),
+  setActivePolygon: (p) => set({ activePolygon: p }),
   setInputs: (i) => set({ inputs: i }),
   setAnalysis: (a) => set({ analysis: a ? reviveAnalysis(a) : null }),
+  updateVegetation: (veg) =>
+    set((state) => {
+      if (!state.analysis) return state;
+      return {
+        analysis: {
+          ...state.analysis,
+          environment: {
+            ...state.analysis.environment,
+            vegetation: veg,
+          },
+        },
+      };
+    }),
   setAdvisorChatHistory: (h) => set({ advisorChatHistory: h }),
   setAdvisorReport: (r) => set({ advisorReport: r }),
   runAnalysis: async (inputs, meta) => {
@@ -130,6 +161,7 @@ export const useAppStore = create<AppState>((set) => ({
       view: 'home',
       dashboardTab: 'field',
       selected: null,
+      activePolygon: null,
       inputs: null,
       analysis: null,
       advisorChatHistory: [],

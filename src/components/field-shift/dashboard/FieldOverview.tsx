@@ -225,7 +225,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
 
   const heat = heatLabel(risks.heatRisk);
   const drought = droughtLabel(risks.droughtRisk);
-  const rain = rainfallLabel(environment.rainfall.anomalyPct);
+  const rain = rainfallLabel(environment.rainfall.anomalyPct ?? 0);
   const sm = soilMoistureLabel(risks.soilMoistureDeficit);
   const veg = vegetationLabel(environment.vegetation.ndvi);
 
