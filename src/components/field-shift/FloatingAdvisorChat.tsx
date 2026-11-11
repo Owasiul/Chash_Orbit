@@ -178,6 +178,9 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
     setInput("");
     setLoading(true);
 
+    const assistantMsgId = "assistant-" + Date.now();
+    let assistantText = "";
+
     try {
       const res = await fetch("/api/field/chat", {
         method: "POST",
@@ -196,9 +199,6 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
       const reader = res.body?.getReader();
       if (!reader) throw new Error("No readable stream");
 
-      const assistantMsgId = "assistant-" + Date.now();
-      let assistantText = "";
-
       // Add placeholder assistant message
       setMessages((prev) => [
         ...prev,
@@ -206,14 +206,21 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
       ]);
 
       const decoder = new TextDecoder();
+      let buffer = "";
+
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
+        buffer += decoder.decode(value, { stream: true });
+        let newlineIdx: number;
 
-        for (const line of lines) {
+        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+          const rawLine = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          const line = rawLine.replace(/\r$/, "").trim();
+          if (!line) continue;
+
           if (line.startsWith("0:")) {
             try {
               const textContent = JSON.parse(line.slice(2));
@@ -226,11 +233,28 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                 );
               }
             } catch {}
-          } else if (line.startsWith("data: ")) {
+          } else if (line.startsWith("data:")) {
+            const dataStr = line.replace(/^data:\s*/, "");
+            if (dataStr === "[DONE]") continue;
+
             try {
-              const json = JSON.parse(line.slice(6));
-              if (json.type === "text-delta" && json.delta) {
-                assistantText += json.delta;
+              const json = JSON.parse(dataStr);
+              const delta = json.delta ?? json.text ?? json.textDelta;
+              if (json.type === "text-delta" && delta) {
+                assistantText += delta;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId ? { ...m, content: assistantText } : m
+                  )
+                );
+              } else if (json.type === "error") {
+                const errText =
+                  json.errorText ||
+                  json.error ||
+                  (locale === "bn-BD"
+                    ? "তথ্য প্রক্রিয়া করতে সমস্যা হয়েছে।"
+                    : "An error occurred while generating the advice.");
+                assistantText = errText;
                 setMessages((prev) =>
                   prev.map((m) =>
                     m.id === assistantMsgId ? { ...m, content: assistantText } : m
@@ -241,19 +265,65 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
           }
         }
       }
+
+      // Check remaining buffer
+      if (buffer.trim()) {
+        const line = buffer.replace(/\r$/, "").trim();
+        if (line.startsWith("data:")) {
+          const dataStr = line.replace(/^data:\s*/, "");
+          if (dataStr !== "[DONE]") {
+            try {
+              const json = JSON.parse(dataStr);
+              const delta = json.delta ?? json.text ?? json.textDelta;
+              if (json.type === "text-delta" && delta) {
+                assistantText += delta;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId ? { ...m, content: assistantText } : m
+                  )
+                );
+              }
+            } catch {}
+          }
+        }
+      }
+
+      // Ensure assistant message is not left empty
+      if (!assistantText.trim()) {
+        const fallbackText =
+          locale === "bn-BD"
+            ? "দুঃখিত, কোনো উত্তর পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।"
+            : "No response received. Please try asking your question again.";
+        assistantText = fallbackText;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsgId ? { ...m, content: assistantText } : m
+          )
+        );
+      }
     } catch (err: any) {
       console.error("[FloatingAdvisorChat] error:", err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: "err-" + Date.now(),
-          role: "assistant",
-          content:
-            locale === "bn-BD"
-              ? "দুঃখিত, তথ্য প্রক্রিয়া করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
-              : "Sorry, I encountered an error processing your query. Please ask again.",
-        },
-      ]);
+      const errorContent =
+        locale === "bn-BD"
+          ? "দুঃখিত, তথ্য প্রক্রিয়া করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।"
+          : "Sorry, I encountered an error processing your query. Please ask again.";
+
+      setMessages((prev) => {
+        const hasPlaceholder = prev.some((m) => m.id === assistantMsgId);
+        if (hasPlaceholder) {
+          return prev.map((m) =>
+            m.id === assistantMsgId ? { ...m, content: errorContent } : m
+          );
+        }
+        return [
+          ...prev,
+          {
+            id: "err-" + Date.now(),
+            role: "assistant",
+            content: errorContent,
+          },
+        ];
+      });
     } finally {
       setLoading(false);
     }
@@ -500,7 +570,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                   >
                     {isUser ? (
                       <p className="whitespace-pre-wrap">{m.content}</p>
-                    ) : (
+                    ) : m.content ? (
                       <div className="prose prose-invert prose-xs max-w-none space-y-2">
                         <ReactMarkdown
                           components={{
@@ -518,6 +588,11 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                           {m.content}
                         </ReactMarkdown>
                       </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 py-0.5 text-muted-foreground">
+                        <Loader2 className="size-3 animate-spin text-amber-400" />
+                        <span className="text-[11px]">{t("Advisor is thinking...")}</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -525,7 +600,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
             })}
 
             {/* Thinking / Streaming Indicator */}
-            {loading && (
+            {loading && !messages.some((m) => m.role === "assistant" && !m.content) && (
               <div className="flex gap-2 items-center text-xs text-muted-foreground">
                 <AdvisorAvatarIcon className="size-7" />
                 <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-white/10 bg-slate-900/90 px-3 py-2 text-xs">

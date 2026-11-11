@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: translateMessage(locale, 'Analysis data is required') }, { status: 400 });
     }
 
-    const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
+    const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       // Deterministic grounded report generator when LLM API key is not configured

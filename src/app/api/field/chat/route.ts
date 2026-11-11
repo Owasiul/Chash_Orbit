@@ -220,7 +220,7 @@ export async function POST(req: Request) {
       coreMessages.shift();
     }
 
-    const geminiModel = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
+    const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
     // If no Google API key is configured, stream grounded deterministic answers cleanly
     if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -229,7 +229,9 @@ export async function POST(req: Request) {
 
       const stream = createUIMessageStream({
         execute: ({ writer }) => {
-          writer.write({ type: 'text-delta', delta: fallbackReply });
+          writer.write({ type: 'text-start', id: '0' });
+          writer.write({ type: 'text-delta', id: '0', delta: fallbackReply });
+          writer.write({ type: 'text-end', id: '0' });
         },
       });
 
@@ -255,18 +257,51 @@ CURRENT FIELD ANALYSIS JSON:
 ${analysis ? JSON.stringify(analysis, null, 2) : 'No field has been analyzed yet. The farmer is exploring the global satellite map.'}
 `;
 
-    const result = streamText({
-      model: google(geminiModel),
-      system: systemPrompt,
-      messages: coreMessages,
-    });
+    try {
+      const result = streamText({
+        model: google(geminiModel),
+        system: systemPrompt,
+        messages: coreMessages,
+      });
 
-    return result.toUIMessageStreamResponse();
+      return result.toUIMessageStreamResponse({
+        onError: (err) => {
+          console.error('Chat stream error:', err);
+          return err instanceof Error ? err.message : 'An error occurred during response streaming.';
+        },
+      });
+    } catch (llmErr) {
+      console.warn('LLM streamText call failed, falling back to deterministic answer:', llmErr);
+      const lastUserMsg = coreMessages.filter(m => m.role === 'user').pop()?.content || '';
+      const fallbackReply = generateDeterministicAnswer(lastUserMsg, analysis, locale);
+
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: 'text-start', id: '0' });
+          writer.write({ type: 'text-delta', id: '0', delta: fallbackReply });
+          writer.write({ type: 'text-end', id: '0' });
+        },
+      });
+
+      return createUIMessageStreamResponse({ stream });
+    }
   } catch (error: any) {
     console.error('Chat failed:', error);
-    return new Response(JSON.stringify({
-      error: translateMessage(locale, 'Failed to process chat message'),
-      details: error.message,
-    }), { status: 500 });
+    try {
+      const fallbackReply = generateDeterministicAnswer('summary', null, locale);
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: 'text-start', id: '0' });
+          writer.write({ type: 'text-delta', id: '0', delta: fallbackReply });
+          writer.write({ type: 'text-end', id: '0' });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
+    } catch {
+      return new Response(JSON.stringify({
+        error: translateMessage(locale, 'Failed to process chat message'),
+        details: error.message,
+      }), { status: 500 });
+    }
   }
 }
