@@ -296,10 +296,10 @@ export function SinglePageDashboard() {
             <Image
               src="/Logo.webp"
               alt="Logo"
-              width={50}
-              height={50}
+              width={48}
+              height={48}
               priority
-              style={{ width: "auto", height: "auto" }}
+              className="h-10 w-10 shrink-0 object-contain sm:h-12 sm:w-12"
             />
 
             <div className="min-w-0">
