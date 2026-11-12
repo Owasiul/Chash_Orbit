@@ -168,11 +168,13 @@ export function computeRisks(env: Environment): Risks {
     20 * (1 - ramp(env.rainfall.growingSeasonRainfall, 100, 300)), // little rain in the last 90 days
     0, 100,
   );
-  // Flood risk: rain-heavy, erratic, or already saturated.
+  // Flood risk: rain-heavy, erratic, or already saturated. Keep the response
+  // continuous even when rainfall drops a bit, rather than hard-cliffing to zero
+  // at a fixed rainfall threshold.
   const flood = clamp(
-    35 * ramp(env.rainfall.variability, 5, 12) +
-    25 * ramp(env.rainfall.growingSeasonRainfall, 400, 800) +
-    40 * ramp(env.soilMoisture.currentPct, 70, 95),
+    30 * ramp(env.rainfall.variability, 0, 12) +
+    30 * ramp(env.rainfall.growingSeasonRainfall, 0, 600) +
+    40 * ramp(env.soilMoisture.currentPct, 20, 90),
     0, 100,
   );
   const soilMoistureDeficit = Math.round(smDeficit);
