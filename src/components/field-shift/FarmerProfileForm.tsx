@@ -281,7 +281,7 @@ const chipDesiredActive =
 const iconBtn =
   "inline-flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50";
 const segmentBase =
-  "min-h-8 rounded-md px-1.5 py-1.5 text-center text-[10px] leading-tight whitespace-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 sm:text-[11px]";
+  "min-h-9 flex items-center justify-center rounded-md px-1.5 py-1 text-center text-[10px] leading-tight whitespace-normal break-words hyphens-auto transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 sm:text-[11px]";
 const menuCls =
   "max-h-64 w-56 overflow-y-auto rounded-xl border-white/10 bg-card/95 p-1.5 shadow-2xl backdrop-blur sm:w-60";
 
