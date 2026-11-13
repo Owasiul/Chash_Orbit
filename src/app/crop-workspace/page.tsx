@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Loader2, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CropWorkspace } from "@/components/field-shift/dashboard/CropWorkspace";
 import { useAppStore } from "@/lib/store";
@@ -92,7 +92,7 @@ export default function CropWorkspacePage() {
               onClick={() => void loadSampleAnalysis("rajshahi")}
               className="mt-2 border-amber-400/30 bg-amber-400/10 text-xs text-amber-200 hover:bg-amber-400/20"
             >
-              <Sparkles className="size-3.5 mr-1.5" />
+              <Sprout className="size-3.5 mr-1.5" />
               {t('Reload Sample Farm Analysis')}
             </Button>
           </div>

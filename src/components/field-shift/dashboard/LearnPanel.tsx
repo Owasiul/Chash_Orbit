@@ -126,23 +126,23 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
 
       {/* Source table */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="mb-3 flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-amber-200/80">
           <Satellite className="size-3" />
           {t('DATA SOURCES')}
         </div>
         <Table>
           <TableHeader>
             <TableRow className="border-white/10">
-              <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 {t('Dataset')}
               </TableHead>
-              <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 {t('Source status')}
               </TableHead>
-              <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 {t('Resolution')}
               </TableHead>
-              <TableHead className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <TableHead className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 {t('Attribution')}
               </TableHead>
             </TableRow>
@@ -166,7 +166,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
 
       {/* How we score */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="mb-3 flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-amber-200/80">
           <Coins className="size-3" />
           {t('HOW WE SCORE')}
         </div>
@@ -185,7 +185,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
 
       {/* Why these data sources */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="mb-3 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="mb-3 flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-amber-200/80">
           <Info className="size-3" />
           {t('WHY THESE DATA SOURCES')}
         </div>
@@ -208,13 +208,13 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
                 </div>
                 <div className="mt-3 space-y-2 text-xs">
                   <div>
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+                    <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                       {t('Measures')}
                     </span>
                     <p className="mt-0.5 text-foreground/80">{s.measures}</p>
                   </div>
                   <div>
-                    <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+                    <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                       {t('Why Chash Orbit uses it')}
                     </span>
                     <p className="mt-0.5 text-foreground/80">{s.whyUse}</p>
@@ -240,7 +240,7 @@ export function LearnPanel({ analysis }: { analysis: FullAnalysis }) {
             {t('Temperature & rainfall: NASA POWER (Langley Research Center). Soil moisture, NDVI, and additional soil metrics are derived estimates (see attributions above).')}
           </span>
         </div>
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+        <p className="mt-2 font-mono text-xs uppercase tracking-widest text-muted-foreground/50">
           {t('Chash Orbit · NASA Space Apps Challenge · Earth-to-farm decision system')}
         </p>
       </Card>

@@ -289,9 +289,9 @@
   "{irrigation} water infrastructure": "{irrigation} সেচ ব্যবস্থা",
   "Water availability": "পানির প্রাপ্যতা",
   "Soil moisture deficit: {score} mm": "মাটির আর্দ্রতার ঘাটতি: {score} মিমি",
-  "GPM precipitation & SMAP soil moisture cross-checked": "জিপিএম বৃষ্টিপাত ও এসএমএপি মাটির আর্দ্রতা যাচাইকৃত",
+  "NASA POWER rainfall and modelled soil moisture": "NASA POWER বৃষ্টিপাত ও মডেল করা মাটির আর্দ্রতা",
   "Climate suitability": "জলবায়ু উপযোগিতা",
-  "Temperature, solar radiation, and GPM precipitation match the optimal physiological growth envelope.": "তাপমাত্রা, সৌর বিকিরণ এবং জিপিএম বৃষ্টিপাত সর্বোত্তম বৃদ্ধির সীমার সাথে মিলেছে।",
+  "Temperature, solar radiation, and rainfall match the optimal physiological growth envelope.": "তাপমাত্রা, সৌর বিকিরণ এবং বৃষ্টিপাত সর্বোত্তম বৃদ্ধির সীমার সাথে মিলেছে।",
   "Climate fit is below the ideal range for this crop. See the detailed scores for the reasons.": "এই ফসলের জন্য জলবায়ু উপযোগিতা আদর্শ সীমার নিচে। কারণ জানতে বিস্তারিত স্কোর দেখুন।",
   "Soil suitability": "মাটির উপযোগিতা",
   "Soil texture and pH envelope provide strong root aeration and nutrient exchange capacity for {crop}.": "মাটির গঠন এবং পিএইচ {crop} এর শিকড় বায়ু চলাচল ও পুষ্টি গ্রহণের চমৎকার সুযোগ দেয়।",
@@ -405,5 +405,14 @@
   "Environmental Context": "পরিবেশগত অবস্থা",
   "Irrigation Access": "সেচ সুবিধা",
   "Soil Texture": "মাটির ধরন",
-  "candidates": "প্রস্তাবিত ফসল"
+  "candidates": "প্রস্তাবিত ফসল",
+  "estimated from latitude": "অক্ষাংশ থেকে অনুমিত",
+  "NASA data could not be reached. These numbers are illustrative, not measured for this field.": "NASA ডেটা পাওয়া যায়নি। এই সংখ্যাগুলো উদাহরণমূলক, এই জমির জন্য পরিমাপ করা নয়।",
+  "Score range if each priority weight changes by 10 points": "প্রতিটি অগ্রাধিকারের ওজন ১০ পয়েন্ট বদলালে স্কোরের সীমা",
+  "Not suitable for farming": "চাষাবাদের জন্য উপযুক্ত নয়",
+  "No crops are recommended for this location. Try a different location or check the NASA Signals tab for the climate data.": "এই স্থানের জন্য কোনো ফসল সুপারিশ করা হয়নি। অন্য স্থান বেছে নিন অথবা জলবায়ু তথ্যের জন্য NASA Signals ট্যাব দেখুন।",
+  "This location is in the sea or ocean, so it cannot be farmed.": "এই স্থানটি সাগর বা মহাসাগরে, তাই এখানে চাষ করা যায় না।",
+  "This location is on a lake, so it cannot be farmed.": "এই স্থানটি হ্রদের উপর, তাই এখানে চাষ করা যায় না।",
+  "Confidence": "নির্ভরযোগ্যতা",
+  "Confidence reflects which inputs were measured and which were estimated": "কোন তথ্য পরিমাপ করা আর কোনটি অনুমান, তার ওপর নির্ভরযোগ্যতা নির্ভর করে"
 }

@@ -1,5 +1,5 @@
 {
-  "chash-orbit-nasa-earth-observation-decision": "চাষ অরবিট · NASA পৃথিবী পর্যবেক্ষণ সিদ্ধান্ত ব্যবস্থা · POWER · SMAP · GPM · MODIS",
+  "chash-orbit-nasa-earth-observation-decision": "চাষ অরবিট · NASA পৃথিবী পর্যবেক্ষণ সিদ্ধান্ত সহায়তা · POWER · MODIS",
   "initializing-earth-observation-system": "পৃথিবী পর্যবেক্ষণ ব্যবস্থা চালু হচ্ছে",
   "earth-observation-interface-v1-0": "পৃথিবী পর্যবেক্ষণ ইন্টারফেস · v1.0",
   "where-is-your-field": "আপনার ক্ষেত কোথায়?",
@@ -69,7 +69,7 @@
   "action": "করণীয়:",
   "switch-language-to-bengali": "বাংলা ভাষায় পরিবর্তন করুন",
   "switch-language-to-english": "ইংরেজি ভাষায় পরিবর্তন করুন",
-  "live-nasa-power-smap-gpm-modis-derived": "লাইভ NASA POWER · SMAP / GPM / MODIS থেকে অনুমিত",
+  "live-nasa-power-smap-gpm-modis-derived": "NASA POWER · MODIS NDVI · POWER থেকে মডেল করা মাটির আর্দ্রতা",
   "field-details": "ক্ষেতের বিবরণ",
   "corn": "ভুট্টা",
   "potato": "আলু",

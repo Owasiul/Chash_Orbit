@@ -1,20 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import {
-  Upload,
-  Camera,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  Sparkles,
-  Send,
-  Loader2,
-  Leaf,
-  ShieldCheck,
-  RotateCcw,
-  FlaskConical,
-} from "lucide-react";
+import { Upload, Camera, CheckCircle2, AlertTriangle, XCircle, Send, Loader2, Leaf, ShieldCheck, RotateCcw, FlaskConical, Sprout } from "lucide-react";
 
 export interface DiagnosisData {
   cropName: string;
@@ -245,7 +232,7 @@ export default function AnalysisSession() {
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5" />
+                <Sprout className="w-5 h-5" />
                 <span>Analyze Crop Health</span>
               </>
             )}

@@ -25,7 +25,7 @@ function RiskBar({ label, base, now }: { label: string; base: number; now: numbe
   const { t, number } = useTranslation();
   return (
     <div className="space-y-1">
-      <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      <div className="flex items-center justify-between font-mono text-xs uppercase tracking-widest text-muted-foreground">
         <span>{t(label)}</span>
         <span className="tabular-nums">{number(base)} → {number(now)}</span>
       </div>
@@ -124,11 +124,11 @@ export function ScenarioPanel({ analysis }: { analysis: FullAnalysis }) {
 
       {/* Ranking shift */}
       <Card className="overflow-x-auto p-5">
-        <div className="mb-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="mb-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {t('Top crops under this scenario')}
         </div>
         <table className="w-full min-w-[420px] text-sm">
-          <thead className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <thead className="text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">
             <tr><th className="py-1">#</th><th>{t('Crop')}</th><th className="text-right">{t('Today')}</th><th className="text-right">{t('Scenario')}</th><th className="text-right">Δ</th></tr>
           </thead>
           <tbody>
@@ -150,14 +150,14 @@ export function ScenarioPanel({ analysis }: { analysis: FullAnalysis }) {
 
       {/* Robustness */}
       <Card className="overflow-x-auto p-5">
-        <div className="mb-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-emerald-200">
+        <div className="mb-1 flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-emerald-200">
           <ShieldCheck className="size-3.5" />{t('Most climate-robust crops')}
         </div>
         <p className="mb-3 text-xs text-muted-foreground">
           {t('Every crop is scored under 9 climate cases (0 / +1 / +2 °C × 20 % drier / same / 20 % wetter). Ranked by worst case: the crop that holds up in a bad year.')}
         </p>
         <table className="w-full min-w-[480px] text-sm">
-          <thead className="text-left font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <thead className="text-left font-mono text-xs uppercase tracking-widest text-muted-foreground">
             <tr><th className="py-1">{t('Crop')}</th><th className="text-right">{t('Today')}</th><th className="text-right">{t('Worst case')}</th><th className="text-right">{t('Spread')}</th><th>{t('Weakest when')}</th></tr>
           </thead>
           <tbody>

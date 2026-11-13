@@ -83,20 +83,20 @@ export function findFaoCrop(query: string): FaoCropSpec | undefined {
   if (!query || typeof query !== 'string') return undefined;
   const q = query.trim().toLowerCase();
 
-  // 1. Check dynamic runtime crops
+  // Check dynamic runtime crops
   if (DYNAMIC_CROPS.has(q)) {
     return DYNAMIC_CROPS.get(q);
   }
 
-  // 2. Exact name match
+  // Exact name match
   const exact = FAO_CROPS.find(c => c.name.toLowerCase() === q);
   if (exact) return exact;
 
-  // 3. Exact alias match
+  // Exact alias match
   const aliasMatch = FAO_CROPS.find(c => c.aliases.some(a => a.toLowerCase() === q));
   if (aliasMatch) return aliasMatch;
 
-  // 4. Fuzzy prefix / substring match
+  // Fuzzy prefix / substring match
   const fuzzy = FAO_CROPS.find(
     c =>
       c.name.toLowerCase().includes(q) ||

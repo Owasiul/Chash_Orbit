@@ -2,23 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Thermometer,
-  CloudRain,
-  Sprout,
-  Calendar,
-  Plus,
-  X,
-  Check,
-  AlertTriangle,
-  ArrowRight,
-  Sparkles,
-  Search,
-  Droplets,
-  Layers,
-  Leaf,
-  Info,
-} from 'lucide-react';
+import { Thermometer, CloudRain, Sprout, Calendar, Plus, X, Check, AlertTriangle, ArrowRight, Search, Droplets, Layers, Leaf, Info } from "lucide-react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -219,7 +203,7 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="size-5 text-amber-300" />
+              <Sprout className="size-5 text-amber-300" />
               <h2 className="text-xl font-light text-foreground sm:text-2xl">
                 {t('Crop Suitability vs NASA Earth-Science Data')}
               </h2>
@@ -239,49 +223,49 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
         {data?.nasaAtmosphericBaseline && (
           <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-3 sm:grid-cols-4 sm:gap-4">
             <div className="space-y-0.5">
-              <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 <Thermometer className="size-3 text-amber-400" /> {t('Field Temp (Avg)')}
               </span>
               <div className="text-base font-light text-foreground sm:text-lg">
                 {number(data.nasaAtmosphericBaseline.growingSeasonAvgTempC)}°C
               </div>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {data.nasaAtmosphericBaseline.heatStressDays} heat stress days
               </span>
             </div>
 
             <div className="space-y-0.5">
-              <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 <CloudRain className="size-3 text-cyan-400" /> {t('Season Rain')}
               </span>
               <div className="text-base font-light text-foreground sm:text-lg">
                 {number(data.nasaAtmosphericBaseline.growingSeasonRainfallMm)} mm
               </div>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {number(data.nasaAtmosphericBaseline.annualRainfallMm)} mm/year
               </span>
             </div>
 
             <div className="space-y-0.5">
-              <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 <Droplets className="size-3 text-emerald-400" /> {t('Root-Zone Moisture')}
               </span>
               <div className="text-base font-light text-foreground sm:text-lg">
                 {number(data.nasaAtmosphericBaseline.soilMoisturePct)}%
               </div>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Deficit: {number(data.nasaAtmosphericBaseline.soilDeficitMm)} mm
               </span>
             </div>
 
             <div className="space-y-0.5">
-              <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                 <Leaf className="size-3 text-lime-400" /> {t('Vegetation (NDVI)')}
               </span>
               <div className="text-base font-light text-foreground sm:text-lg">
                 {number(data.nasaAtmosphericBaseline.vegetationNdvi)}
               </div>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 NASA MODIS 250m
               </span>
             </div>
@@ -291,7 +275,7 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
         {/* Selected Crop Chips & Search */}
         <div className="mt-5 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
               {t('Comparing crops:')}
             </span>
             {selectedCrops.map(crop => (
@@ -349,8 +333,8 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
           </div>
 
           {/* Quick candidates */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-muted-foreground">
-            <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-muted-foreground">
+            <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground/60">
               {t('Quick add:')}
             </span>
             {quickCandidates.slice(0, 8).map(crop => (
@@ -390,12 +374,12 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                       <div className="flex items-center gap-2">
                         <span className="text-lg font-medium text-foreground">{t(c.cropName)}</span>
                         {c.crossCheck.isPlantableNow && (
-                          <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-[10px] text-emerald-200">
+                          <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-xs text-emerald-200">
                             {t('Plantable Now')}
                           </Badge>
                         )}
                       </div>
-                      <div className="text-[11px] italic text-muted-foreground">
+                      <div className="text-xs italic text-muted-foreground">
                         {c.scientificName} · {t(c.category)}
                       </div>
                     </div>
@@ -403,7 +387,7 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                       <span className="font-mono text-2xl font-light text-amber-300">
                         {number(c.crossCheck.tempSuitability)}
                       </span>
-                      <div className="text-[9px] uppercase tracking-widest text-muted-foreground">
+                      <div className="text-xs uppercase tracking-widest text-muted-foreground">
                         {t('Temp Fit')}
                       </div>
                     </div>
@@ -414,12 +398,12 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                   {/* Temperature Section */}
                   <div className="space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                      <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-muted-foreground/80">
                         <Thermometer className="size-3 text-amber-400" /> {t('Temperature Window')}
                       </span>
                       <span
                         className={cn(
-                          'rounded px-1.5 py-0.5 text-[10px] font-medium uppercase',
+                          'rounded px-1.5 py-0.5 text-xs font-medium uppercase',
                           isOptimalTemp
                             ? 'bg-emerald-400/10 text-emerald-300'
                             : c.crossCheck.tempStatus === 'marginal'
@@ -431,13 +415,13 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{t('Optimal Growth:')}</span>
                       <span className="font-mono text-foreground">
                         {tempEnvelope[1]}°C – {tempEnvelope[2]}°C
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{t('Field NASA Temp:')}</span>
                       <span className="font-mono font-medium text-amber-300">
                         {number(c.fieldAtmosphere.temperatureC)}°C
@@ -464,12 +448,12 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                   {/* Water & Rainfall Section */}
                   <div className="space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
-                      <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                      <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-muted-foreground/80">
                         <CloudRain className="size-3 text-cyan-400" /> {t('Water & Irrigation')}
                       </span>
                       <span
                         className={cn(
-                          'rounded px-1.5 py-0.5 text-[10px] font-medium uppercase',
+                          'rounded px-1.5 py-0.5 text-xs font-medium uppercase',
                           c.crossCheck.waterDeficitMm === 0
                             ? 'bg-emerald-400/10 text-emerald-300'
                             : 'bg-rose-400/10 text-rose-300'
@@ -479,20 +463,20 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{t('Optimal Water:')}</span>
                       <span className="font-mono text-foreground">
                         {waterEnvelope[1]} – {waterEnvelope[2]} mm
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">{t('Field Season Rain:')}</span>
                       <span className="font-mono text-foreground">
                         {number(c.fieldAtmosphere.rainfallMm)} mm
                       </span>
                     </div>
                     {c.crossCheck.waterDeficitMm > 0 && (
-                      <div className="flex items-center justify-between text-[11px] text-rose-300">
+                      <div className="flex items-center justify-between text-xs text-rose-300">
                         <span>{t('Irrigation needed:')}</span>
                         <span className="font-mono font-medium">
                           +{number(c.crossCheck.waterDeficitMm)} mm
@@ -503,14 +487,14 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
 
                   {/* Soil & Nutrient Impact */}
                   <div className="space-y-1.5 text-xs">
-                    <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                    <span className="flex items-center gap-1 font-mono text-xs uppercase tracking-widest text-muted-foreground/80">
                       <Layers className="size-3 text-emerald-400" /> {t('Soil & Nutrients')}
                     </span>
                     <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                       <Badge
                         variant="outline"
                         className={cn(
-                          'text-[10px] font-normal',
+                          'text-xs font-normal',
                           isFixer
                             ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200'
                             : 'border-white/10 text-muted-foreground'
@@ -518,11 +502,11 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                       >
                         {isFixer ? t('✓ Nitrogen Fixer (+Soil)') : t('Nitrogen Depleter')}
                       </Badge>
-                      <Badge variant="outline" className="border-white/10 text-[10px] font-normal text-muted-foreground">
+                      <Badge variant="outline" className="border-white/10 text-xs font-normal text-muted-foreground">
                         {t('Root:')} {t(c.cropRequirements.rootDepth)}
                       </Badge>
                       {c.crossCheck.soilTextureMatch && (
-                        <Badge variant="outline" className="border-cyan-400/30 text-[10px] font-normal text-cyan-200">
+                        <Badge variant="outline" className="border-cyan-400/30 text-xs font-normal text-cyan-200">
                           {t('Soil Match')}
                         </Badge>
                       )}
@@ -530,13 +514,13 @@ export function CropAtmosphereComparison({ analysis }: { analysis: FullAnalysis 
                   </div>
 
                   {/* Benefits description */}
-                  <div className="rounded border border-white/5 bg-white/[0.02] p-2 text-[11px] text-muted-foreground">
+                  <div className="rounded border border-white/5 bg-white/[0.02] p-2 text-xs text-muted-foreground">
                     {t(c.benefits)}
                   </div>
                 </div>
 
                 {/* Footer status */}
-                <div className="mt-4 border-t border-white/10 pt-2 text-[10px] text-muted-foreground">
+                <div className="mt-4 border-t border-white/10 pt-2 text-xs text-muted-foreground">
                   {c.crossCheck.isPlantableNow ? (
                     <span className="text-emerald-300">
                       ● {t('Currently in the planting window for your field.')}

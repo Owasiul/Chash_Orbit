@@ -30,7 +30,7 @@ function RotationScoreChip({
   return (
     <div className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-mono", colorMap[color])}>
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "size-3 shrink-0" })}
-      <span className="text-[10px] uppercase tracking-wider">{t(label)}</span>
+      <span className="text-xs uppercase tracking-wider">{t(label)}</span>
       <span className="font-semibold">{number(score)}</span>
     </div>
   );
@@ -44,7 +44,7 @@ export function RotationTimelineSection({ analysis }: { analysis: FullAnalysis }
   return (
     <Card className="border-white/10 bg-card/50 p-4 sm:p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-amber-300">
+        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-amber-300">
           <Calendar className="size-3.5 text-amber-400" />
           <span>{t("4-YEAR SUSTAINABLE ROTATION TIMELINE")}</span>
         </div>
@@ -81,7 +81,7 @@ export function RotationTimelineSection({ analysis }: { analysis: FullAnalysis }
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-amber-300 font-semibold">
+                  <span className="font-mono text-xs uppercase tracking-wider text-amber-300 font-semibold">
                     {t("Year {year}", { year: y.year })}
                   </span>
                   <span className="font-mono text-lg font-light text-foreground/90">
@@ -95,7 +95,7 @@ export function RotationTimelineSection({ analysis }: { analysis: FullAnalysis }
                     <Badge
                       variant="outline"
                       className={cn(
-                        "text-[9px] font-mono",
+                        "text-xs font-mono",
                         isLegume
                           ? "border-emerald-400/40 text-emerald-300 bg-emerald-400/10"
                           : "border-cyan-400/40 text-cyan-300 bg-cyan-400/10"
@@ -104,7 +104,7 @@ export function RotationTimelineSection({ analysis }: { analysis: FullAnalysis }
                       {isLegume ? t("Nitrogen Fixer") : t("Cereal / Depleter")}
                     </Badge>
                     {y.irrigationLevel && (
-                      <Badge variant="outline" className="border-white/10 text-[9px] font-mono capitalize">
+                      <Badge variant="outline" className="border-white/10 text-xs font-mono capitalize">
                         {t(y.irrigationLevel)}
                       </Badge>
                     )}
@@ -112,13 +112,13 @@ export function RotationTimelineSection({ analysis }: { analysis: FullAnalysis }
                 </div>
 
                 {y.plantingSeason && y.harvestSeason && (
-                  <div className="mt-2 text-[10px] text-muted-foreground font-mono">
+                  <div className="mt-2 text-xs text-muted-foreground font-mono">
                     {t("Plant:")} {t(y.plantingSeason)} · {t("Harvest:")} {t(y.harvestSeason)}
                   </div>
                 )}
 
                 {y.coverCrop && (
-                  <div className="mt-2 rounded bg-amber-400/10 border border-amber-400/20 px-2 py-1 text-[10px] text-amber-200 font-mono">
+                  <div className="mt-2 rounded bg-amber-400/10 border border-amber-400/20 px-2 py-1 text-xs text-amber-200 font-mono">
                     {t("Cover Crop:")} {t(y.coverCrop)}
                   </div>
                 )}

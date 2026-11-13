@@ -39,7 +39,7 @@ export function FieldNavigation() {
           <button
             type="button"
             onClick={reset}
-            className="mr-1 flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-amber-200/80 transition-colors hover:bg-amber-400/10 hover:text-amber-200"
+            className="mr-1 flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-xs uppercase tracking-widest text-amber-200/80 transition-colors hover:bg-amber-400/10 hover:text-amber-200"
             title={translate('Back to globe')}
           >
             <Home className="size-3.5" />
@@ -91,7 +91,7 @@ export function FieldNavigation() {
                 type="button"
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  'flex min-w-[3.25rem] shrink-0 flex-col items-center gap-0.5 rounded-xl px-1.5 py-1.5 text-[10px] font-medium transition-colors',
+                  'flex min-w-[3.25rem] shrink-0 flex-col items-center gap-0.5 rounded-xl px-1.5 py-1.5 text-xs font-medium transition-colors',
                   active ? 'text-amber-200' : 'text-muted-foreground/70',
                 )}
               >

@@ -1,4 +1,5 @@
 import type { PowerAnalysis } from "./power";
+import { getCached, setCached, CACHE_TTL } from "./cache";
 
 export type DataSource =
   | "NASA_POWER"
@@ -23,7 +24,7 @@ export interface GpmDailySeries {
   precipitation: number[];
   source: DataSource;
   status: DataStatus;
-  product: "IMERG_FINAL" | "POWER_PRECTOTCORR" | "DEMO";
+  product: "IMERG_FINAL" | "IMERG_LATE" | "POWER_PRECTOTCORR" | "DEMO";
   spatialResolution: string;
   dataQuality: DataQuality;
 }
@@ -36,7 +37,18 @@ export interface GpmMonthlySeries {
   product: "POWER_PRECTOTCORR";
 }
 
+export interface ImergCheck {
+  days: number;
+  imergMm: number;
+  powerMm: number;
+  /** (IMERG - POWER) / POWER, in percent. */
+  differencePct: number | null;
+  product: string;
+}
+
 export interface RainfallAnalysis {
+  /** Independent satellite check of POWER rainfall over the most recent weeks. */
+  imergCheck?: ImergCheck | null;
   annualRainfall: number;
   growingSeasonRainfall: number;
   growingSeasonDays: number;
@@ -222,14 +234,125 @@ function selectGrowingSeason(
 // Data fetchers
 // ─────────────────────────────────────────────
 
-// Stub: returns null until an OPeNDAP / NetCDF subset adapter for IMERG is written.
-// Callers fall back to NASA POWER.
+// IMERG Late daily (GPM_3IMERGDL v07, 0.1 degree) through NASA's cloud OPeNDAP, using the
+// server-side Earthdata token. Returns null when the token is missing or any step fails,
+// and callers keep using NASA POWER.
+const IMERG_LATE_COLLECTION = "C2723754859-GES_DISC";
+const IMERG_CONCURRENCY = 8;
+
+function imergCell(latitude: number, longitude: number): { i: number; j: number } {
+  const i = Math.min(3599, Math.max(0, Math.floor((longitude + 180) / 0.1)));
+  const j = Math.min(1799, Math.max(0, Math.floor((latitude + 90) / 0.1)));
+  return { i, j };
+}
+
+/** Pulls the single value out of an OPeNDAP .csv point response. */
+export function parseImergPoint(text: string): number {
+  const m = text.match(/precipitation\[[^\]]*\]\[[^\]]*\],\s*(-?\d+(?:\.\d+)?)/);
+  if (!m) return NaN;
+  const v = Number(m[1]);
+  return Number.isFinite(v) && v > -999 ? v : NaN;
+}
+
 export async function fetchGpmRainfallSeries(
-  _latitude: number,
-  _longitude: number,
-  _days = 365,
+  latitude: number,
+  longitude: number,
+  days = 30,
 ): Promise<GpmDailySeries | null> {
-  return null;
+  const token = process.env.EARTHDATA_TOKEN?.trim();
+  if (!token) return null;
+
+  const end = new Date();
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - days);
+  const ymd = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+  const key = { source: "gpm-imerg-late", latitude, longitude, dateRange: `${ymd(start)}-${ymd(end)}`, parameters: "precipitation" };
+  const cached = await getCached<GpmDailySeries>(key, CACHE_TTL.GPM).catch(() => null);
+  if (cached) return { ...cached.data, status: "cached" };
+
+  try {
+    // One CMR query lists the granules that exist, so file-name versions never have to be guessed.
+    const cmr = await fetch(
+      `https://cmr.earthdata.nasa.gov/search/granules.json?short_name=GPM_3IMERGDL&version=07&temporal=${start.toISOString().slice(0, 10)}T00:00:00Z,${end.toISOString().slice(0, 10)}T23:59:59Z&page_size=${days + 5}&sort_key=start_date`,
+      { signal: AbortSignal.timeout(10000) },
+    );
+    if (!cmr.ok) return null;
+    const entries = ((await cmr.json()) as { feed?: { entry?: { title: string; links: { href: string }[] }[] } }).feed?.entry ?? [];
+    const granules = entries
+      .map((e) => ({
+        date: e.title.match(/\.(\d{8})-S/)?.[1] ?? "",
+        url: e.links.map((l) => l.href).find((h) => h.startsWith(`https://opendap.earthdata.nasa.gov/collections/${IMERG_LATE_COLLECTION}/`)),
+      }))
+      .filter((g): g is { date: string; url: string } => !!g.date && !!g.url);
+    if (!granules.length) return null;
+
+    const { i, j } = imergCell(latitude, longitude);
+    const ce = encodeURIComponent(`precipitation[0][${i}][${j}]`);
+    const values: number[] = new Array(granules.length).fill(NaN);
+    let next = 0;
+    const worker = async () => {
+      while (next < granules.length) {
+        const idx = next++;
+        try {
+          const r = await fetch(`${granules[idx].url}.csv?${ce}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(15000),
+          });
+          if (r.ok) values[idx] = parseImergPoint(await r.text());
+        } catch {
+          // leave NaN; coverage reflects it
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: IMERG_CONCURRENCY }, worker));
+
+    const valid = values.filter((v) => Number.isFinite(v)).length;
+    if (valid < Math.max(5, granules.length * 0.5)) return null;
+    const series: GpmDailySeries = {
+      dates: granules.map((g) => g.date),
+      precipitation: values,
+      source: "NASA_GPM_IMERG",
+      status: "live",
+      product: "IMERG_LATE",
+      spatialResolution: "0.1° (~10 km) GPM IMERG Late daily",
+      dataQuality: {
+        validDays: valid,
+        expectedDays: granules.length,
+        coveragePct: Math.round((valid / granules.length) * 1000) / 10,
+        missingDays: granules.length - valid,
+        isReliable: valid / granules.length >= 0.8,
+      },
+    };
+    await setCached(key, series, CACHE_TTL.GPM).catch(() => {});
+    return series;
+  } catch {
+    return null;
+  }
+}
+
+/** Compares IMERG with POWER rainfall on the days both have data. */
+export function compareImergToPower(gpm: GpmDailySeries, power: PowerAnalysis): ImergCheck | null {
+  const byDate = new Map(power.series.dates.map((d, k) => [d, power.series.prectotcorr[k]] as const));
+  let imerg = 0;
+  let pw = 0;
+  let n = 0;
+  gpm.dates.forEach((d, k) => {
+    const a = gpm.precipitation[k];
+    const b = byDate.get(d);
+    if (Number.isFinite(a) && b !== undefined && Number.isFinite(b)) {
+      imerg += a;
+      pw += b;
+      n++;
+    }
+  });
+  if (n < 5) return null;
+  return {
+    days: n,
+    imergMm: round1(imerg),
+    powerMm: round1(pw),
+    differencePct: pw > 0 ? round1(((imerg - pw) / pw) * 100) : null,
+    product: "GPM IMERG Late v07 (0.1°)",
+  };
 }
 
 // Stub: same as above for monthly data.

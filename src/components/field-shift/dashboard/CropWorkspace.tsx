@@ -2,32 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Search,
-  Sprout,
-  Sparkles,
-  Plus,
-  X,
-  Loader2,
-  Check,
-  Layers,
-  MapPin,
-  Calendar,
-  Droplets,
-  Sun,
-  Coins,
-  ShieldAlert,
-  TrendingUp,
-  CheckCircle2,
-  Info,
-  CalendarDays,
-  Leaf,
-  Clock,
-  Sparkle,
-  Gauge,
-  Wheat,
-  ChevronRight,
-} from 'lucide-react';
+import { Search, Sprout, Plus, X, Loader2, Check, Layers, MapPin, Calendar, Droplets, Sun, Coins, ShieldAlert, TrendingUp, CheckCircle2, Info, CalendarDays, Leaf, Clock, Sparkle, Gauge, Wheat, ChevronRight } from "lucide-react";
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,8 +44,8 @@ const SURFACE =
   'rounded-2xl border border-stone-300/[0.08] bg-stone-900/40 backdrop-blur-sm';
 
 // Mono micro-labels used across section headers and data footers.
-const MICROLABEL = 'font-mono text-[10px] uppercase tracking-[0.18em]';
-const FOOTER_LABEL = 'font-mono text-[9px] uppercase tracking-wider text-stone-500';
+const MICROLABEL = 'font-mono text-xs uppercase tracking-[0.18em]';
+const FOOTER_LABEL = 'font-mono text-xs uppercase tracking-wider text-stone-500';
 
 function clampPct(value: number | null | undefined): number {
   return typeof value === 'number' && Number.isFinite(value)
@@ -145,11 +120,11 @@ function FitRail({
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-stone-400">
+        <span className="font-mono text-xs uppercase tracking-[0.16em] text-stone-400">
           {t(label)}
         </span>
         <span
-          className={cn('font-mono text-[11px] font-medium tabular-nums', tone.text)}
+          className={cn('font-mono text-xs font-medium tabular-nums', tone.text)}
         >
           {safe == null ? '—' : number(safe)}
         </span>
@@ -304,7 +279,7 @@ function AnalysisHeroCard({
         </div>
         <Badge
           variant="outline"
-          className="max-w-[50%] truncate border-amber-400/30 bg-amber-400/10 font-mono text-[10px] text-amber-200"
+          className="max-w-[50%] truncate border-amber-400/30 bg-amber-400/10 font-mono text-xs text-amber-200"
         >
           {t(crop)}
         </Badge>
@@ -320,7 +295,7 @@ function AnalysisHeroCard({
               <span className="text-lg text-muted-foreground">%</span>
             )}
           </span>
-          <span className="mt-1 font-mono text-[9px] uppercase tracking-[0.22em] text-stone-500">
+          <span className="mt-1 font-mono text-xs uppercase tracking-[0.22em] text-stone-500">
             {t('Overall fit')}
           </span>
         </div>
@@ -331,7 +306,7 @@ function AnalysisHeroCard({
         <div className="mt-4 flex justify-center">
           <span
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-medium',
+              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium',
               verdict.tone.chip
             )}
           >
@@ -344,7 +319,7 @@ function AnalysisHeroCard({
       {/* key agronomic signals */}
       {compatibility?.reasons && compatibility.reasons.length > 0 && (
         <div className="relative mt-5 flex-1 border-t border-stone-300/[0.07] pt-4">
-          <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
             {t('Key Agronomic Signals')}
           </span>
           <ul className="mt-2 space-y-1.5">
@@ -381,7 +356,7 @@ function SectionHeading({
   return (
     <div className="mb-5 space-y-1">
       <div className="flex items-center gap-2.5">
-        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-amber-400/25 bg-amber-400/10 font-mono text-[11px] font-semibold tabular-nums text-amber-300">
+        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-amber-400/25 bg-amber-400/10 font-mono text-xs font-semibold tabular-nums text-amber-300">
           {formatNumber(Number(number)).padStart(2, '0')}
         </span>
         <h2
@@ -432,7 +407,7 @@ function ScoreChip({ icon, label, score, color }: ScoreChipProps) {
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, {
         className: 'size-3.5',
       })}
-      <span className="font-mono text-[10px] uppercase tracking-widest">
+      <span className="font-mono text-xs uppercase tracking-widest">
         {t(label)}
       </span>
       <span className="font-mono text-base font-light tabular-nums">
@@ -518,7 +493,7 @@ function YearCard({
         )}
       >
         <div className="flex items-center justify-between gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-stone-500">
+          <span className="font-mono text-xs uppercase tracking-[0.18em] text-stone-500">
             {t('Year {year}', { year: number(year) })}
           </span>
           <span className="font-mono text-2xl font-light tabular-nums text-amber-300">
@@ -529,7 +504,7 @@ function YearCard({
           {t(crop)}
         </div>
         {(plantingSeason || harvestSeason) && (
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/80">
+          <p className="mt-1 font-mono text-xs uppercase tracking-wide text-muted-foreground/80">
             {t('Plant')} {t(plantingSeason ?? '—')} · {t('Harvest')}{' '}
             {t(harvestSeason ?? '—')}
             {growingDays != null ? ` · ~${number(growingDays)} ${t('d')}` : ''}
@@ -858,7 +833,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-10 pb-12">
-      {/* ══ HERO — workspace header + crop selection (was Section 1) ══ */}
+      {/* ══ HERO — workspace header + crop selection ══ */}
       <section
         aria-label={t('Select your crop')}
         className="relative overflow-hidden rounded-3xl border border-stone-300/[0.08] bg-stone-900/30 p-5 sm:p-7"
@@ -878,7 +853,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                 <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                   {t('Crop Workspace')}
                 </h1>
-                <span className="inline-flex items-center rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-amber-300">
+                <span className="inline-flex items-center rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-0.5 font-mono text-xs font-semibold uppercase tracking-wider text-amber-300">
                   {t('One page')}
                 </span>
               </div>
@@ -969,23 +944,23 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                               <span className="truncate font-medium text-foreground">
                                 {t(crop.name)}
                               </span>
-                              <span className="hidden truncate text-[11px] italic text-muted-foreground sm:inline">
+                              <span className="hidden truncate text-xs italic text-muted-foreground sm:inline">
                                 ({crop.scientificName})
                               </span>
                             </div>
                             <div className="flex shrink-0 items-center gap-2">
                               <Badge
                                 variant="outline"
-                                className="border-stone-300/15 text-[10px] capitalize"
+                                className="border-stone-300/15 text-xs capitalize"
                               >
                                 {t(crop.category)}
                               </Badge>
                               {isEvaluated ? (
-                                <span className="font-mono text-[10px] text-emerald-300">
+                                <span className="font-mono text-xs text-emerald-300">
                                   {t('In Mix')}
                                 </span>
                               ) : (
-                                <span className="flex items-center gap-1 font-mono text-[10px] text-amber-300">
+                                <span className="flex items-center gap-1 font-mono text-xs text-amber-300">
                                   <Plus className="size-3" />
                                   {t('Add & Analyze')}
                                 </span>
@@ -1042,7 +1017,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
         </div>
       </section>
 
-      {/* ══ FIELD CONTEXT — farm information (was Section 2) ══ */}
+      {/* ══ FIELD CONTEXT — farm information ══ */}
       <section aria-label={t('Farm information')} className="space-y-3">
         <div className="flex items-center gap-3">
           <span className={cn(MICROLABEL, 'text-stone-400')}>
@@ -1074,13 +1049,13 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
               >
                 {displayLocationName}
               </p>
-              <p className="text-[11px] text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 {t('Village / District')}
                 {analysis.field.area != null && analysis.field.areaUnit
                   ? ` · ${number(analysis.field.area)} ${t(analysis.field.areaUnit)}`
                   : ''}
               </p>
-              <p className="font-mono text-[10px] tabular-nums tracking-wide text-stone-500">
+              <p className="font-mono text-xs tabular-nums tracking-wide text-stone-500">
                 {latLabel}, {lonLabel}
               </p>
             </div>
@@ -1110,7 +1085,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
               </div>
               <Badge
                 variant="outline"
-                className="max-w-[45%] truncate border-amber-400/30 bg-amber-400/10 font-mono text-[9px] capitalize text-amber-200"
+                className="max-w-[45%] truncate border-amber-400/30 bg-amber-400/10 font-mono text-xs capitalize text-amber-200"
               >
                 {soilLabel}
               </Badge>
@@ -1119,7 +1094,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
               <p className="text-sm font-medium capitalize text-foreground">
                 {soilLabel}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {t('Soil information')}
               </p>
             </div>
@@ -1150,14 +1125,14 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
               {activeCompatibility?.isPlantableNow ? (
                 <Badge
                   variant="outline"
-                  className="border-emerald-400/40 bg-emerald-400/10 font-mono text-[9px] text-emerald-200"
+                  className="border-emerald-400/40 bg-emerald-400/10 font-mono text-xs text-emerald-200"
                 >
                   {t('Plantable now')}
                 </Badge>
               ) : activeCompatibility?.monthsUntilPlant ? (
                 <Badge
                   variant="outline"
-                  className="border-amber-400/30 bg-amber-400/10 font-mono text-[9px] text-amber-200"
+                  className="border-amber-400/30 bg-amber-400/10 font-mono text-xs text-amber-200"
                 >
                   {t('Next in {months} mo', {
                     months: number(activeCompatibility.monthsUntilPlant),
@@ -1170,7 +1145,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                 {t('Plant')} {t(activeCompatibility?.plantingSeason ?? 'Season-dependent')} ·{' '}
                 {t('Harvest')} {t(activeCompatibility?.harvestSeason ?? 'Season-dependent')}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {t('Growing season')} ·{' '}
                 {t('Window for {crop}', { crop: t(selectedCrop) })}
               </p>
@@ -1202,7 +1177,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
               <Badge
                 variant="outline"
                 className={cn(
-                  'shrink-0 font-mono text-[9px] capitalize',
+                  'shrink-0 font-mono text-xs capitalize',
                   IRRIGATION_COLOR[analysis.field.irrigationType ?? 'limited']
                 )}
               >
@@ -1215,7 +1190,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                   irrigation: t(analysis.field.irrigationType ?? 'limited'),
                 })}
               </p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 text-xs text-muted-foreground">
                 {t('Water availability')} ·{' '}
                 {t('Soil moisture deficit: {score} mm', {
                   score: number(analysis.risks.soilMoistureDeficit),
@@ -1225,7 +1200,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
             <div className="mt-3 flex items-center gap-2 border-t border-stone-300/[0.07] pt-2.5">
               <span className="size-1 shrink-0 rounded-full bg-blue-400" />
               <span className={FOOTER_LABEL}>
-                {t('GPM precipitation & SMAP soil moisture cross-checked')}
+                {t('NASA POWER rainfall and modelled soil moisture')}
               </span>
             </div>
           </Card>
@@ -1282,7 +1257,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
               {climateFit != null && (
                 <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
                   {climateFit >= HIGH_FIT
-                    ? t('Temperature, solar radiation, and GPM precipitation match the optimal physiological growth envelope.')
+                    ? t('Temperature, solar radiation, and rainfall match the optimal physiological growth envelope.')
                     : t('Climate fit is below the ideal range for this crop. See the detailed scores for the reasons.')}
                 </p>
               )}
@@ -1343,7 +1318,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                 </div>
                 <Badge
                   variant="outline"
-                  className={cn('font-mono text-[11px]', environmentalRiskColor)}
+                  className={cn('font-mono text-xs', environmentalRiskColor)}
                 >
                   {t(environmentalRiskLevel)} {t('Risk')}
                 </Badge>
@@ -1401,7 +1376,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                 </span>
                 <Badge
                   variant="outline"
-                  className="max-w-[40%] truncate border-stone-300/15 font-mono text-[9px] text-stone-400"
+                  className="max-w-[40%] truncate border-stone-300/15 font-mono text-xs text-stone-400"
                 >
                   {t(selectedCrop)}
                 </Badge>
@@ -1456,7 +1431,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                           {i === 0 && (
                             <Badge
                               variant="outline"
-                              className="border-amber-400/40 bg-amber-400/10 text-[10px] text-amber-200"
+                              className="border-amber-400/40 bg-amber-400/10 text-xs text-amber-200"
                             >
                               {t('Top fit')}
                             </Badge>
@@ -1464,7 +1439,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                           {c.crop.toLowerCase() === selectedCrop.toLowerCase() && (
                             <Badge
                               variant="outline"
-                              className="border-cyan-400/40 bg-cyan-400/10 text-[10px] text-cyan-200"
+                              className="border-cyan-400/40 bg-cyan-400/10 text-xs text-cyan-200"
                             >
                               {t('Currently viewing')}
                             </Badge>
@@ -1485,7 +1460,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
 
                       {c.reasons && c.reasons.length > 0 && (
                         <div className="mt-3.5 space-y-1.5 border-t border-stone-300/[0.07] pt-2.5">
-                          <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/70">
+                          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                             {t('Key Agronomic Signals')}
                           </span>
                           <ul className="space-y-1">
@@ -1514,7 +1489,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                         'mb-2.5 flex items-center gap-1.5 text-amber-200/80'
                       )}
                     >
-                      <Sparkles className="size-3" />
+                      <Sprout className="size-3" />
                       <span>{t('What could grow well here? (NASA Candidates)')}</span>
                     </div>
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -1523,7 +1498,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                           key={r.crop}
                           className="flex items-start gap-3 rounded-xl border border-stone-300/[0.07] bg-white/[0.02] p-3 text-xs transition-colors hover:border-amber-400/20"
                         >
-                          <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg bg-amber-400/10 font-mono text-[11px] font-semibold tabular-nums text-amber-300 ring-1 ring-inset ring-amber-400/20">
+                          <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-lg bg-amber-400/10 font-mono text-xs font-semibold tabular-nums text-amber-300 ring-1 ring-inset ring-amber-400/20">
                             {number(r.rank)}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -1535,7 +1510,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                                 {number(r.score)}
                               </span>
                             </div>
-                            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                               {t(r.why)}
                             </p>
                           </div>
@@ -1571,12 +1546,12 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
             </span>
             <Badge
               variant="outline"
-              className="border-stone-300/15 text-[10px] capitalize"
+              className="border-stone-300/15 text-xs capitalize"
             >
               {soilLabel} · {t(analysis.field.irrigationType ?? 'limited')}
             </Badge>
           </div>
-          <span className="font-mono text-[11px] tabular-nums text-stone-400">
+          <span className="font-mono text-xs tabular-nums text-stone-400">
             {number(farmingStages.length)} {t('actionable stages')}
           </span>
         </div>
@@ -1597,7 +1572,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
               className="flex items-start gap-4 sm:gap-5"
             >
               {/* timeline node */}
-              <div className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-stone-950 font-mono text-[11px] font-semibold tabular-nums text-amber-200 shadow-[0_0_14px_rgba(251,191,36,0.18)]">
+              <div className="relative z-10 flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-400/40 bg-stone-950 font-mono text-xs font-semibold tabular-nums text-amber-200 shadow-[0_0_14px_rgba(251,191,36,0.18)]">
                 {number(stage.step)}
               </div>
 
@@ -1619,14 +1594,14 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <Badge
                       variant="outline"
-                      className="border-stone-300/15 font-mono text-[10px] tabular-nums text-stone-300"
+                      className="border-stone-300/15 font-mono text-xs tabular-nums text-stone-300"
                     >
                       <Clock className="mr-1 size-3" />
                       {t(stage.duration)}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="border-amber-400/30 bg-amber-400/10 font-mono text-[10px] text-amber-200"
+                      className="border-amber-400/30 bg-amber-400/10 font-mono text-xs text-amber-200"
                     >
                       {t('Focus')}: {t(stage.criticalFocus)}
                     </Badge>
@@ -1649,7 +1624,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                 {/* Agronomic pro tips */}
                 {stage.tips && stage.tips.length > 0 && (
                   <div className="mt-3.5 rounded-xl border border-amber-400/15 bg-amber-400/[0.04] p-3">
-                    <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-amber-300">
+                    <div className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-amber-300">
                       <Sparkle className="size-3" />
                       <span>{t('Agronomic Pro Tip')}</span>
                     </div>
@@ -1657,7 +1632,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                       {stage.tips.map((tip, pIdx) => (
                         <li
                           key={pIdx}
-                          className="text-[11px] italic leading-relaxed text-muted-foreground"
+                          className="text-xs italic leading-relaxed text-muted-foreground"
                         >
                           • {t(tip)}
                         </li>
@@ -1756,7 +1731,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                     ? t('Search Results ({count})', { count: number(filteredCatalog.length) })
                     : t('FAO EcoCrop Catalog')}
                 </span>
-                <span className="text-[10px] tabular-nums text-muted-foreground">
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {number(allCropNames.length)} {t('crops total')}
                 </span>
               </div>
@@ -1769,7 +1744,7 @@ export function CropWorkspace({ analysis }: { analysis: FullAnalysis }) {
                       aria-pressed={desired.includes(c)}
                       onClick={() => toggleDesiredCrop(c)}
                       className={cn(
-                        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors',
+                        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors',
                         desired.includes(c)
                           ? 'border-amber-400/40 bg-amber-400/10 text-amber-100'
                           : 'border-stone-300/10 bg-white/[0.03] text-muted-foreground hover:border-stone-300/25 hover:text-foreground'

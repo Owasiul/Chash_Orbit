@@ -915,7 +915,7 @@ export function HolographicGlobe({
 
       {/* Coordinate readout — bottom-left, mono, subtle backdrop blur */}
       {formattedCoords && (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-10 select-none rounded-md border border-white/10 bg-black/40 px-3 py-1.5 font-mono text-[11px] text-white/75 backdrop-blur-md">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 select-none rounded-md border border-white/10 bg-black/40 px-3 py-1.5 font-mono text-xs text-white/75 backdrop-blur-md">
           <span>{formattedCoords}</span>
           {locationName ? (
             <span className="ml-2 text-white/40">· {locationName}</span>

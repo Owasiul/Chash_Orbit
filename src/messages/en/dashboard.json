@@ -289,9 +289,9 @@
   "{irrigation} water infrastructure": "{irrigation} water infrastructure",
   "Water availability": "Water availability",
   "Soil moisture deficit: {score} mm": "Soil moisture deficit: {score} mm",
-  "GPM precipitation & SMAP soil moisture cross-checked": "GPM precipitation & SMAP soil moisture cross-checked",
+  "NASA POWER rainfall and modelled soil moisture": "NASA POWER rainfall and modelled soil moisture",
   "Climate suitability": "Climate suitability",
-  "Temperature, solar radiation, and GPM precipitation match the optimal physiological growth envelope.": "Temperature, solar radiation, and GPM precipitation match the optimal physiological growth envelope.",
+  "Temperature, solar radiation, and rainfall match the optimal physiological growth envelope.": "Temperature, solar radiation, and rainfall match the optimal physiological growth envelope.",
   "Climate fit is below the ideal range for this crop. See the detailed scores for the reasons.": "Climate fit is below the ideal range for this crop. See the detailed scores for the reasons.",
   "Soil suitability": "Soil suitability",
   "Soil texture and pH envelope provide strong root aeration and nutrient exchange capacity for {crop}.": "Soil texture and pH envelope provide strong root aeration and nutrient exchange capacity for {crop}.",
@@ -405,5 +405,14 @@
   "Environmental Context": "Environmental Context",
   "Irrigation Access": "Irrigation Access",
   "Soil Texture": "Soil Texture",
-  "candidates": "candidates"
+  "candidates": "candidates",
+  "estimated from latitude": "estimated from latitude",
+  "NASA data could not be reached. These numbers are illustrative, not measured for this field.": "NASA data could not be reached. These numbers are illustrative, not measured for this field.",
+  "Score range if each priority weight changes by 10 points": "Score range if each priority weight changes by 10 points",
+  "Not suitable for farming": "Not suitable for farming",
+  "No crops are recommended for this location. Try a different location or check the NASA Signals tab for the climate data.": "No crops are recommended for this location. Try a different location or check the NASA Signals tab for the climate data.",
+  "This location is in the sea or ocean, so it cannot be farmed.": "This location is in the sea or ocean, so it cannot be farmed.",
+  "This location is on a lake, so it cannot be farmed.": "This location is on a lake, so it cannot be farmed.",
+  "Confidence": "Confidence",
+  "Confidence reflects which inputs were measured and which were estimated": "Confidence reflects which inputs were measured and which were estimated"
 }

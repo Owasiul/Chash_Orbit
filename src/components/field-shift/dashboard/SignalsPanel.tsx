@@ -110,7 +110,7 @@ function ChartTooltip({
   const { t, number } = useTranslation();
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-lg border border-amber-400/20 bg-stone-950/95 px-2.5 py-1.5 font-mono text-[10px] shadow-xl backdrop-blur-md">
+    <div className="rounded-lg border border-amber-400/20 bg-stone-950/95 px-2.5 py-1.5 font-mono text-xs shadow-xl backdrop-blur-md">
       <div className="text-stone-400">{label ? t(label) : ""}</div>
       {payload.map((p, i) => (
         <div key={i} className="text-amber-200">
@@ -136,7 +136,7 @@ function MicroLabel({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-amber-200/70",
+        "inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.18em] text-amber-200/70",
         className,
       )}
     >
@@ -172,7 +172,7 @@ function StatRow({
             : "text-stone-200/80";
   return (
     <div className="flex items-center justify-between gap-2 border-t border-white/5 py-1.5 text-xs first:border-t-0 first:pt-0">
-      <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-widest text-stone-500">
+      <span className="min-w-0 truncate font-mono text-xs uppercase tracking-widest text-stone-500">
         {t(label)}
       </span>
       <span className={cn("shrink-0 font-medium tabular-nums", color)}>{t(value)}</span>
@@ -252,7 +252,7 @@ function BentoCard({
             </span>
             <div className="min-w-0 flex-1">
               <MicroLabel>{title}</MicroLabel>
-              <span className="mt-0.5 block truncate font-mono text-[9px] uppercase tracking-widest text-stone-600">
+              <span className="mt-0.5 block truncate font-mono text-xs uppercase tracking-widest text-stone-600">
                 {attribution}
               </span>
             </div>
@@ -386,13 +386,13 @@ function SoilMetricChip({
       transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
       className="flex items-center justify-between gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-2.5 py-2 transition-colors duration-300 hover:border-amber-400/20 hover:bg-white/[0.04] sm:px-3 sm:py-2.5"
     >
-      <span className="min-w-0 truncate font-mono text-[10px] uppercase tracking-widest text-stone-500">
+      <span className="min-w-0 truncate font-mono text-xs uppercase tracking-widest text-stone-500">
         {t(label)}
       </span>
       {badgeCls ? (
         <span
           className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] capitalize",
+            "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-xs capitalize",
             badgeCls.cls,
           )}
         >
@@ -476,7 +476,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 font-mono text-[9px] uppercase tracking-widest text-stone-500 sm:text-[10px]">
+          <div className="flex shrink-0 items-center gap-2 font-mono text-xs uppercase tracking-widest text-stone-500 sm:text-xs">
             <Clock className="size-3 text-amber-300/70" />
             <span>
               {t("Last sync")} · {date(new Date().toISOString())}
@@ -488,7 +488,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
       <Card className="border-white/10 bg-stone-950/40 p-4 sm:p-5">
         <div className="flex items-center gap-2">
           <Info className="size-4 shrink-0 text-amber-300" aria-hidden="true" />
-          <h3 className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+          <h3 className="font-mono text-xs uppercase tracking-widest text-amber-200/80">
             {t("What this analysis evaluates")}
           </h3>
         </div>
@@ -506,7 +506,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             </li>
           ))}
         </ul>
-        <p className="mt-3 border-t border-white/5 pt-3 text-[11px] leading-relaxed text-stone-400">
+        <p className="mt-3 border-t border-white/5 pt-3 text-xs leading-relaxed text-stone-400">
           {t(
             "Resolution: approximately 0.5° × 0.5° for the relevant MERRA-2 meteorological fields. This is relatively coarse for individual farms.",
           )}
@@ -555,7 +555,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             }
           />
           <div className="flex items-center justify-between border-t border-white/5 py-1.5 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500">
+            <span className="font-mono text-xs uppercase tracking-widest text-stone-500">
               {t("10y trend")}
             </span>
             <span
@@ -618,11 +618,11 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           title="Rainfall"
           icon={<CloudRain />}
           source={
-            String(rain.source) === "live"
-              ? "live"
-              : String(rain.source) === "cached"
-                ? "cached"
-                : "demo"
+            ["live", "cached"].includes(String(rain.source))
+              ? (String(rain.source) as "live" | "cached")
+              : String(rain.source).startsWith("NASA")
+                ? (environment.overallSource === "cached" ? "cached" : "live")
+                : "derived"
           }
           attribution={rain.attribution}
           big={number(Math.round(rain.annualRainfall))}
@@ -693,7 +693,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
         <BentoCard
           title="Soil moisture"
           icon={<Droplets />}
-          source={(sm.source as string) === "DERIVED" ? "derived" : "demo"}
+          source={sm.measured ? (sm.status === "cached" ? "cached" : "live") : "derived"}
           attribution={sm.attribution}
           big={number(sm.currentMm ?? 0, { maximumFractionDigits: 0 })}
           bigUnit={t("mm (top ~1m)")}
@@ -725,7 +725,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             }
           />
           <div className="flex items-center justify-between border-t border-white/5 py-1.5 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500">
+            <span className="font-mono text-xs uppercase tracking-widest text-stone-500">
               {t("10y trend")}
             </span>
             <span
@@ -744,7 +744,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
           </div>
           {/* Horizontal bar: current vs 100% */}
           <div className="mt-3">
-            <div className="mb-1.5 flex items-center justify-between font-mono text-[9px] uppercase tracking-widest text-stone-600">
+            <div className="mb-1.5 flex items-center justify-between font-mono text-xs uppercase tracking-widest text-stone-600">
               <span>{t("Field capacity")}</span>
               <span className="text-stone-400">
                 {number(sm.currentPct ?? 0, { maximumFractionDigits: 0 })} /{" "}
@@ -803,7 +803,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             }
           />
           <div className="flex items-center justify-between border-t border-white/5 py-1.5 text-xs">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-stone-500">
+            <span className="font-mono text-xs uppercase tracking-widest text-stone-500">
               {t("Recent trend")}
             </span>
             <span
@@ -878,7 +878,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
             </div>
           )}
           {vegObserved && (
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[9px] uppercase tracking-widest text-stone-600">
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs uppercase tracking-widest text-stone-600">
               <span className="flex items-center gap-1.5">
                 <span className="h-0.5 w-3 bg-emerald-400" />
                 {t("MODIS observed")}
@@ -915,7 +915,7 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
                   {t("NASA observation + derived model estimate")}
                 </p>
               </div>
-              <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 px-2.5 py-1 font-mono text-[9px] uppercase tracking-widest text-amber-200/80">
+              <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 px-2.5 py-1 font-mono text-xs uppercase tracking-widest text-amber-200/80">
                 <Activity className="size-3" />
                 {t("derived")}
               </span>

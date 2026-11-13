@@ -47,22 +47,26 @@ export async function POST(req: Request) {
       // Deterministic grounded report generator when LLM API key is not configured
       const topRec = analysis.recommendations?.[0];
       const cropName = topRec?.crop || 'Recommended Crop';
-      const rainfall = Math.round(analysis.environmental?.rainfallMm ?? 1100);
-      const ndviVal = (analysis.environmental?.vegetation?.ndvi ?? 0.55).toFixed(2);
-      const soilType = analysis.inputs?.soilType || 'loamy';
+      const rainMm = analysis.environment?.rainfall?.annualRainfall;
+      const rainfall = typeof rainMm === 'number' ? `${Math.round(rainMm)} mm` : 'unavailable';
+      const ndviRaw = analysis.environment?.vegetation?.ndvi;
+      const ndviVal = typeof ndviRaw === 'number' ? ndviRaw.toFixed(2) : 'unavailable';
+      const soilType = analysis.field?.soilType || 'unknown';
+      const envSource = String(analysis.environment?.overallSource ?? 'derived').toUpperCase();
+      const dataStatus = (['LIVE', 'CACHED', 'DERIVED', 'DEMO'].includes(envSource) ? envSource : 'DERIVED') as 'LIVE' | 'CACHED' | 'DERIVED' | 'DEMO';
 
       const fallbackReport = {
         executiveSummary: locale === 'bn-BD'
-          ? `উপগ্রহের তথ্য অনুযায়ী আপনার জমিতে ${cropName} চাষের জন্য সর্বোচ্চ উপযোগী। বাৎসরিক বৃষ্টিপাত ${rainfall} মিমি এবং সাম্প্রতিক মোডিস এনডিভিআই মান ${ndviVal} পাওয়া গেছে। ${soilType} মাটির জন্য এই ফসলটি সুপারিশ করা হয়েছে।`
-          : `Based on satellite Earth-observation telemetry, ${cropName} is your highest-scoring crop option. Your field receives ~${rainfall} mm annual rainfall with a recent MODIS NDVI vegetation density of ${ndviVal}. This selection aligns with your ${soilType} soil conditions.`,
+          ? `উপগ্রহের তথ্য অনুযায়ী আপনার জমিতে ${cropName} চাষের জন্য সর্বোচ্চ উপযোগী। বাৎসরিক বৃষ্টিপাত ${rainfall} এবং সাম্প্রতিক মোডিস এনডিভিআই মান ${ndviVal} পাওয়া গেছে। ${soilType} মাটির জন্য এই ফসলটি সুপারিশ করা হয়েছে।`
+          : `${cropName} is the highest-scoring crop for this field. Annual rainfall is ${rainfall} and the latest MODIS NDVI is ${ndviVal}. Soil type used: ${soilType}.`,
         keyRisks: [
           {
             risk: locale === 'bn-BD' ? 'অনাবৃষ্টি ও সেচ ঝুঁকি' : 'Water & Irrigation Stress',
             evidence: [
-              `Annual precipitation: ${rainfall} mm.`,
-              `NASA POWER telemetry indicates seasonal moisture deficits.`
+              `Annual rainfall: ${rainfall}.`,
+              `Drought risk score: ${analysis.risks?.droughtRisk ?? 'n/a'}.`
             ],
-            dataStatus: 'LIVE' as const,
+            dataStatus,
             action: locale === 'bn-BD' ? 'পরিমিত সেচ ব্যবস্থা ও আর্দ্রতা সংরক্ষণ নিশ্চিত করুন।' : 'Implement drip or deficit irrigation scheduling during flowering stages.'
           },
           {
@@ -91,13 +95,13 @@ export async function POST(req: Request) {
         })),
         rotationInsights: (analysis.rotationPlan?.years || []).map((y: any) =>
           locale === 'bn-BD'
-            ? `বছর ${y.year}: ${y.crop} (${y.family}) — ${y.role}`
-            : `Year ${y.year}: ${y.crop} (${y.family}) — ${y.role}`
+            ? `বছর ${y.year}: ${y.crop}`
+            : `Year ${y.year}: ${y.crop}. ${y.reason ?? ''}`
         ),
         dataLimitations: [
           'NASA POWER provides 0.5° × 0.5° gridded daily solar and meteorological observations.',
           'NASA MODIS 250m 16-day composite provides regional vegetation indices.',
-          'Field soil classifications are derived from national soil survey mapping.'
+          'Soil type is entered by the farmer or estimated from latitude; it is not measured.'
         ],
         nextSteps: [
           locale === 'bn-BD' ? 'বপনের পূর্বে মাটির আর্দ্রতা পরীক্ষা করুন।' : 'Verify seedbed moisture before initiating planting.',

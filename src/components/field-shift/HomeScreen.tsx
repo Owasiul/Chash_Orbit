@@ -4,7 +4,7 @@ import * as React from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Sparkles, Globe2, Play, ScanLine } from "lucide-react";
+import { ArrowRight, Globe2, Play, ScanLine, Sprout } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { LocationSearch } from "./LocationSearch";
 import { SAMPLE_FARMS } from "@/lib/location";
@@ -236,7 +236,7 @@ export function HomeScreen() {
                         .filter(Boolean)
                         .join(", ")}
                     </div>
-                    <div className="font-mono text-[10px] text-muted-foreground">
+                    <div className="font-mono text-xs text-muted-foreground">
                       {number(Math.abs(selected.latitude), {
                         minimumFractionDigits: 4,
                         maximumFractionDigits: 4,
@@ -259,7 +259,7 @@ export function HomeScreen() {
                   className="group flex w-full items-center justify-between rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-400/20 via-amber-300/15 to-amber-400/20 px-4 py-2.5 text-amber-100"
                 >
                   <span className="flex items-center gap-2">
-                    <Sparkles className="size-4 text-amber-300" />
+                    <Sprout className="size-4 text-amber-300" />
                     <span className="text-sm font-medium text-amber-100">
                       {t("common.analyze-this-area")}
                     </span>
@@ -272,7 +272,7 @@ export function HomeScreen() {
 
           {!selected && (
             <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-widest text-white/60">
+              <span className="shrink-0 font-mono text-xs uppercase tracking-widest text-white/60">
                 {t("common.quick-pick")}
               </span>
               {SAMPLE_FARMS.map((f) => (

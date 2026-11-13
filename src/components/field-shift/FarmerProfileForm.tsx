@@ -1,19 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  Ban,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Droplets,
-  Layers,
-  Loader2,
-  MoreHorizontal,
-  SlidersHorizontal,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Ban, Check, ChevronDown, ChevronUp, Droplets, Layers, Loader2, MoreHorizontal, SlidersHorizontal, X, Sprout } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -267,7 +255,7 @@ function extractFieldMeta(
 /* -------------------------------------------------------------------------- */
 
 const chipBase =
-  "inline-flex min-h-9 select-none items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] leading-tight whitespace-normal transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 sm:text-xs";
+  "inline-flex min-h-9 select-none items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs leading-tight whitespace-normal transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50 sm:text-xs";
 const chipIdle =
   "border-white/10 bg-white/[0.04] text-muted-foreground hover:border-white/20 hover:bg-white/[0.08] hover:text-foreground";
 const chipCurrentActive =
@@ -281,7 +269,7 @@ const chipDesiredActive =
 const iconBtn =
   "inline-flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50";
 const segmentBase =
-  "min-h-9 flex items-center justify-center rounded-md px-1.5 py-1 text-center text-[10px] leading-tight whitespace-normal break-words hyphens-auto transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 sm:text-[11px]";
+  "min-h-9 flex items-center justify-center rounded-md px-1.5 py-1 text-center text-xs leading-tight whitespace-normal break-words hyphens-auto transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 sm:text-xs";
 const menuCls =
   "max-h-64 w-56 overflow-y-auto rounded-xl border-white/10 bg-card/95 p-1.5 shadow-2xl backdrop-blur sm:w-60";
 
@@ -330,7 +318,7 @@ export function FarmerProfileForm({
   // Bangla needs more horizontal room and has no uppercase form.
   const isBangla = localeValue === "bn" || localeValue.startsWith("bn-");
   const labelCls = cn(
-    "text-[10px] font-medium text-muted-foreground/80 sm:text-[11px]",
+    "text-xs font-medium text-muted-foreground/80 sm:text-xs",
     isBangla ? "tracking-normal" : "font-mono uppercase tracking-[0.14em]",
   );
 
@@ -599,7 +587,7 @@ export function FarmerProfileForm({
         </span>
 
         <span className="flex shrink-0 items-center gap-2">
-          <span className="inline-flex max-w-[52vw] items-center gap-1.5 truncate rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[9px] font-normal text-muted-foreground sm:max-w-none sm:text-[10px]">
+          <span className="inline-flex max-w-[52vw] items-center gap-1.5 truncate rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs font-normal text-muted-foreground sm:max-w-none sm:text-xs">
             <span
               className={cn(
                 "h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400",
@@ -747,7 +735,7 @@ export function FarmerProfileForm({
               <span className={labelCls}>
                 {`${t("Crops Under Consideration")} (${candidateCount})`}
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground/60 sm:text-[11px]">
+              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/60 sm:text-xs">
                 <span
                   className={cn(
                     "h-1.5 w-1.5 rounded-full",
@@ -795,7 +783,7 @@ export function FarmerProfileForm({
                     >
                       <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                       {overflowSelectedCount > 0 && (
-                        <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-400 text-[9px] font-bold text-black">
+                        <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-400 text-xs font-bold text-black">
                           {formatCount(overflowSelectedCount)}
                         </span>
                       )}
@@ -946,7 +934,7 @@ export function FarmerProfileForm({
                 </span>
               ) : (
                 <span key="cta-idle" className="flex items-center justify-center gap-2">
-                  <Sparkles
+                  <Sprout
                     className="h-4 w-4 shrink-0 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110"
                     aria-hidden="true"
                   />

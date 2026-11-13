@@ -1,5 +1,5 @@
 {
-  "chash-orbit-nasa-earth-observation-decision": "Chash Orbit · NASA Earth-observation decision system · POWER · SMAP · GPM · MODIS",
+  "chash-orbit-nasa-earth-observation-decision": "Chash Orbit · NASA Earth-observation decision support · POWER · MODIS",
   "initializing-earth-observation-system": "INITIALIZING EARTH OBSERVATION SYSTEM",
   "where-is-your-field": "Where is your field?",
   "tell-us-where-your-farm-is-we-analyze-nasa-e": "Tell us where your farm is. We analyze NASA Earth-observation data — temperature, rainfall, soil moisture, vegetation — and turn it into a transparent 4-year crop rotation plan.",
@@ -68,7 +68,7 @@
   "action": "Action:",
   "switch-language-to-bengali": "Switch language to Bengali",
   "switch-language-to-english": "Switch language to English",
-  "live-nasa-power-smap-gpm-modis-derived": "Live NASA POWER · SMAP / GPM / MODIS derived",
+  "live-nasa-power-smap-gpm-modis-derived": "NASA POWER · MODIS NDVI · soil moisture modelled from POWER",
   "field-details": "Field details",
   "corn": "Corn",
   "potato": "Potato",

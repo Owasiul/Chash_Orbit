@@ -65,7 +65,7 @@ function StepHeader({ step }: { step: number }) {
               </div>
               <span
                 className={cn(
-                  'font-mono text-[10px] uppercase tracking-wider transition-colors',
+                  'font-mono text-xs uppercase tracking-wider transition-colors',
                   i === step ? 'text-amber-200' : 'text-muted-foreground/60',
                 )}
               >
@@ -175,7 +175,7 @@ function CropStep({
       {/* Selected crops with role controls */}
       {selections.length > 0 && (
         <div className="space-y-2 rounded-2xl border border-white/10 bg-black/20 p-4">
-          <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+          <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
             {t('Your selected crops')} ({number(selections.length)})
           </div>
           <div className="space-y-2">
@@ -189,7 +189,7 @@ function CropStep({
                       type="button"
                       onClick={() => setRole(s.name, role)}
                       className={cn(
-                        'rounded-lg px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-all',
+                        'rounded-lg px-2.5 py-1 font-mono text-xs uppercase tracking-wider transition-all',
                         s.role === role
                           ? 'bg-amber-400/20 text-amber-200'
                           : 'bg-white/5 text-muted-foreground/60 hover:bg-white/10',
@@ -254,7 +254,7 @@ function FarmStep({
 
       {/* Farm size */}
       <div>
-        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Farm size')}</label>
+        <label className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">{t('Farm size')}</label>
         <div className="mt-2 flex gap-2">
           <input
             type="number"
@@ -286,7 +286,7 @@ function FarmStep({
 
       {/* Current crop */}
       <div>
-        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Current crop')}</label>
+        <label className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">{t('Current crop')}</label>
         <div className="mt-2 flex flex-wrap gap-2">
           {currentOptions.map(c => (
             <button
@@ -308,7 +308,7 @@ function FarmStep({
 
       {/* Irrigation */}
       <div>
-        <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Irrigation')}</label>
+        <label className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">{t('Irrigation')}</label>
         <div className="mt-2 grid gap-2 sm:grid-cols-3">
           {irrigationOptions.map(o => (
             <button
@@ -335,8 +335,8 @@ function FarmStep({
       {/* Soil type */}
       <div>
         <div className="flex items-center justify-between">
-          <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Soil type')}</label>
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground/60">
+          <label className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">{t('Soil type')}</label>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground/60">
             <Info className="size-3" /> {t('validation.not-required-we-ll-infer-it-if-you-don-t-kno')}
           </span>
         </div>
@@ -354,7 +354,7 @@ function FarmStep({
               )}
             >
               <span className="text-sm font-medium">{t(o.label)}</span>
-              <span className="text-[11px] text-muted-foreground">{t(o.desc)}</span>
+              <span className="text-xs text-muted-foreground">{t(o.desc)}</span>
             </button>
           ))}
         </div>
@@ -407,7 +407,7 @@ function PrioritiesStep({
       {/* 100% meter */}
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">{t('Total')}</span>
+          <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">{t('Total')}</span>
           <span className={cn(
             'font-mono text-lg font-semibold tabular-nums',
             ok ? 'text-emerald-300' : 'text-amber-300',
@@ -446,7 +446,7 @@ function PrioritiesStep({
                 </span>
                 <div>
                   <div className="text-sm font-medium text-foreground">{t(it.label)}</div>
-                  <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground/60">
                     {priorities[it.key]}% {t('weight')}
                   </div>
                 </div>
@@ -592,7 +592,7 @@ export function OnboardingWizard() {
         >
           <ArrowLeft className="size-4" /> {t('Back')}
         </button>
-        <div className="min-w-0 truncate font-mono text-[10px] uppercase tracking-widest text-amber-200/80 text-right">
+        <div className="min-w-0 truncate font-mono text-xs uppercase tracking-widest text-amber-200/80 text-right">
           {selected.name} · {number(Math.abs(selected.latitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.latitude >= 0 ? 'N' : 'S'} {number(Math.abs(selected.longitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}°{selected.longitude >= 0 ? 'E' : 'W'}
         </div>
       </header>

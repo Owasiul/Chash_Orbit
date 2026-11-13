@@ -77,6 +77,12 @@ export interface Recommendation {
   crop: string;
   score: number;
   why: string;
+  /** Lowest and highest score when each priority weight is nudged by +/-10. */
+  range?: [number, number];
+  /** How much the inputs behind this score can be trusted. */
+  confidence?: 'high' | 'medium' | 'low';
+  /** Component scores (0-100) that feed the overall score. */
+  breakdown?: { climate: number; water: number; soil: number; rotation: number; season: number };
 }
 
 export interface RotationYear {
@@ -105,7 +111,15 @@ export interface RotationPlan {
   rationale: string;
 }
 
+export interface Viability {
+  farmable: boolean;
+  reason: string | null;
+  /** Shown when crops are possible but a condition needs the farmer's attention. */
+  warning?: string | null;
+}
+
 export interface AnalysisResult {
+  viability: Viability;
   risks: Risks;
   cropCompatibility: CropCompatibility[];
   recommendations: Recommendation[];
@@ -163,7 +177,7 @@ export function computeRisks(env: Environment): Risks {
   // the score a little, and What-if sliders respond smoothly.
   const smDeficit = env.soilMoisture.seasonalDeficit;
   const drought = clamp(
-    50 * ramp(45 - env.soilMoisture.currentPct, 0, 30) +      // dry root zone: full weight at <=15 %
+    50 * ramp(45 - (env.soilMoisture.currentPct ?? 0), 0, 30) +      // dry root zone: full weight at <=15 %
     30 * ramp(smDeficit, 25, 125) +                            // shortfall vs crop demand
     20 * (1 - ramp(env.rainfall.growingSeasonRainfall, 100, 300)), // little rain in the last 90 days
     0, 100,
@@ -174,7 +188,7 @@ export function computeRisks(env: Environment): Risks {
   const flood = clamp(
     30 * ramp(env.rainfall.variability, 0, 12) +
     30 * ramp(env.rainfall.growingSeasonRainfall, 0, 600) +
-    40 * ramp(env.soilMoisture.currentPct, 20, 90),
+    40 * ramp((env.soilMoisture.currentPct ?? 0), 20, 90),
     0, 100,
   );
   const soilMoistureDeficit = Math.round(smDeficit);
@@ -211,32 +225,60 @@ export function faoTrapezoid(v: number, absMin: number, optMin: number, optMax: 
   return Math.max(0, Math.min(100, Math.round(((absMax - v) / (absMax - optMax)) * 100)));
 }
 
-/** NASA POWER stats during this crop's planting→harvest months (not “last 90 days”). */
+/** NASA POWER stats during this crop's planting→harvest months (not "last 90 days"). */
 function cropWindowSignals(crop: CropSpec, env: Environment, lat: number) {
   const power = env.rawPower;
-  if (!power?.series.dates.length) {
-    return {
-      tempAvgC: env.temperature.growingSeasonAvg,
-      rainMm: env.rainfall.growingSeasonRainfall,
-      heatStressDays: env.temperature.heatStressDays,
-      fromCropWindow: false as const,
-    };
-  }
+  const fallback = {
+    tempAvgC: env.temperature.growingSeasonAvg,
+    rainMm: env.rainfall.growingSeasonRainfall,
+    heatStressDays: env.temperature.heatStressDays,
+    frostDays: 0,
+    seasonDays: 0,
+    fromCropWindow: false as const,
+  };
+  if (!power?.series.dates.length) return fallback;
   const months = getGrowingWindowMonths(crop, lat);
   const clim = buildMonthlyClimatology(power.series);
   const agg = aggregateMonths(clim, months);
-  if (agg.monthsUsed === 0 || Number.isNaN(agg.tempAvgC)) {
-    return {
-      tempAvgC: env.temperature.growingSeasonAvg,
-      rainMm: env.rainfall.growingSeasonRainfall,
-      heatStressDays: env.temperature.heatStressDays,
-      fromCropWindow: false as const,
-    };
+  if (agg.monthsUsed === 0 || Number.isNaN(agg.tempAvgC)) return fallback;
+
+  // Count cold and hot days inside the crop's own season, using the crop's own limits.
+  const fao = findFaoCrop(crop.name);
+  // The data's absMin is a seasonal MEAN limit, not a night-time kill point. Use a
+  // heuristic kill temperature about 6 degrees below it (rice ~9, maize ~4, potato ~1, wheat ~-2).
+  const coldLimit = Math.max(-8, Math.min(10, (fao?.temp.absMin ?? crop.growTempMin - 6) - 6));
+  const hotLimit = (fao?.temp.optMax ?? crop.growTempMax) + 3;
+  const monthSet = new Set(months);
+  const s = power.series;
+  let frostDays = 0;
+  let heatDays = 0;
+  let seasonDays = 0;
+  for (let i = 0; i < s.dates.length; i++) {
+    if (!monthSet.has(parseInt(s.dates[i]!.slice(4, 6), 10))) continue;
+    seasonDays++;
+    if (!Number.isNaN(s.t2mMin[i]) && s.t2mMin[i] < coldLimit) frostDays++;
+    if (!Number.isNaN(s.t2mMax[i]) && s.t2mMax[i] > hotLimit) heatDays++;
+  }
+  // Blend the typical (10-year) climate with the last 12 months, so one unusual
+  // year does not decide which crops fit this place.
+  let tempAvgC = agg.tempAvgC;
+  let rainMm = agg.rainMm;
+  const norm = power.monthlyNormals;
+  if (norm) {
+    const idx = months.map(m => m - 1);
+    const nT = idx.map(i => norm.tempC[i]).filter((v): v is number => v != null);
+    const nR = idx.map(i => norm.rainMm[i]).filter((v): v is number => v != null);
+    if (nT.length === idx.length && nR.length === idx.length) {
+      tempAvgC = 0.7 * (nT.reduce((a, b) => a + b, 0) / nT.length) + 0.3 * tempAvgC;
+      rainMm = 0.7 * nR.reduce((a, b) => a + b, 0) + 0.3 * rainMm;
+    }
   }
   return {
-    tempAvgC: agg.tempAvgC,
-    rainMm: agg.rainMm,
-    heatStressDays: agg.heatStressDays,
+    tempAvgC,
+    rainMm,
+    heatStressDays: heatDays,
+    frostDays,
+    seasonDays,
     fromCropWindow: true as const,
   };
 }
@@ -263,13 +305,29 @@ function climateFit(crop: CropSpec, env: Environment, risks: Risks, lat: number)
   const droughtMap = { low: 0, medium: 0.5, high: 1 } as const;
   const droughtScore = clamp(50 + droughtMap[crop.droughtTolerance] * 50 - risks.droughtRisk * 0.3, 0, 100);
 
-  return Math.round(tempScore * 0.4 + heatScore * 0.3 + droughtScore * 0.3);
+  // Temperature outside the crop's absolute range rules the crop out; the other
+  // components must not be able to average that away.
+  if (tempScore <= 0) return 0;
+  const blend = tempScore * 0.4 + heatScore * 0.3 + droughtScore * 0.3;
+  let fit = Math.min(blend, tempScore + 25);
+  // Frost: nights colder than the crop's absolute minimum damage or kill it, even
+  // when the seasonal mean looks fine. Penalise by the share of season days affected.
+  if (window.frostDays > 0) {
+    const share = window.seasonDays > 0 ? window.frostDays / window.seasonDays : 1;
+    if (window.frostDays >= 5 && share >= 0.4) return 0;
+    fit = fit * (1 - Math.min(0.6, share * 1.5));
+  }
+  return Math.round(fit);
 }
 
 function waterFit(crop: CropSpec, env: Environment, irrigation: IrrigationType, risks: Risks, lat: number): number {
   const window = cropWindowSignals(crop, env, lat);
   const fao = findFaoCrop(crop.name);
-  const irrigUpliftMm = irrigation === 'reliable' ? 350 : irrigation === 'limited' ? 180 : 0;
+  // Irrigation covers a share of the gap between season rainfall and what the crop
+  // needs (rather than a flat number of mm that ignores the crop).
+  const irrigShare = irrigation === 'reliable' ? 0.9 : irrigation === 'limited' ? 0.5 : 0;
+  const cropNeedMm = fao?.water.optMinMm ?? crop.waterMm;
+  const irrigUpliftMm = irrigShare * Math.max(0, cropNeedMm - window.rainMm);
   const effectiveRain = window.rainMm + irrigUpliftMm;
 
   let rainScore: number;
@@ -426,11 +484,16 @@ function scoreCrop(crop: CropSpec, env: Environment, risks: Risks, inputs: Farme
     seasonF = Math.min(seasonF, 40);
   }
   const { soil, water, climate, income } = inputs.priorities;
-  const totalP = Math.max(1, soil + water + climate + income);
+  // Crop income values are an illustrative index, not market prices, so they may
+  // account for at most 15% of the priority-weighted blend.
+  const incomeW = Math.min(income, 0.1765 * (soil + water + climate));
+  const totalP = Math.max(1, soil + water + climate + incomeW);
 
-  const overall =
-    (climateF * climate + waterF * water + soilF * soil + crop.baseIncome * income + rotationF * 10 + seasonF * 22 + areaF * 12) /
+  const rawOverall =
+    (climateF * climate + waterF * water + soilF * soil + crop.baseIncome * incomeW + rotationF * 10 + seasonF * 22 + areaF * 12) /
     (totalP + 10 + 22 + 12);
+  // A crop that cannot survive the local temperature must never rank well.
+  const overall = climateF <= 0 ? Math.min(rawOverall, 10) : rawOverall;
   return { climateF, waterF, soilF, rotationF, seasonF, areaF, overall };
 }
 
@@ -478,7 +541,7 @@ export function computeRecommendations(
   const all = CROP_LIBRARY.filter(c => !excluded.has(c.name)).map(crop => ({
     crop,
     ...scoreCrop(crop, env, risks, inputs, soilType),
-  }));
+  })).filter(r => r.climateF > 0);
 
   all.sort((a, b) => {
     const aPlant = isCurrentlyPlantable(a.crop, inputs.latitude) ? 1 : 0;
@@ -486,6 +549,19 @@ export function computeRecommendations(
     if (bPlant !== aPlant) return bPlant - aPlant;
     return b.overall - a.overall;
   });
+  // Confidence reflects data quality, not the crop: which inputs were measured
+  // and which were guessed.
+  const series = env.rawPower?.series;
+  const validRatio = series?.t2m.length
+    ? series.t2m.filter(v => !Number.isNaN(v)).length / series.t2m.length
+    : 0;
+  const confidencePoints =
+    (inputs.soilType !== 'unknown' ? 1 : 0) +
+    (env.vegetation.source === 'live' || env.vegetation.source === 'cached' ? 1 : 0) +
+    (env.soilMoisture.measured ? 1 : 0) +
+    (validRatio >= 0.95 ? 1 : 0);
+  const confidence: 'high' | 'medium' | 'low' =
+    confidencePoints >= 4 ? 'high' : confidencePoints >= 2 ? 'medium' : 'low';
   return all.slice(0, 6).map((r, i) => {
     const c = r.crop;
     const window = cropWindowSignals(c, env, inputs.latitude);
@@ -510,11 +586,30 @@ export function computeRecommendations(
     } else {
       why = `${c.name} is the next-best option given this field's NASA signals and its ${scaleLabel} scale — consider trialing a small area in ${plantLabel}.`;
     }
+    let lo = r.overall;
+    let hi = r.overall;
+    for (const key of ['soil', 'water', 'climate', 'income'] as const) {
+      for (const delta of [-10, 10]) {
+        const priorities = { ...inputs.priorities, [key]: Math.max(0, inputs.priorities[key] + delta) };
+        const o = scoreCrop(c, env, risks, { ...inputs, priorities }, soilType).overall;
+        lo = Math.min(lo, o);
+        hi = Math.max(hi, o);
+      }
+    }
     return {
       rank: i + 1,
       crop: c.name,
       score: Math.round(r.overall),
       why,
+      confidence,
+      range: [Math.round(lo), Math.round(hi)] as [number, number],
+      breakdown: {
+        climate: Math.round(r.climateF),
+        water: Math.round(r.waterF),
+        soil: Math.round(r.soilF),
+        rotation: Math.round(r.rotationF),
+        season: Math.round(r.seasonF),
+      },
     };
   });
 }
@@ -670,7 +765,23 @@ export function analyze(inputs: FarmerInputs, env: Environment): AnalysisResult 
   const cropCompatibility = computeCropCompatibility(inputs, env, risks);
   const recommendations = computeRecommendations(inputs, cropCompatibility, env, risks);
   const rotationPlan = buildRotationPlan(inputs, cropCompatibility, recommendations);
-  return { risks, cropCompatibility, recommendations, rotationPlan };
+  const farmable = CROP_LIBRARY.some(c => climateFit(c, env, risks, inputs.latitude) > 0);
+  const avgT = Math.round(env.temperature.growingSeasonAvg);
+  const elevation = env.rawPower?.fieldElevationM;
+  const tooHigh = typeof elevation === 'number' && elevation > 4500;
+  const arid = env.rainfall.annualRainfall < 150 && inputs.irrigation === 'rainfed';
+  const viability: Viability = tooHigh
+    ? { farmable: false, reason: `Field elevation is about ${Math.round(elevation)} m, above the limit for field crops (about 4,500 m).` }
+    : farmable
+    ? {
+        farmable,
+        reason: null,
+        warning: arid
+          ? `Annual rainfall here is only about ${Math.round(env.rainfall.annualRainfall)} mm. Rainfed farming is unlikely to work here without irrigation.`
+          : null,
+      }
+    : { farmable, reason: `Average temperature here is about ${avgT}°C, outside the range of every crop in our library. This location is not suitable for conventional farming.` };
+  return { viability, risks, cropCompatibility, recommendations, rotationPlan };
 }
 
 /**
@@ -729,7 +840,7 @@ export function evaluateCropAtmosphere(
       temperatureC: Math.round(fieldTemp * 10) / 10,
       rainfallMm: Math.round(fieldRain),
       heatStressDays,
-      rootZoneSoilMoisturePct: Math.round(env.soilMoisture.currentPct),
+      rootZoneSoilMoisturePct: Math.round((env.soilMoisture.currentPct ?? 0)),
       soilDeficitMm: Math.round(env.soilMoisture.seasonalDeficit),
       ndviVigor: Math.round(env.vegetation.ndvi * 100) / 100,
     },

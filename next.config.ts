@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   agentRules: false,
   /* config options here */
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   reactStrictMode: false,
 };

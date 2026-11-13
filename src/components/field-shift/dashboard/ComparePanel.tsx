@@ -12,7 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 import { motion } from 'framer-motion';
-import { ArrowRight, Calendar, Sprout, Coins, Droplets, Leaf, Sun, Thermometer, Sparkles, Edit, Save, X } from 'lucide-react';
+import { ArrowRight, Calendar, Sprout, Coins, Droplets, Leaf, Sun, Thermometer, Edit, Save, X } from "lucide-react";
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -155,7 +155,7 @@ function SubScore({ label, value, color }: { label: string; value: number; color
   const { t, number } = useTranslation();
   return (
     <div className="flex items-center justify-between py-1.5 text-xs">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+      <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
         {t(label)}
       </span>
       <span className={cn('font-mono font-light tabular-nums', color)}>{number(value)}</span>
@@ -182,19 +182,19 @@ function YearRow({
   const { t, number } = useTranslation();
   return (
     <div className="flex items-center gap-3 rounded-md border border-white/5 bg-white/[0.03] px-3 py-2">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+      <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
         {t('Year {year}', { year })}
       </span>
       <Sprout className="size-3.5 text-amber-300/80" />
       <div className="flex-1">
         <div className="text-sm font-medium text-foreground">{t(crop)}</div>
         {(plantingSeason || harvestSeason) && (
-          <div className="text-[10px] text-muted-foreground/80">
+          <div className="text-xs text-muted-foreground/80">
             {t('Plant')} {t(plantingSeason ?? '—')} · {t('Harvest')} {t(harvestSeason ?? '—')}
           </div>
         )}
         {coverCrop && (
-          <div className="text-[11px] italic text-emerald-300/70">+ {t(coverCrop)}</div>
+          <div className="text-xs italic text-emerald-300/70">+ {t(coverCrop)}</div>
         )}
       </div>
       {score != null && (
@@ -222,7 +222,7 @@ function EditableYearRow({
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2">
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70 shrink-0">
+      <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70 shrink-0">
         {t('Year {year}', { year })}
       </span>
       <Sprout className="size-3.5 text-amber-300/80 shrink-0" />
@@ -264,7 +264,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   const { t, number } = useTranslation();
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-[10px] text-foreground backdrop-blur">
+    <div className="rounded-md border border-white/10 bg-black/80 px-2 py-1.5 font-mono text-xs text-foreground backdrop-blur">
       <div className="text-muted-foreground/80">{label ? t(label) : ''}</div>
       {payload.map((p, i) => (
         <div key={i} className="flex items-center gap-1.5">
@@ -427,7 +427,7 @@ export function ComparePanel({
           </Button>
         </div>
 
-        <span className="hidden pr-3 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60 sm:inline">
+        <span className="hidden pr-3 font-mono text-xs uppercase tracking-widest text-muted-foreground/60 sm:inline">
           {viewMode === 'atmosphere' ? t('Single & Multi-Crop Evaluation') : t('Long-term Agronomic Cycle')}
         </span>
       </div>
@@ -448,7 +448,7 @@ export function ComparePanel({
             {/* Current rotation */}
             <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
               <div className="mb-3 flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-widest text-rose-200/80">
+                <span className="font-mono text-xs uppercase tracking-widest text-rose-200/80">
                   {t('Current rotation')}
                 </span>
                 <Badge variant="outline" className="border-rose-400/30 bg-rose-400/10 text-rose-200">
@@ -466,7 +466,7 @@ export function ComparePanel({
                 <SubScore label="Climate" value={currentScores.climate} color="text-amber-300/80" />
                 <SubScore label="Income" value={currentScores.income} color="text-violet-300/80" />
                 <div className="mt-2 flex items-center justify-between border-t border-white/10 pt-2">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/80">
+                  <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/80">
                     {t('Overall')}
                   </span>
                   <span className="font-mono text-2xl font-light text-rose-200/90 tabular-nums">
@@ -480,7 +480,7 @@ export function ComparePanel({
             <Card className="border-amber-400/30 bg-amber-400/[0.04] p-4 sm:p-6">
               <div className="mb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center justify-between w-full sm:w-auto">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+                  <span className="font-mono text-xs uppercase tracking-widest text-amber-200/80">
                     {t('Chash Orbit plan')}
                   </span>
                   <Badge variant="outline" className="border-amber-400/40 bg-amber-400/10 text-amber-200">
@@ -520,7 +520,7 @@ export function ComparePanel({
               </div>
 
               {isChanged && !editMode && (
-                <p className="mt-1 text-[10px] text-amber-300/80">
+                <p className="mt-1 text-xs text-amber-300/80">
                   {t('Rotation customized — scores estimated from edit')}
                 </p>
               )}
@@ -554,7 +554,7 @@ export function ComparePanel({
                 <SubScore label="Climate" value={resolvedScores.climate} color="text-amber-300" />
                 <SubScore label="Income" value={resolvedScores.income} color="text-violet-300" />
                 <div className="mt-2 flex items-center justify-between border-t border-amber-400/20 pt-2">
-                  <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+                  <span className="font-mono text-xs uppercase tracking-widest text-amber-200/80">
                     {t('Overall')}
                   </span>
                   <span className={cn('font-mono text-2xl font-light tabular-nums', 'text-amber-300')}>
@@ -562,7 +562,7 @@ export function ComparePanel({
                   </span>
                 </div>
                 {!onRotationChange && (
-                  <p className="mt-2 text-[10px] text-muted-foreground/70">
+                  <p className="mt-2 text-xs text-muted-foreground/70">
                     {t('Scores estimated from edited rotation')}
                   </p>
                 )}
@@ -574,7 +574,7 @@ export function ComparePanel({
           <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+                <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
                   {t('Overall rotation advantage')}
                 </div>
                 <div className="mt-1 flex items-baseline gap-2">
@@ -597,7 +597,7 @@ export function ComparePanel({
 
           {/* Sub-score comparison chart */}
           <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-            <h3 className="mb-4 font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+            <h3 className="mb-4 font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
               {t('Sub-score comparison')}
             </h3>
             <div className="h-64 w-full">

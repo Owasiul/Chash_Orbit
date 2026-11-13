@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { getModisNdvi, deriveVegetation } from '@/lib/nasa/modis';
-import { demoPower } from '@/lib/nasa/environment';
+import { fetchPowerAnalysis } from '@/lib/nasa/power';
 import { getCached, CACHE_TTL, type CacheKey } from '@/lib/nasa/cache';
 import type { PowerAnalysis } from '@/lib/nasa/power';
 import { fetchLatestSentinel2Scene } from '@/lib/nasa/sentinel';
@@ -75,15 +75,24 @@ export async function GET(req: Request) {
     latitude: queryLat,
     longitude: queryLng,
     dateRange: last365Range(),
-    parameters: 'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M',
+    parameters: 'T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS10M+ELEV+NORM',
   };
 
   const cachedPower = await getCached<PowerAnalysis>(powerKey, CACHE_TTL.POWER).catch(() => null);
-  const power = cachedPower?.data ?? demoPower(queryLat, queryLng);
+  let power: PowerAnalysis;
+  if (cachedPower) {
+    power = cachedPower.data;
+  } else {
+    try {
+      power = await fetchPowerAnalysis(queryLat, queryLng);
+    } catch {
+      return NextResponse.json({ error: 'NASA POWER is unreachable, so vegetation cannot be derived right now.' }, { status: 503 });
+    }
+  }
 
   // Allow up to 25 seconds for the background MODIS fetch to complete
   const [modisResult, sentinelScene] = await Promise.all([
-    getModisNdvi(queryLat, queryLng, polygon, 25000),
+    getModisNdvi(queryLat, queryLng, 25000),
     fetchLatestSentinel2Scene(bbox, 3000).catch(() => null),
   ]);
 

@@ -3,27 +3,7 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import {
-  Sparkles,
-  Printer,
-  RotateCcw,
-  Languages,
-  Search,
-  Activity,
-  BarChart3,
-  Leaf,
-  MapPin,
-  Loader2,
-  FileText,
-  HelpCircle,
-  ChevronDown,
-  Info,
-  Navigation,
-  CheckCircle2,
-  ArrowDown,
-  Compass,
-  Sprout,
-} from "lucide-react";
+import { Printer, RotateCcw, Languages, Search, Activity, BarChart3, Leaf, MapPin, Loader2, FileText, HelpCircle, ChevronDown, Info, Navigation, CheckCircle2, ArrowDown, Compass, Sprout } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -308,7 +288,7 @@ export function SinglePageDashboard() {
                   CHASH ORBIT
                 </span>
               </div>
-              <p className="hidden truncate text-[10px] text-muted-foreground sm:block">
+              <p className="hidden truncate text-xs text-muted-foreground sm:block">
                 {t("Earth-Observation Agricultural Decision System")}
               </p>
             </div>
@@ -425,7 +405,7 @@ export function SinglePageDashboard() {
 
             {/* Quick Global Agricultural Region Jumps */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 hidden sm:inline mr-1">
+              <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground/70 hidden sm:inline mr-1">
                 {t("Quick Jumps:")}
               </span>
               {REGION_SHORTCUTS.map((c) => (
@@ -434,7 +414,7 @@ export function SinglePageDashboard() {
                   type="button"
                   onClick={() => handleCityJump(c)}
                   className={cn(
-                    "rounded-full border px-2.5 py-1 text-[11px] font-mono transition-colors",
+                    "rounded-full border px-2.5 py-1 text-xs font-mono transition-colors",
                     selected?.name === c.name
                       ? "border-amber-400/60 bg-amber-400/20 text-amber-200"
                       : "border-white/10 bg-white/5 text-muted-foreground hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-200",
@@ -487,7 +467,7 @@ export function SinglePageDashboard() {
                         : t("Explore & Draw Field"))}
                   </span>
                   {activePolygon && (
-                    <span className="font-mono text-[10px] text-muted-foreground/80">
+                    <span className="font-mono text-xs text-muted-foreground/80">
                       {`${Math.abs(activePolygon.centroid[1]).toFixed(4)}° ${activePolygon.centroid[1] >= 0 ? "N" : "S"}, ${Math.abs(activePolygon.centroid[0]).toFixed(4)}° ${activePolygon.centroid[0] >= 0 ? "E" : "W"}`}
                     </span>
                   )}
@@ -543,7 +523,7 @@ export function SinglePageDashboard() {
               <Card key="welcome-prompt" className="border-white/10 bg-card/40 p-6 sm:p-8 space-y-5">
                 <div className="flex items-start gap-4">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-400/10 text-amber-300 border border-amber-400/20">
-                    <Sparkles className="size-5" />
+                    <Sprout className="size-5" />
                   </div>
                   <div>
                     <h3 className="text-lg font-light text-foreground sm:text-xl">
@@ -559,37 +539,37 @@ export function SinglePageDashboard() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">
+                    <div className="font-mono text-xs text-amber-300 uppercase tracking-wider">
                       Step 1 · Locate
                     </div>
                     <p className="text-xs text-foreground font-medium">
                       Search City or Use GPS
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Type any region, city name, or lat/lon coordinates to fly
                       the map.
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">
+                    <div className="font-mono text-xs text-amber-300 uppercase tracking-wider">
                       Step 2 · Outline
                     </div>
                     <p className="text-xs text-foreground font-medium">
                       Draw Field Polygon
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Click corners on satellite imagery to measure real farm
                       area.
                     </p>
                   </div>
                   <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3.5 space-y-1">
-                    <div className="font-mono text-[10px] text-amber-300 uppercase tracking-wider">
+                    <div className="font-mono text-xs text-amber-300 uppercase tracking-wider">
                       Step 3 · Analyze
                     </div>
                     <p className="text-xs text-foreground font-medium">
                       NASA Climate Engine
                     </p>
-                    <p className="text-[11px] text-muted-foreground">
+                    <p className="text-xs text-muted-foreground">
                       Get ranked crops, 4-year rotation, and heat/drought
                       signals.
                     </p>
@@ -667,14 +647,31 @@ export function SinglePageDashboard() {
                   {activeResultTab === "signals" && (
                     <SignalsPanel analysis={analysis} />
                   )}
-                  {activeResultTab === "workspace" && (
+                  {analysis.viability?.farmable === false && (activeResultTab === "field" || activeResultTab === "workspace" || activeResultTab === "compare") && (
+                    <div className="space-y-6">
+                      <div role="alert" className="rounded-xl border border-rose-400/40 bg-rose-400/10 p-5 sm:p-6">
+                        <h3 className="text-lg font-semibold text-rose-200">{t("Not suitable for farming")}</h3>
+                        <p className="mt-2 text-sm text-foreground/90">{t(analysis.viability.reason ?? "")}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">{t("No crops are recommended for this location. Try a different location or check the NASA Signals tab for the climate data.")}</p>
+                      </div>
+                      <section id="data-sources">
+                        <LearnPanel analysis={analysis} />
+                      </section>
+                    </div>
+                  )}
+                  {analysis.viability?.farmable !== false && activeResultTab === "workspace" && (
                     <CropWorkspace analysis={analysis} />
                   )}
-                  {activeResultTab === "compare" && (
+                  {analysis.viability?.farmable !== false && activeResultTab === "compare" && (
                     <ComparePanel analysis={analysis} />
                   )}
-                  {activeResultTab === "field" && (
+                  {analysis.viability?.farmable !== false && activeResultTab === "field" && (
                     <div className="space-y-6">
+                      {analysis.viability?.warning && (
+                        <div role="alert" className="rounded-xl border border-amber-400/40 bg-amber-400/10 p-4 text-sm text-amber-100">
+                          {t(analysis.viability.warning)}
+                        </div>
+                      )}
                       <section id="verdict">
                         <VerdictCard analysis={analysis} />
                       </section>
@@ -711,7 +708,7 @@ export function SinglePageDashboard() {
       </main>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="no-print mt-auto border-t border-white/5 py-4 text-center font-mono text-[10px] uppercase tracking-wider text-muted-foreground/50">
+      <footer className="no-print mt-auto border-t border-white/5 py-4 text-center font-mono text-xs uppercase tracking-wider text-muted-foreground/50">
         {t(
           "Chash Orbit · NASA Earth-Observation Decision System · NASA POWER (MERRA-2) · MODIS Terra (ORNL DAAC) · Sentinel-2 L2A",
         )}

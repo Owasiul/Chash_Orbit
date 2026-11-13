@@ -61,7 +61,7 @@ export function AnalyzingScreen() {
           className="w-full max-w-md"
         >
           <div className="mb-6 text-center">
-            <div className="font-mono text-[10px] uppercase tracking-[0.4em] text-amber-200/80">
+            <div className="font-mono text-xs uppercase tracking-[0.4em] text-amber-200/80">
               {t('Chash Orbit · Acquisition in progress')}
             </div>
             <h1 className="mt-2 text-3xl font-light text-foreground">
@@ -101,7 +101,7 @@ export function AnalyzingScreen() {
                       {t(s.label)}
                     </span>
                     {done && (
-                      <span className="ml-auto font-mono text-[10px] uppercase tracking-widest text-emerald-300/80">
+                      <span className="ml-auto font-mono text-xs uppercase tracking-widest text-emerald-300/80">
                         ✓
                       </span>
                     )}
@@ -115,7 +115,7 @@ export function AnalyzingScreen() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 font-mono text-[11px] text-amber-200/80"
+                  className="mt-5 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-2.5 font-mono text-xs text-amber-200/80"
                 >
                   ◦ {t('Comparing your crops against NASA observations — composing rotation plan...')}
                 </motion.div>
@@ -123,7 +123,7 @@ export function AnalyzingScreen() {
             </AnimatePresence>
           </div>
 
-          <div className="mt-4 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground/50">
+          <div className="mt-4 text-center font-mono text-xs uppercase tracking-widest text-muted-foreground/50">
             {t('Live NASA POWER + MODIS · soil moisture modelled')}
           </div>
         </motion.div>

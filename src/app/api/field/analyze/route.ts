@@ -1,6 +1,7 @@
+import { surfaceAt } from '@/lib/geo/water';
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { fetchEnvironment, type Environment } from '@/lib/nasa/environment';
+import { fetchEnvironment, NasaDataUnavailableError, type Environment } from '@/lib/nasa/environment';
 import { analyze, computeRisks, type FarmerInputs, type FarmerPriorities } from '@/lib/decision/engine';
 import {
   inferSoilType,
@@ -58,6 +59,16 @@ export async function POST(req: Request) {
   if (desiredCrops.length > 20 || !desiredCrops.every(c => typeof c === 'string')) return bad('desiredCrops must be at most 20 crop names.', 400, locale);
   if (!priorities || typeof priorities.soil !== 'number' || typeof priorities.water !== 'number' || typeof priorities.climate !== 'number' || typeof priorities.income !== 'number') {
     return bad('priorities (soil, water, climate, income) are required.', 400, locale);
+  }
+  const pVals = [priorities.soil, priorities.water, priorities.climate, priorities.income];
+  if (!pVals.every(v => Number.isFinite(v) && v >= 0 && v <= 100) || pVals.reduce((x, y) => x + y, 0) === 0) {
+    return bad('priorities must each be between 0 and 100, and not all zero.', 400, locale);
+  }
+  if (body.area !== undefined && body.area !== null && (typeof body.area !== 'number' || !Number.isFinite(body.area) || body.area <= 0)) {
+    return bad('area must be a positive number.', 400, locale);
+  }
+  if (body.polygon !== undefined && body.polygon !== null && (!Array.isArray(body.polygon) || body.polygon.length > 500)) {
+    return bad('polygon must be an array of at most 500 points.', 400, locale);
   }
   if (!['rainfed', 'limited', 'reliable'].includes(irrigation)) return bad('irrigation must be rainfed | limited | reliable.', 400, locale);
 
@@ -169,10 +180,26 @@ export async function POST(req: Request) {
   const cropWaterMm = currentCrop?.waterMm ?? 500;
   const currentCropIsLegume = currentCrop?.nitrogenEffect === 'fixer';
 
-  const env = await fetchEnvironment(latitude, longitude, cropWaterMm, currentCropIsLegume, body.polygon);
+  let env: Environment;
+  try {
+    env = await fetchEnvironment(latitude, longitude, cropWaterMm, currentCropIsLegume, body.polygon);
+  } catch (error) {
+    if (error instanceof NasaDataUnavailableError) return bad(error.message, 503, locale);
+    throw error;
+  }
 
   // ── Step 5: Run decision engine ────────────────────────────────────────
   const result = analyze(inputs, env);
+  const surface = surfaceAt(latitude, longitude);
+  if (surface !== 'land') {
+    result.viability = {
+      farmable: false,
+      reason: surface === 'sea'
+        ? 'This location is in the sea or ocean, so it cannot be farmed.'
+        : 'This location is on a lake, so it cannot be farmed.',
+    };
+    result.recommendations = [];
+  }
 
   // ── Step 6: Persist field observation (normalized) ─────────────────────
   try {
@@ -243,6 +270,7 @@ export async function POST(req: Request) {
       area: farm.area,
       areaUnit: farm.areaUnit,
       soilType: resolvedSoil,
+      soilInferred: soilType === 'unknown',
       irrigationType: farm.irrigationType,
       currentCrop: farm.currentCrop,
       desiredCrops,
@@ -260,6 +288,7 @@ export async function POST(req: Request) {
       rawPower: env.rawPower, // daily series for the Signals temperature chart
       extras: env.extras ?? null,
     },
+    viability: result.viability,
     risks: result.risks,
     cropCompatibility: result.cropCompatibility,
     recommendations: result.recommendations,
@@ -268,7 +297,18 @@ export async function POST(req: Request) {
   });
 }
 
+// Rainfall and soil moisture use codes like NASA_POWER / DERIVED; the UI badge
+// expects live | cached | derived. NASA_POWER data takes the POWER fetch status.
+function badgeSource(code: string, overall: 'live' | 'cached' | 'demo', measured = true): 'live' | 'cached' | 'derived' | 'demo' {
+  if (code === 'live' || code === 'cached' || code === 'derived' || code === 'demo') return code;
+  if (code === 'NASA_POWER' || code === 'NASA_GPM_IMERG' || code === 'NASA_SMAP') {
+    return measured ? (overall === 'demo' ? 'derived' : overall) : 'derived';
+  }
+  return 'derived';
+}
+
 function buildSourceList(env: Environment) {
+  const overall = env.overallSource;
   return [
     {
       name: 'Temperature',
@@ -278,13 +318,13 @@ function buildSourceList(env: Environment) {
     },
     {
       name: 'Rainfall',
-      source: env.rainfall.source,
+      source: badgeSource(String(env.rainfall.source), overall),
       attribution: env.rainfall.attribution,
       resolution: env.rainfall.resolution ?? '0.5° × 0.5° (~50 km MERRA-2 / GPM)',
     },
     {
       name: 'Soil moisture',
-      source: env.soilMoisture.source,
+      source: badgeSource(String(env.soilMoisture.source), overall, !!env.soilMoisture.measured),
       attribution: env.soilMoisture.attribution,
       resolution: env.soilMoisture.resolution ?? '0.5° (~50 km derived water balance)',
     },

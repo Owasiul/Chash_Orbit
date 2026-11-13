@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles, Calendar, Droplets, Sun, Sprout, ShieldCheck } from "lucide-react";
+import { Calendar, Droplets, Sun, Sprout, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,7 @@ function SubFitPill({ label, score, icon }: { label: string; score: number; icon
         : "text-rose-300 border-rose-400/30 bg-rose-400/10";
 
   return (
-    <div className={cn("flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[9px]", color)}>
+    <div className={cn("flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-xs", color)}>
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "size-2.5 shrink-0" })}
       <span>{t(label)}</span>
       <span className="font-semibold">{number(score)}</span>
@@ -78,11 +78,11 @@ export function RankedCropsSection({ analysis }: { analysis: FullAnalysis }) {
   return (
     <Card className="border-white/10 bg-card/50 p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-amber-300">
-          <Sparkles className="size-3.5 text-amber-400" />
+        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-amber-300">
+          <Sprout className="size-3.5 text-amber-400" />
           <span>{t("RANKED CROPS & FIT SCORES")}</span>
         </div>
-        <span className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/60">
+        <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground/60">
           {t("Weighted by your priorities")}
         </span>
       </div>
@@ -114,21 +114,21 @@ export function RankedCropsSection({ analysis }: { analysis: FullAnalysis }) {
                     <div className="flex items-center gap-2">
                       <span className="text-base font-medium text-foreground">{t(c.crop)}</span>
                       {isTop && (
-                        <Badge variant="outline" className="border-amber-400/50 bg-amber-400/15 text-[9px] text-amber-200">
+                        <Badge variant="outline" className="border-amber-400/50 bg-amber-400/15 text-xs text-amber-200">
                           {t("Top Fit")}
                         </Badge>
                       )}
                       {c.isPlantableNow ? (
-                        <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-[9px] text-emerald-200">
+                        <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-xs text-emerald-200">
                           {t("Plantable now")}
                         </Badge>
                       ) : c.monthsUntilPlant > 0 ? (
-                        <span className="text-[10px] text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono">
                           {t("in {m} mo", { m: c.monthsUntilPlant })}
                         </span>
                       ) : null}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
+                    <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground font-mono">
                       <span>{t("Plant:")} {t(c.plantingSeason)}</span>
                       <span>·</span>
                       <span>{t("Harvest:")} {t(c.harvestSeason)}</span>
@@ -141,9 +141,25 @@ export function RankedCropsSection({ analysis }: { analysis: FullAnalysis }) {
                   <div className="font-mono text-2xl font-light text-amber-300 tabular-nums leading-none">
                     {number(c.overallFit)}
                   </div>
-                  <div className="font-mono text-[8px] uppercase tracking-wider text-muted-foreground/60 mt-0.5">
+                  <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground mt-0.5">
                     {t("Fit Score")}
                   </div>
+                  {(() => {
+                    const rec = recommendations.find((r) => r.crop === c.crop);
+                    const range = rec?.range;
+                    return range ? (
+                      <>
+                        <div className="font-mono text-xs text-muted-foreground tabular-nums" title={t("Score range if each priority weight changes by 10 points")}>
+                          {range[0]}–{range[1]}
+                        </div>
+                        {rec?.confidence && (
+                          <div className="font-mono text-xs text-muted-foreground" title={t("Confidence reflects which inputs were measured and which were estimated")}>
+                            {t("Confidence")}: {t(rec.confidence)}
+                          </div>
+                        )}
+                      </>
+                    ) : null;
+                  })()}
                 </div>
               </div>
 
@@ -170,7 +186,7 @@ export function RankedCropsSection({ analysis }: { analysis: FullAnalysis }) {
               )}
 
               {/* Data-quality indicator & confidence note per recommendation */}
-              <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-2 font-mono text-[9px]">
+              <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 pt-2 font-mono text-xs">
                 <div className="flex flex-wrap items-center gap-1.5 text-muted-foreground/80">
                   <span
                     className={cn(
@@ -194,7 +210,7 @@ export function RankedCropsSection({ analysis }: { analysis: FullAnalysis }) {
                     </>
                   )}
                 </div>
-                <div className="text-[9px] text-muted-foreground/75 italic">
+                <div className="text-xs text-muted-foreground/75 italic">
                   {t(confidenceNote)}
                 </div>
               </div>
