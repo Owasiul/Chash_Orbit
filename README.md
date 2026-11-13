@@ -131,13 +131,13 @@ Two additional NASA missions are relevant to our agricultural monitoring archite
 
 **GPM IMERG**
 
-The app reads GPM IMERG Late daily rainfall (0.1°) for the last 30 days through NASA's cloud OPeNDAP, using a server-side `EARTHDATA_TOKEN`, and compares it with NASA POWER rainfall for the same days. The scores still use the full-year POWER series. If the token is missing or the request fails, the check is simply left out.
+The app reads GPM IMERG V07 daily rainfall (0.1°) through NASA POWER (`IMERG_PRECTOT`) and uses it for the water balance, filling gaps with POWER rainfall.
 
 **SMAP**
 
 NASA's Soil Moisture Active Passive mission provides soil moisture observations. Integrating SMAP would help validate our modeled water conditions against satellite-derived soil moisture information.
 
-SMAP is still a planned integration. GPM IMERG is used as a rainfall cross-check only.
+SMAP is still a planned integration.
 
 ---
 
@@ -469,9 +469,6 @@ DATABASE_URL="your_neon_postgresql_connection_string"
 GOOGLE_GENERATIVE_AI_API_KEY="your_gemini_api_key"
 
 GEMINI_MODEL="gemini-3.5-flash-lite"
-
-# Optional: enables the GPM IMERG rainfall cross-check (NASA Earthdata token)
-EARTHDATA_TOKEN="your_earthdata_token"
 ```
 
 The Gemini API key is optional. The application can use its deterministic decision generator when the AI assistant is not configured.

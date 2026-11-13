@@ -1,8 +1,4 @@
-/**
- * Safe DOM patch to prevent unhandled NotFoundError exceptions in React
- * when Chrome extensions (e.g. translate, grammar checkers, password managers)
- * or Google Translate wrap or modify DOM TextNodes.
- */
+
 if (typeof window !== "undefined") {
   const originalRemoveChild = Node.prototype.removeChild;
   Node.prototype.removeChild = function <T extends Node>(child: T): T {

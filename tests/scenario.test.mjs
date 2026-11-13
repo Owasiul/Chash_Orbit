@@ -8,6 +8,97 @@ import { deriveRainfall } from '@/lib/nasa/gpm';
 import { revivePowerSeries } from '@/lib/nasa/revive-power';
 
 describe('Scenario & Power Extras Tests', () => {
+  it('preserves demo and cached rainfall attribution without mislabeling the source', () => {
+    const power = {
+      series: { dates: ['20260101'], prectotcorr: [2] },
+      annualRainfall: 2,
+      tenYearRainfallTrend: 0,
+      drySpells: 0,
+      source: 'demo',
+    };
+
+    const demo = deriveRainfall(power, 0);
+    assert.equal(demo.source, 'DEMO');
+    assert.equal(demo.status, 'fallback');
+    assert.equal(demo.attribution, 'Demonstration rainfall data; not a live NASA observation.');
+
+    const cached = deriveRainfall({ ...power, source: 'cached' }, 0);
+    assert.equal(cached.source, 'NASA_POWER');
+    assert.equal(cached.status, 'cached');
+    assert.equal(cached.attribution, 'NASA POWER PRECTOTCORR daily precipitation. GPM IMERG direct retrieval is not connected.');
+
+    const live = deriveRainfall({ ...power, source: 'live' }, 0);
+    assert.equal(live.status, 'fallback');
+
+    const gpm = deriveRainfall(power, 0, null, {
+      dates: ['20260101'],
+      precipitation: [1],
+      source: 'NASA_GPM_IMERG',
+      status: 'live',
+      product: 'IMERG_FINAL',
+      spatialResolution: '0.1°',
+      dataQuality: { validDays: 1, expectedDays: 1, coveragePct: 100, missingDays: 0, isReliable: true },
+    });
+    assert.equal(gpm.source, 'NASA_GPM_IMERG');
+    assert.equal(gpm.status, 'live');
+    assert.equal(gpm.attribution, 'NASA GPM IMERG Final daily precipitation.');
+  });
+
+  it('counts dry spells from the selected rainfall source', () => {
+    const dates = Array.from({ length: 12 }, (_, i) => `202601${String(i + 1).padStart(2, '0')}`);
+    const power = {
+      series: { dates, prectotcorr: Array(12).fill(5) },
+      annualRainfall: 60,
+      tenYearRainfallTrend: 0,
+      drySpells: 99,
+    };
+    const gpm = {
+      dates,
+      precipitation: [0, 0, 0, 1, 0, 0, 0, 1, NaN, 0, 0, 0],
+      source: 'NASA_GPM_IMERG',
+      status: 'live',
+      product: 'IMERG_FINAL',
+      spatialResolution: '0.1°',
+      dataQuality: { validDays: 11, expectedDays: 12, coveragePct: 91.7, missingDays: 1, isReliable: true },
+    };
+
+    const rainfall = deriveRainfall(power, 0, null, gpm);
+
+    assert.equal(rainfall.drySpells, 3);
+  });
+
+  it('only derives rainfall anomalies from reliable historical baselines', () => {
+    const power = {
+      series: { dates: ['20260101', '20260102'], prectotcorr: [10, 10] },
+      annualRainfall: 20,
+      tenYearRainfallTrend: 0,
+      drySpells: 0,
+    };
+    const gpm = {
+      dates: ['20260101', '20260102'],
+      precipitation: [20, 20],
+      source: 'NASA_GPM_IMERG',
+      status: 'live',
+      product: 'IMERG_FINAL',
+      spatialResolution: '0.1°',
+      dataQuality: { validDays: 2, expectedDays: 2, coveragePct: 100, missingDays: 0, isReliable: true },
+    };
+
+    const withoutBaseline = deriveRainfall(power, 0, null, gpm);
+    assert.equal(withoutBaseline.anomalyPct, null);
+    assert.equal(withoutBaseline.anomalyBasis, undefined);
+
+    const unreliableBaseline = deriveRainfall(power, 0, null, {
+      ...gpm,
+      precipitation: [20, NaN],
+    }, { historicalBaselineMm: 10 });
+    assert.equal(unreliableBaseline.anomalyPct, null);
+
+    const reliableBaseline = deriveRainfall(power, 0, null, gpm, { historicalBaselineMm: 10 });
+    assert.equal(reliableBaseline.anomalyPct, 300);
+    assert.equal(reliableBaseline.anomalyBasis, 'location-historical');
+  });
+
   it('correctly calculates monthly normals ignoring YYYY13 and fill values', () => {
     const monthly = {};
     for (let y = 2016; y <= 2025; y++) {
@@ -164,7 +255,12 @@ describe('Scenario & Power Extras Tests', () => {
 
     const r10 = runScenario(inputs, env, { tempDeltaC: 0, rainFactor: 0.9 }).risks.floodRisk;
     const r20 = runScenario(inputs, env, { tempDeltaC: 0, rainFactor: 0.8 }).risks.floodRisk;
-    assert.ok(base.risks.floodRisk > r10 && r10 > r20);
+    // Flood risk must never INCREASE as rain decreases. Strict decrease cannot
+    // be asserted on all dates: the engine's ramps saturate (growing-season
+    // rain ramp floor is 400 mm, variability ramp floor is 5 mm), so two
+    // drier scenarios can both land at 0. The fixture is date-dependent
+    // (built from new Date()), so whether the ramp is crossed varies by day.
+    assert.ok(base.risks.floodRisk >= r10 && r10 >= r20);
 
     const rob = robustness(inputs, env);
     assert.equal(rob.scenarios, DEFAULT_GRID.length);

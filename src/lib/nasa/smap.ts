@@ -266,6 +266,32 @@ function calculateEffectiveRainfall(precipitationMm: number[]): number {
   return Math.round(effective * 10) / 10;
 }
 
+/**
+ * Replaces the modelled root-zone wetness with NASA POWER's measured GWETROOT
+ * (last-7-day mean, 0..1) when it is available. The seasonal deficit stays modelled.
+ */
+export function applyMeasuredRootWetness(
+  sm: SoilMoistureAnalysis,
+  wetness: number | null,
+  status: 'live' | 'cached',
+): SoilMoistureAnalysis {
+  if (typeof wetness !== 'number' || !Number.isFinite(wetness) || wetness < 0 || wetness > 1) return sm;
+  const pct = Math.round(wetness * 1000) / 10;
+  const mm = Math.round((pct / 100) * sm.rootZoneCapacityMm * 10) / 10;
+  sm.rootZoneWaterPct = pct;
+  sm.currentPct = pct;
+  sm.rootZoneWaterMm = mm;
+  sm.currentMm = mm;
+  sm.rootZoneSoilWetnessPct = Math.round(pct);
+  sm.measured = true;
+  sm.source = 'NASA_POWER';
+  sm.status = status;
+  sm.attribution =
+    'NASA POWER GWETROOT root-zone soil wetness (MERRA-2 reanalysis, last 7 days). ' +
+    'Seasonal deficit comes from an FAO-56 water balance driven by rainfall and temperature.';
+  return sm;
+}
+
 export function deriveSoilMoisture(
   power: PowerAnalysis,
   cropWaterMm: number,
@@ -340,17 +366,20 @@ export function deriveSoilMoisture(
   const avgEt0 = wb.dailyEtc.length ? totalEtc / (wb.dailyEtc.length * kc) : 0;
   const avgEtc = wb.dailyEtc.length ? totalEtc / wb.dailyEtc.length : 0;
 
-  // NASA POWER Model-based Soil Wetness Parameters
+  // NASA POWER Model-based Soil Wetness Parameters (Section 3.C)
+  // Guard: a missing/JSON-null last value must read as null, never as 0 % wet
+  // (null * 100 === 0 would report the soil as bone dry).
   const powerAny = power as any;
-  const surfaceWetness = powerAny.series?.gwettop?.length
-    ? Math.round(powerAny.series.gwettop[powerAny.series.gwettop.length - 1] * 100)
-    : null;
-  const rootWetness = powerAny.series?.gwetroot?.length
-    ? Math.round(powerAny.series.gwetroot[powerAny.series.gwetroot.length - 1] * 100)
-    : null;
-  const profileWetness = powerAny.series?.gwetprof?.length
-    ? Math.round(powerAny.series.gwetprof[powerAny.series.gwetprof.length - 1] * 100)
-    : null;
+  const wetnessPct = (arr?: number[]): number | null => {
+    if (!arr?.length) return null;
+    const v = arr[arr.length - 1];
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1
+      ? Math.round(v * 100)
+      : null;
+  };
+  const surfaceWetness = wetnessPct(powerAny.series?.gwettop);
+  const rootWetness = wetnessPct(powerAny.series?.gwetroot);
+  const profileWetness = wetnessPct(powerAny.series?.gwetprof);
 
   return {
     rootZoneWaterMm: Math.round(currentMm * 10) / 10,
@@ -478,3 +507,18 @@ export function deriveSoilCondition(
       'Derived through multi-criteria environmental modeling (NASA POWER rainfall variability, NDVI canopy protection, and user field topography). Not a direct soil lab assay.',
   };
 }
+export {
+  deriveSoilMoistureV2,
+  runWaterBalance,
+  referenceEt0,
+  kcForDay,
+  relativeYieldFromWater,
+  EXAMPLE_RICE_CURVE,
+  type SoilMoistureV2Options,
+  type WaterBalanceResult,
+  type KcCurve,
+  type DailyWeather,
+  type Et0Inputs,
+  type Et0Method,
+} from './gpm-imerg';
+

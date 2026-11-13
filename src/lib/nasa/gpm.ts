@@ -1,5 +1,10 @@
 import type { PowerAnalysis } from "./power";
-import { getCached, setCached, CACHE_TTL } from "./cache";
+import {
+  fetchGpmRainfallSeries,
+  fetchGpmMonthlySeries,
+  compareRainfallSources,
+  type RainfallAgreement,
+} from "./gpm-imerg";
 
 export type DataSource =
   | "NASA_POWER"
@@ -17,6 +22,7 @@ export interface DataQuality {
   coveragePct: number;
   missingDays: number;
   isReliable: boolean;
+  provisionalDays?: number;
 }
 
 export interface GpmDailySeries {
@@ -24,9 +30,10 @@ export interface GpmDailySeries {
   precipitation: number[];
   source: DataSource;
   status: DataStatus;
-  product: "IMERG_FINAL" | "IMERG_LATE" | "POWER_PRECTOTCORR" | "DEMO";
+  product: "IMERG_FINAL" | "IMERG_FINAL_LATE_MIX" | "POWER_PRECTOTCORR" | "DEMO";
   spatialResolution: string;
   dataQuality: DataQuality;
+  agreement?: RainfallAgreement;
 }
 
 export interface GpmMonthlySeries {
@@ -37,18 +44,7 @@ export interface GpmMonthlySeries {
   product: "POWER_PRECTOTCORR";
 }
 
-export interface ImergCheck {
-  days: number;
-  imergMm: number;
-  powerMm: number;
-  /** (IMERG - POWER) / POWER, in percent. */
-  differencePct: number | null;
-  product: string;
-}
-
 export interface RainfallAnalysis {
-  /** Independent satellite check of POWER rainfall over the most recent weeks. */
-  imergCheck?: ImergCheck | null;
   annualRainfall: number;
   growingSeasonRainfall: number;
   growingSeasonDays: number;
@@ -80,6 +76,7 @@ export interface RainfallAnalysis {
   attribution: string;
   resolution?: string;
   dataQuality: DataQuality;
+  agreement?: RainfallAgreement;
 }
 
 export interface DeriveRainfallOptions {
@@ -121,6 +118,29 @@ const POWER_RESOLUTION_LABEL = "~0.5° (~50 km, NASA POWER / MERRA-2)";
 // Rainfall can never be negative, so this also rejects fill values such as -999.
 function isValidRain(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function countDrySpells(values: number[]): number {
+  let run = 0;
+  let spells = 0;
+
+  for (const value of values) {
+    if (!isValidRain(value)) {
+      run = 0;
+      continue;
+    }
+
+    if (value < DRY_DAY_THRESHOLD_MM) {
+      run++;
+    } else {
+      if (run >= 3) spells++;
+      run = 0;
+    }
+  }
+
+  if (run >= 3) spells++;
+
+  return spells;
 }
 
 function validValues(values: number[] | undefined | null): number[] {
@@ -234,134 +254,16 @@ function selectGrowingSeason(
 // Data fetchers
 // ─────────────────────────────────────────────
 
-// IMERG Late daily (GPM_3IMERGDL v07, 0.1 degree) through NASA's cloud OPeNDAP, using the
-// server-side Earthdata token. Returns null when the token is missing or any step fails,
-// and callers keep using NASA POWER.
-const IMERG_LATE_COLLECTION = "C2723754859-GES_DISC";
-const IMERG_CONCURRENCY = 8;
+// Stub: returns null until an OPeNDAP / NetCDF subset adapter for IMERG is written.
+// Callers fall back to NASA POWER.
+export {
+  fetchGpmRainfallSeries,
+  fetchGpmMonthlySeries,
+  compareRainfallSources,
+  type RainfallAgreement,
+};
 
-function imergCell(latitude: number, longitude: number): { i: number; j: number } {
-  const i = Math.min(3599, Math.max(0, Math.floor((longitude + 180) / 0.1)));
-  const j = Math.min(1799, Math.max(0, Math.floor((latitude + 90) / 0.1)));
-  return { i, j };
-}
 
-/** Pulls the single value out of an OPeNDAP .csv point response. */
-export function parseImergPoint(text: string): number {
-  const m = text.match(/precipitation\[[^\]]*\]\[[^\]]*\],\s*(-?\d+(?:\.\d+)?)/);
-  if (!m) return NaN;
-  const v = Number(m[1]);
-  return Number.isFinite(v) && v > -999 ? v : NaN;
-}
-
-export async function fetchGpmRainfallSeries(
-  latitude: number,
-  longitude: number,
-  days = 30,
-): Promise<GpmDailySeries | null> {
-  const token = process.env.EARTHDATA_TOKEN?.trim();
-  if (!token) return null;
-
-  const end = new Date();
-  const start = new Date(end);
-  start.setUTCDate(start.getUTCDate() - days);
-  const ymd = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
-  const key = { source: "gpm-imerg-late", latitude, longitude, dateRange: `${ymd(start)}-${ymd(end)}`, parameters: "precipitation" };
-  const cached = await getCached<GpmDailySeries>(key, CACHE_TTL.GPM).catch(() => null);
-  if (cached) return { ...cached.data, status: "cached" };
-
-  try {
-    // One CMR query lists the granules that exist, so file-name versions never have to be guessed.
-    const cmr = await fetch(
-      `https://cmr.earthdata.nasa.gov/search/granules.json?short_name=GPM_3IMERGDL&version=07&temporal=${start.toISOString().slice(0, 10)}T00:00:00Z,${end.toISOString().slice(0, 10)}T23:59:59Z&page_size=${days + 5}&sort_key=start_date`,
-      { signal: AbortSignal.timeout(10000) },
-    );
-    if (!cmr.ok) return null;
-    const entries = ((await cmr.json()) as { feed?: { entry?: { title: string; links: { href: string }[] }[] } }).feed?.entry ?? [];
-    const granules = entries
-      .map((e) => ({
-        date: e.title.match(/\.(\d{8})-S/)?.[1] ?? "",
-        url: e.links.map((l) => l.href).find((h) => h.startsWith(`https://opendap.earthdata.nasa.gov/collections/${IMERG_LATE_COLLECTION}/`)),
-      }))
-      .filter((g): g is { date: string; url: string } => !!g.date && !!g.url);
-    if (!granules.length) return null;
-
-    const { i, j } = imergCell(latitude, longitude);
-    const ce = encodeURIComponent(`precipitation[0][${i}][${j}]`);
-    const values: number[] = new Array(granules.length).fill(NaN);
-    let next = 0;
-    const worker = async () => {
-      while (next < granules.length) {
-        const idx = next++;
-        try {
-          const r = await fetch(`${granules[idx].url}.csv?${ce}`, {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: AbortSignal.timeout(15000),
-          });
-          if (r.ok) values[idx] = parseImergPoint(await r.text());
-        } catch {
-          // leave NaN; coverage reflects it
-        }
-      }
-    };
-    await Promise.all(Array.from({ length: IMERG_CONCURRENCY }, worker));
-
-    const valid = values.filter((v) => Number.isFinite(v)).length;
-    if (valid < Math.max(5, granules.length * 0.5)) return null;
-    const series: GpmDailySeries = {
-      dates: granules.map((g) => g.date),
-      precipitation: values,
-      source: "NASA_GPM_IMERG",
-      status: "live",
-      product: "IMERG_LATE",
-      spatialResolution: "0.1° (~10 km) GPM IMERG Late daily",
-      dataQuality: {
-        validDays: valid,
-        expectedDays: granules.length,
-        coveragePct: Math.round((valid / granules.length) * 1000) / 10,
-        missingDays: granules.length - valid,
-        isReliable: valid / granules.length >= 0.8,
-      },
-    };
-    await setCached(key, series, CACHE_TTL.GPM).catch(() => {});
-    return series;
-  } catch {
-    return null;
-  }
-}
-
-/** Compares IMERG with POWER rainfall on the days both have data. */
-export function compareImergToPower(gpm: GpmDailySeries, power: PowerAnalysis): ImergCheck | null {
-  const byDate = new Map(power.series.dates.map((d, k) => [d, power.series.prectotcorr[k]] as const));
-  let imerg = 0;
-  let pw = 0;
-  let n = 0;
-  gpm.dates.forEach((d, k) => {
-    const a = gpm.precipitation[k];
-    const b = byDate.get(d);
-    if (Number.isFinite(a) && b !== undefined && Number.isFinite(b)) {
-      imerg += a;
-      pw += b;
-      n++;
-    }
-  });
-  if (n < 5) return null;
-  return {
-    days: n,
-    imergMm: round1(imerg),
-    powerMm: round1(pw),
-    differencePct: pw > 0 ? round1(((imerg - pw) / pw) * 100) : null,
-    product: "GPM IMERG Late v07 (0.1°)",
-  };
-}
-
-// Stub: same as above for monthly data.
-export async function fetchGpmMonthlySeries(
-  _latitude: number,
-  _longitude: number,
-): Promise<GpmMonthlySeries | null> {
-  return null;
-}
 
 // ─────────────────────────────────────────────
 // Analysis
@@ -380,8 +282,19 @@ export function deriveRainfall(
 
   const dates = gpm ? gpm.dates : power.series.dates;
   const series = gpm ? gpm.precipitation : power.series.prectotcorr;
-  const source: DataSource = gpm ? gpm.source : "NASA_POWER";
-  const status: DataStatus = gpm ? gpm.status : "fallback";
+  const source: DataSource = gpm
+    ? gpm.source
+    : power.source === "demo"
+      ? "DEMO"
+      : "NASA_POWER";
+
+  const status: DataStatus = gpm
+    ? gpm.status
+    : power.source === "live"
+      ? "fallback"
+      : power.source === "cached"
+        ? "cached"
+        : "fallback";
 
   // ── Totals ──
   const annualRainfall = sumValues(series);
@@ -436,8 +349,7 @@ export function deriveRainfall(
   };
 
   // ── Anomaly ──
-  // Priority: explicit anomalyPct > historicalBaselineMm > POWER baseline (only when
-  // GPM data is used; comparing POWER with itself would always give ~0%).
+  // Never compare two current-period totals and call them a climatological anomaly.
   let resolvedAnomaly: number | null = null;
   let anomalyBasis: RainfallAnalysis["anomalyBasis"];
 
@@ -445,19 +357,22 @@ export function deriveRainfall(
   if (anomalyPct != null && Number.isFinite(anomalyPct)) {
     resolvedAnomaly = anomalyPct;
     anomalyBasis = "location-historical";
-  } else if (typeof baselineMm === "number" && Number.isFinite(baselineMm) && baselineMm > 0) {
-    resolvedAnomaly = ((annualRainfall - baselineMm) / baselineMm) * 100;
+  } else if (
+    typeof baselineMm === "number" &&
+    Number.isFinite(baselineMm) &&
+    baselineMm > 0 &&
+    computedQuality.isReliable
+  ) {
+    resolvedAnomaly =
+      ((annualRainfall - baselineMm) / baselineMm) * 100;
     anomalyBasis = "location-historical";
-  } else if (gpm && Number.isFinite(power.annualRainfall) && power.annualRainfall > 0) {
-    // Assumes power.annualRainfall is the NASA POWER baseline for this location.
-    resolvedAnomaly = ((annualRainfall - power.annualRainfall) / power.annualRainfall) * 100;
-    anomalyBasis = "power-10yr";
   }
 
-  const attribution =
-    source === "NASA_GPM_IMERG"
-      ? "GPM IMERG Final daily precipitation; trend and baseline reference from NASA POWER PRECTOTCORR."
-      : "NASA POWER PRECTOTCORR daily precipitation (fallback; GPM IMERG not available for this location).";
+  const attribution = gpm
+    ? "NASA GPM IMERG Final daily precipitation."
+    : power.source === "demo"
+      ? "Demonstration rainfall data; not a live NASA observation."
+      : "NASA POWER PRECTOTCORR daily precipitation. GPM IMERG direct retrieval is not connected.";
 
   return {
     annualRainfall: round1(annualRainfall),
@@ -469,7 +384,7 @@ export function deriveRainfall(
     variability: round1(variability),
     monthlyVariability: round1(monthlyVariability),
     coefficientOfVariationPct: round1(coefficientOfVariationPct),
-    drySpells: power.drySpells,
+    drySpells: countDrySpells(growingSeason),
     maxConsecutiveDryDays,
     seasonalPattern: seasonal.map(({ month, mm }) => ({ month, mm })),
     rainfallTrendMmPerYear: trendMmPerYear == null ? null : round1(trendMmPerYear),
@@ -481,6 +396,7 @@ export function deriveRainfall(
     attribution,
     resolution: gpm?.spatialResolution ?? POWER_RESOLUTION_LABEL,
     dataQuality: gpm?.dataQuality ?? computedQuality,
+    agreement: gpm && power.series?.dates?.length ? compareRainfallSources({ dates: gpm.dates, values: gpm.precipitation }, { dates: power.series.dates, values: power.series.prectotcorr }) : undefined,
   };
 }
 

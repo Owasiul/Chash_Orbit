@@ -249,6 +249,15 @@ export async function fetchPowerAnalysis(
   latitude: number,
   longitude: number,
 ): Promise<PowerAnalysis> {
+  // Same validation as gpm-imerg.ts — a NaN/out-of-range coordinate would
+  // otherwise be sent straight into the API URL and silently produce junk.
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error('POWER: latitude/longitude must be finite');
+  }
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+    throw new Error('POWER: latitude/longitude out of range');
+  }
+
   // Use end of "today" UTC
   const now = new Date();
   const daily = last365Range(now);

@@ -90,7 +90,9 @@ export async function GET(req: Request) {
     }
   }
 
-  // Allow up to 25 seconds for the background MODIS fetch to complete
+  // Allow up to 25 seconds for the background MODIS fetch to complete.
+  // NOTE: getModisNdvi's 3rd param is budgetMs (a polygon was wrongly passed
+  // here before, corrupting the timeout so live MODIS never resolved in time).
   const [modisResult, sentinelScene] = await Promise.all([
     getModisNdvi(queryLat, queryLng, 25000),
     fetchLatestSentinel2Scene(bbox, 3000).catch(() => null),

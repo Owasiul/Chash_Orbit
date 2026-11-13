@@ -3,11 +3,10 @@
 // There is no synthetic data: if NASA POWER is unreachable the request fails.
 
 import { fetchPowerAnalysis, type PowerAnalysis } from "./power";
-import { deriveSoilMoisture, type SoilMoistureAnalysis } from "./smap";
+import { applyMeasuredRootWetness, deriveSoilMoisture, deriveSoilMoistureV2, type SoilMoistureAnalysis } from "./smap";
 import {
   deriveRainfall,
   fetchGpmRainfallSeries,
-  compareImergToPower,
   type RainfallAnalysis,
 } from "./gpm";
 import {
@@ -17,6 +16,8 @@ import {
 } from "./modis";
 import { getCached, setCached, CACHE_TTL, type CacheKey } from "./cache";
 import { fetchPowerExtras, type PowerExtras } from "./power-extras";
+import { fetchTopographyProfile, demoTopography, type TopographyAnalysis } from "./srtm";
+import { fetchEcostressAnalysis, demoEcostress, type EcostressAnalysis } from "./ecostress";
 
 export type DataSource = "live" | "cached" | "demo";
 
@@ -39,6 +40,10 @@ export interface Environment {
   rawPower?: PowerAnalysis;
   /** root-zone soil wetness, real rainfall baseline, extreme-rain indices */
   extras?: PowerExtras | null;
+  /** SRTM 30m / 90m Digital Elevation Model, terrain slope, aspect, relief */
+  topography?: TopographyAnalysis;
+  /** NASA ECOSTRESS 70m Evaporative Stress Index (ESI) & thermal anomaly */
+  ecostress?: EcostressAnalysis;
 }
 
 export class NasaDataUnavailableError extends Error {
@@ -68,6 +73,7 @@ export async function fetchEnvironment(
   // MODIS NDVI runs alongside POWER; it never throws and resolves to null if
   // it can't answer within its time budget.
   const modisJob = getModisNdvi(latitude, longitude);
+  const topographyJob = fetchTopographyProfile(latitude, longitude, polygon).catch(() => demoTopography(latitude, longitude));
 
   let power: PowerAnalysis;
   let cacheHit = false;
@@ -117,25 +123,34 @@ export async function fetchEnvironment(
     }
   }
 
-  const soilMoisture = deriveSoilMoisture(power, cropWaterMm, {
-    measuredRootWetness: extras?.soilWetness?.rootNow ?? null,
+  const gpmData = await fetchGpmRainfallSeries(latitude, longitude).catch(
+    (error) => {
+      console.warn(
+        "NASA GPM unavailable; using POWER rainfall fallback:",
+        error,
+      );
+
+      return null;
+    },
+  );
+
+  const topography = await topographyJob;
+  const soilMoisture = deriveSoilMoistureV2(power, cropWaterMm, {
+    latitude,
+    elevationM: topography?.elevationM,
+    precipitationOverride: gpmData
+      ? { dates: gpmData.dates, values: gpmData.precipitation }
+      : undefined,
   });
-  const gpmData = await fetchGpmRainfallSeries(latitude, longitude, 30).catch(() => null);
+  applyMeasuredRootWetness(soilMoisture, extras?.soilWetness?.rootNow ?? null, power.source === 'cached' ? 'cached' : 'live');
+  const ecostress = await fetchEcostressAnalysis(latitude, longitude, power, soilMoisture).catch(() => null);
+
   const rainfall = deriveRainfall(
     power,
     latitude,
     extras?.rainBaseline?.anomalyPct ?? null,
   );
-  // IMERG is an independent check on POWER over the last weeks, not a replacement
-  // for the full-year series the scores are built on.
-  rainfall.imergCheck = gpmData ? compareImergToPower(gpmData, power) : null;
-  if (rainfall.imergCheck) {
-    const c = rainfall.imergCheck;
-    rainfall.attribution +=
-      ` Satellite check: GPM IMERG Late measured ${c.imergMm} mm over the last ${c.days} days against ${c.powerMm} mm from POWER` +
-      (c.differencePct == null ? "." : ` (${c.differencePct > 0 ? "+" : ""}${c.differencePct}%).`);
-  }
-  const vegetation = deriveVegetation(power, latitude, await modisJob);
+  const vegetation = deriveVegetation(power, latitude, longitude, await modisJob);
 
   // Source tagging
   const powerSrc: DataSource = cacheHit ? "cached" : power.source;
@@ -165,6 +180,8 @@ export async function fetchEnvironment(
           } (root-zone soil wetness from POWER GWETROOT)`,
     rawPower: power,
     extras,
+    topography,
+    ecostress: ecostress ?? undefined,
   };
 }
 

@@ -171,15 +171,19 @@ function areaFit(crop: CropSpec, areaHa: number): number {
 // ── Risks ────────────────────────────────────────────────────────────
 export function computeRisks(env: Environment): Risks {
   // Heat risk: heat stress days (last 90d) vs a soft threshold of ~20 days
-  const heat = clamp((env.temperature.heatStressDays / 20) * 100, 0, 100);
+  const ecostressHeatBump = env.ecostress && env.ecostress.thermalAnomalyC > 2.0
+    ? clamp((env.ecostress.thermalAnomalyC - 2.0) * 6, 0, 15)
+    : 0;
+  const heat = clamp((env.temperature.heatStressDays / 20) * 100 + ecostressHeatBump, 0, 100);
   // Drought risk: low soil moisture + seasonal deficit + low growing-season rain.
   // Continuous ramps (not 0/15/30/50 steps) so a small change in the input moves
   // the score a little, and What-if sliders respond smoothly.
   const smDeficit = env.soilMoisture.seasonalDeficit;
   const drought = clamp(
-    50 * ramp(45 - (env.soilMoisture.currentPct ?? 0), 0, 30) +      // dry root zone: full weight at <=15 %
+    50 * ramp(45 - (env.soilMoisture.rootZoneWaterPct ?? env.soilMoisture.currentPct ?? 0), 0, 30) +      // dry root zone: full weight at <=15 %
     30 * ramp(smDeficit, 25, 125) +                            // shortfall vs crop demand
-    20 * (1 - ramp(env.rainfall.growingSeasonRainfall, 100, 300)), // little rain in the last 90 days
+    20 * (1 - ramp(env.rainfall.growingSeasonRainfall, 100, 300)) +
+    (env.ecostress && env.ecostress.esi < 0.5 ? clamp((0.5 - env.ecostress.esi) * 35, 0, 15) : 0), // little rain in the last 90 days
     0, 100,
   );
   // Flood risk: rain-heavy, erratic, or already saturated. Keep the response
@@ -188,7 +192,8 @@ export function computeRisks(env: Environment): Risks {
   const flood = clamp(
     30 * ramp(env.rainfall.variability, 0, 12) +
     30 * ramp(env.rainfall.growingSeasonRainfall, 0, 600) +
-    40 * ramp((env.soilMoisture.currentPct ?? 0), 20, 90),
+    40 * ramp(env.soilMoisture.rootZoneWaterPct ?? env.soilMoisture.currentPct ?? 0, 20, 90) +
+    (env.topography?.drainageClass === "ponding-risk" ? 8 : env.topography?.drainageClass === "poorly-drained" ? 4 : 0),
     0, 100,
   );
   const soilMoistureDeficit = Math.round(smDeficit);
@@ -840,7 +845,7 @@ export function evaluateCropAtmosphere(
       temperatureC: Math.round(fieldTemp * 10) / 10,
       rainfallMm: Math.round(fieldRain),
       heatStressDays,
-      rootZoneSoilMoisturePct: Math.round((env.soilMoisture.currentPct ?? 0)),
+      rootZoneSoilMoisturePct: Math.round(env.soilMoisture.rootZoneWaterPct ?? env.soilMoisture.currentPct ?? 0),
       soilDeficitMm: Math.round(env.soilMoisture.seasonalDeficit),
       ndviVigor: Math.round(env.vegetation.ndvi * 100) / 100,
     },
