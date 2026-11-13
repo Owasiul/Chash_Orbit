@@ -255,7 +255,12 @@ describe('Scenario & Power Extras Tests', () => {
 
     const r10 = runScenario(inputs, env, { tempDeltaC: 0, rainFactor: 0.9 }).risks.floodRisk;
     const r20 = runScenario(inputs, env, { tempDeltaC: 0, rainFactor: 0.8 }).risks.floodRisk;
-    assert.ok(base.risks.floodRisk > r10 && r10 > r20);
+    // Flood risk must never INCREASE as rain decreases. Strict decrease cannot
+    // be asserted on all dates: the engine's ramps saturate (growing-season
+    // rain ramp floor is 400 mm, variability ramp floor is 5 mm), so two
+    // drier scenarios can both land at 0. The fixture is date-dependent
+    // (built from new Date()), so whether the ramp is crossed varies by day.
+    assert.ok(base.risks.floodRisk >= r10 && r10 >= r20);
 
     const rob = robustness(inputs, env);
     assert.equal(rob.scenarios, DEFAULT_GRID.length);

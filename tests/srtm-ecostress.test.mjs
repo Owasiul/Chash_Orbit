@@ -58,7 +58,9 @@ describe('SRTM Topography — Classification and Math', () => {
     const latOffset = 0.001; // ~111.32m
     const lonOffset = 0.001 / Math.cos((lat * Math.PI) / 180);
 
-    // Uniform slope rising toward the North by 5m over ~222m
+    // Uniform slope rising toward the North by 5m over ~222m.
+    // A surface that rises toward the north faces SOUTH (aspect = downhill
+    // compass direction), so the correct aspect is 180°, not 0°.
     const center = 20;
     const zN = 22.5;
     const zS = 17.5;
@@ -74,7 +76,7 @@ describe('SRTM Topography — Classification and Math', () => {
 
     assert.ok(slopeDeg > 0 && slopeDeg < 10, `Expected gentle slope, got ${slopeDeg}°`);
     assert.ok(slopePct > 0, `Expected positive slope percentage, got ${slopePct}%`);
-    assert.equal(aspectDeg, 0); // Facing North
+    assert.equal(aspectDeg, 180); // Rising to the N -> faces South
   });
 
   it('generates plausible demo topography bounded properly', () => {

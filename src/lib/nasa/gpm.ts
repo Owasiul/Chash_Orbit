@@ -290,8 +290,8 @@ export function deriveRainfall(
 
   const status: DataStatus = gpm
     ? gpm.status
-    : power.source === "demo"
-      ? "unavailable"
+    : power.source === "live"
+      ? "fallback"
       : power.source === "cached"
         ? "cached"
         : "fallback";
