@@ -14,6 +14,8 @@ import {
   Activity,
   Satellite,
   Clock,
+  Mountain,
+  Flame,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -420,7 +422,6 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
   const smCurrentMm = sm.currentMm ?? 0;
   const smCurrentPct = sm.currentPct ?? 0;
   const smSeasonalDeficit = sm.seasonalDeficit ?? 0;
-  const smTenYearTrend = sm.tenYearTrend ?? 0;
 
   const tempSeries = React.useMemo(
     () => monthlyTempSeries(environment.rawPower),
@@ -735,10 +736,14 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
               )}
             >
               {smTrend.icon}
-              {number(Math.abs(sm.tenYearTrend ?? 0), {
-                minimumFractionDigits: 3,
-                maximumFractionDigits: 3,
-              })}{" "}
+              {/* No direct SMAP time-series yet (soilMoistureTrendPctPerYear is
+                  always null) — show "—" instead of a fake 0.000 %/yr. */}
+              {sm.tenYearTrend == null
+                ? "—"
+                : number(Math.abs(sm.tenYearTrend), {
+                    minimumFractionDigits: 3,
+                    maximumFractionDigits: 3,
+                  })}{" "}
               %/yr
             </span>
           </div>
@@ -889,6 +894,98 @@ export function SignalsPanel({ analysis }: { analysis: FullAnalysis }) {
               </span>
             </div>
           )}
+        </BentoCard>
+      </div>
+
+      {/* ── High-Resolution Satellite Precision: SRTM Topography & ECOSTRESS ── */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* Topography & Elevation (NASA SRTM) */}
+        <BentoCard
+          title="Topography & Elevation"
+          attribution="NASA SRTM 30m DEM"
+          source={environment.topography?.source === "DEMO" ? "demo" : "live"}
+          icon={<Mountain />}
+          big={number(environment.topography?.elevationM ?? 0)}
+          bigUnit="m ASL"
+          tone="cyan"
+          delay={0.2}
+        >
+          <div className="space-y-1.5 font-mono text-[10px] text-stone-400">
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span className="text-stone-500">{t("Slope")}:</span>
+              <span className="font-semibold text-stone-200 capitalize">
+                {environment.topography?.slopeDeg ?? 0}° ({t(environment.topography?.slopeCategory ?? "flat")}, {environment.topography?.slopePct ?? 0}%)
+              </span>
+            </div>
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span className="text-stone-500">{t("Aspect")}:</span>
+              <span className="text-stone-200">
+                {environment.topography?.aspect ?? "Flat"} ({environment.topography?.aspectDeg ?? 0}°)
+              </span>
+            </div>
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span className="text-stone-500">{t("Relief across field")}:</span>
+              <span className="text-stone-200">{environment.topography?.reliefM ?? 0} m</span>
+            </div>
+            <div className="flex justify-between pt-0.5">
+              <span className="text-stone-500">{t("Drainage status")}:</span>
+              <span className={cn(
+                "font-semibold capitalize",
+                environment.topography?.drainageClass === "ponding-risk" ? "text-rose-300" : "text-cyan-200"
+              )}>
+                {t(environment.topography?.drainageClass ?? "moderate")}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2 text-[9px] font-mono text-stone-500">
+            <span>{t("Resolution")}: 30 m (~1 arc-second)</span>
+            <span className="capitalize">{t(environment.topography?.terrainRoughness ?? "smooth")} terrain</span>
+          </div>
+        </BentoCard>
+
+        {/* Evaporative Stress & Thermal (NASA ECOSTRESS) */}
+        <BentoCard
+          title="Evaporative Stress (ESI)"
+          attribution="NASA ECOSTRESS 70m TIR"
+          source={environment.ecostress?.source === "NASA_ECOSTRESS" ? "live" : environment.ecostress?.source === "DEMO" ? "demo" : "derived"}
+          icon={<Flame />}
+          big={number(environment.ecostress?.esi ?? 0.8)}
+          bigUnit="ESI (0-1)"
+          tone="amber"
+          delay={0.25}
+        >
+          <div className="space-y-1.5 font-mono text-[10px] text-stone-400">
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span className="text-stone-500">{t("Canopy stress level")}:</span>
+              <span className={cn(
+                "font-semibold capitalize",
+                environment.ecostress?.stressLevel === "optimal" ? "text-emerald-300" :
+                environment.ecostress?.stressLevel === "mild-stress" ? "text-amber-300" : "text-rose-300"
+              )}>
+                {t(environment.ecostress?.stressLevel ?? "optimal")}
+              </span>
+            </div>
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span className="text-stone-500">{t("Land Surface Temp (LST)")}:</span>
+              <span className="text-stone-200">{environment.ecostress?.lstC ?? 28}°C</span>
+            </div>
+            <div className="flex justify-between border-b border-white/5 pb-1">
+              <span className="text-stone-500">{t("Canopy thermal anomaly")}:</span>
+              <span className={cn(
+                (environment.ecostress?.thermalAnomalyC ?? 0) > 1.5 ? "text-rose-300" : "text-emerald-300"
+              )}>
+                {(environment.ecostress?.thermalAnomalyC ?? 0) > 0 ? "+" : ""}{environment.ecostress?.thermalAnomalyC ?? 0}°C vs air
+              </span>
+            </div>
+            <div className="flex justify-between pt-0.5">
+              <span className="text-stone-500">{t("Water Use Efficiency")}:</span>
+              <span className="text-stone-200">{environment.ecostress?.waterUseEfficiency ?? 2.1} g C/kg H₂O</span>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2 text-[9px] font-mono text-stone-500">
+            <span>{t("Resolution")}: 70 m (ISS thermal IR)</span>
+            <span>{environment.ecostress?.sceneId ? "ISS Overpass" : "PT-JPL Model"}</span>
+          </div>
         </BentoCard>
       </div>
 

@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         heatStressDays: env.temperature.heatStressDays,
         annualRainfallMm: Math.round(env.rainfall.annualRainfall),
         growingSeasonRainfallMm: Math.round(env.rainfall.growingSeasonRainfall),
-        soilMoisturePct: Math.round(env.soilMoisture.currentPct),
+        soilMoisturePct: Math.round(env.soilMoisture.rootZoneWaterPct),
         soilDeficitMm: Math.round(env.soilMoisture.seasonalDeficit),
         vegetationNdvi: Math.round(env.vegetation.ndvi * 100) / 100,
         source: env.overallSource,

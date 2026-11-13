@@ -3,7 +3,7 @@
 // with a stable demo fallback when NASA POWER is unreachable.
 
 import { fetchPowerAnalysis, type PowerAnalysis } from "./power";
-import { deriveSoilMoisture, type SoilMoistureAnalysis } from "./smap";
+import { deriveSoilMoisture, deriveSoilMoistureV2, type SoilMoistureAnalysis } from "./smap";
 import {
   deriveRainfall,
   fetchGpmRainfallSeries,
@@ -16,6 +16,8 @@ import {
 } from "./modis";
 import { getCached, setCached, CACHE_TTL, type CacheKey } from "./cache";
 import { fetchPowerExtras, type PowerExtras } from "./power-extras";
+import { fetchTopographyProfile, demoTopography, type TopographyAnalysis } from "./srtm";
+import { fetchEcostressAnalysis, demoEcostress, type EcostressAnalysis } from "./ecostress";
 
 export type DataSource = "live" | "cached" | "demo";
 
@@ -38,6 +40,10 @@ export interface Environment {
   rawPower?: PowerAnalysis;
   /** root-zone soil wetness, real rainfall baseline, extreme-rain indices */
   extras?: PowerExtras | null;
+  /** SRTM 30m / 90m Digital Elevation Model, terrain slope, aspect, relief */
+  topography?: TopographyAnalysis;
+  /** NASA ECOSTRESS 70m Evaporative Stress Index (ESI) & thermal anomaly */
+  ecostress?: EcostressAnalysis;
 }
 
 // ── Stable demo environment generator ──────────────────────────────────────
@@ -143,6 +149,7 @@ export async function fetchEnvironment(
   // MODIS NDVI runs alongside POWER; it never throws and resolves to null if
   // it can't answer within its time budget.
   const modisJob = getModisNdvi(latitude, longitude);
+  const topographyJob = fetchTopographyProfile(latitude, longitude, polygon).catch(() => demoTopography(latitude, longitude));
 
   let power: PowerAnalysis;
   let cacheHit = false;
@@ -189,7 +196,6 @@ export async function fetchEnvironment(
     }
   }
 
-  const soilMoisture = deriveSoilMoisture(power, cropWaterMm);
   const gpmData = await fetchGpmRainfallSeries(latitude, longitude).catch(
     (error) => {
       console.warn(
@@ -201,13 +207,23 @@ export async function fetchEnvironment(
     },
   );
 
+  const topography = await topographyJob;
+  const soilMoisture = deriveSoilMoistureV2(power, cropWaterMm, {
+    latitude,
+    elevationM: topography?.elevationM,
+    precipitationOverride: gpmData
+      ? { dates: gpmData.dates, values: gpmData.precipitation }
+      : undefined,
+  });
+  const ecostress = await fetchEcostressAnalysis(latitude, longitude, power, soilMoisture).catch(() => null);
+
   const rainfall = deriveRainfall(
     power,
     latitude,
     extras?.rainBaseline?.anomalyPct ?? null,
     gpmData,
   );
-  const vegetation = deriveVegetation(power, latitude, await modisJob);
+  const vegetation = deriveVegetation(power, latitude, longitude, await modisJob);
 
   // Source tagging
   const powerSrc: DataSource = cacheHit ? "cached" : power.source;
@@ -239,6 +255,8 @@ export async function fetchEnvironment(
           } (with derived soil-moisture estimates)`,
     rawPower: power,
     extras,
+    topography,
+    ecostress: ecostress ?? undefined,
   };
 }
 

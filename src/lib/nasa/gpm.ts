@@ -1,4 +1,10 @@
 import type { PowerAnalysis } from "./power";
+import {
+  fetchGpmRainfallSeries,
+  fetchGpmMonthlySeries,
+  compareRainfallSources,
+  type RainfallAgreement,
+} from "./gpm-imerg";
 
 export type DataSource =
   | "NASA_POWER"
@@ -16,6 +22,7 @@ export interface DataQuality {
   coveragePct: number;
   missingDays: number;
   isReliable: boolean;
+  provisionalDays?: number;
 }
 
 export interface GpmDailySeries {
@@ -23,9 +30,10 @@ export interface GpmDailySeries {
   precipitation: number[];
   source: DataSource;
   status: DataStatus;
-  product: "IMERG_FINAL" | "POWER_PRECTOTCORR" | "DEMO";
+  product: "IMERG_FINAL" | "IMERG_FINAL_LATE_MIX" | "POWER_PRECTOTCORR" | "DEMO";
   spatialResolution: string;
   dataQuality: DataQuality;
+  agreement?: RainfallAgreement;
 }
 
 export interface GpmMonthlySeries {
@@ -68,6 +76,7 @@ export interface RainfallAnalysis {
   attribution: string;
   resolution?: string;
   dataQuality: DataQuality;
+  agreement?: RainfallAgreement;
 }
 
 export interface DeriveRainfallOptions {
@@ -109,6 +118,29 @@ const POWER_RESOLUTION_LABEL = "~0.5° (~50 km, NASA POWER / MERRA-2)";
 // Rainfall can never be negative, so this also rejects fill values such as -999.
 function isValidRain(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function countDrySpells(values: number[]): number {
+  let run = 0;
+  let spells = 0;
+
+  for (const value of values) {
+    if (!isValidRain(value)) {
+      run = 0;
+      continue;
+    }
+
+    if (value < DRY_DAY_THRESHOLD_MM) {
+      run++;
+    } else {
+      if (run >= 3) spells++;
+      run = 0;
+    }
+  }
+
+  if (run >= 3) spells++;
+
+  return spells;
 }
 
 function validValues(values: number[] | undefined | null): number[] {
@@ -224,21 +256,14 @@ function selectGrowingSeason(
 
 // Stub: returns null until an OPeNDAP / NetCDF subset adapter for IMERG is written.
 // Callers fall back to NASA POWER.
-export async function fetchGpmRainfallSeries(
-  _latitude: number,
-  _longitude: number,
-  _days = 365,
-): Promise<GpmDailySeries | null> {
-  return null;
-}
+export {
+  fetchGpmRainfallSeries,
+  fetchGpmMonthlySeries,
+  compareRainfallSources,
+  type RainfallAgreement,
+};
 
-// Stub: same as above for monthly data.
-export async function fetchGpmMonthlySeries(
-  _latitude: number,
-  _longitude: number,
-): Promise<GpmMonthlySeries | null> {
-  return null;
-}
+
 
 // ─────────────────────────────────────────────
 // Analysis
@@ -257,8 +282,19 @@ export function deriveRainfall(
 
   const dates = gpm ? gpm.dates : power.series.dates;
   const series = gpm ? gpm.precipitation : power.series.prectotcorr;
-  const source: DataSource = gpm ? gpm.source : "NASA_POWER";
-  const status: DataStatus = gpm ? gpm.status : "fallback";
+  const source: DataSource = gpm
+    ? gpm.source
+    : power.source === "demo"
+      ? "DEMO"
+      : "NASA_POWER";
+
+  const status: DataStatus = gpm
+    ? gpm.status
+    : power.source === "demo"
+      ? "unavailable"
+      : power.source === "cached"
+        ? "cached"
+        : "fallback";
 
   // ── Totals ──
   const annualRainfall = sumValues(series);
@@ -313,8 +349,7 @@ export function deriveRainfall(
   };
 
   // ── Anomaly ──
-  // Priority: explicit anomalyPct > historicalBaselineMm > POWER baseline (only when
-  // GPM data is used; comparing POWER with itself would always give ~0%).
+  // Never compare two current-period totals and call them a climatological anomaly.
   let resolvedAnomaly: number | null = null;
   let anomalyBasis: RainfallAnalysis["anomalyBasis"];
 
@@ -322,19 +357,22 @@ export function deriveRainfall(
   if (anomalyPct != null && Number.isFinite(anomalyPct)) {
     resolvedAnomaly = anomalyPct;
     anomalyBasis = "location-historical";
-  } else if (typeof baselineMm === "number" && Number.isFinite(baselineMm) && baselineMm > 0) {
-    resolvedAnomaly = ((annualRainfall - baselineMm) / baselineMm) * 100;
+  } else if (
+    typeof baselineMm === "number" &&
+    Number.isFinite(baselineMm) &&
+    baselineMm > 0 &&
+    computedQuality.isReliable
+  ) {
+    resolvedAnomaly =
+      ((annualRainfall - baselineMm) / baselineMm) * 100;
     anomalyBasis = "location-historical";
-  } else if (gpm && Number.isFinite(power.annualRainfall) && power.annualRainfall > 0) {
-    // Assumes power.annualRainfall is the NASA POWER baseline for this location.
-    resolvedAnomaly = ((annualRainfall - power.annualRainfall) / power.annualRainfall) * 100;
-    anomalyBasis = "power-10yr";
   }
 
-  const attribution =
-    source === "NASA_GPM_IMERG"
-      ? "GPM IMERG Final daily precipitation; trend and baseline reference from NASA POWER PRECTOTCORR."
-      : "NASA POWER PRECTOTCORR daily precipitation (fallback; GPM IMERG not available for this location).";
+  const attribution = gpm
+    ? "NASA GPM IMERG Final daily precipitation."
+    : power.source === "demo"
+      ? "Demonstration rainfall data; not a live NASA observation."
+      : "NASA POWER PRECTOTCORR daily precipitation. GPM IMERG direct retrieval is not connected.";
 
   return {
     annualRainfall: round1(annualRainfall),
@@ -346,7 +384,7 @@ export function deriveRainfall(
     variability: round1(variability),
     monthlyVariability: round1(monthlyVariability),
     coefficientOfVariationPct: round1(coefficientOfVariationPct),
-    drySpells: power.drySpells,
+    drySpells: countDrySpells(growingSeason),
     maxConsecutiveDryDays,
     seasonalPattern: seasonal.map(({ month, mm }) => ({ month, mm })),
     rainfallTrendMmPerYear: trendMmPerYear == null ? null : round1(trendMmPerYear),
@@ -358,6 +396,7 @@ export function deriveRainfall(
     attribution,
     resolution: gpm?.spatialResolution ?? POWER_RESOLUTION_LABEL,
     dataQuality: gpm?.dataQuality ?? computedQuality,
+    agreement: gpm && power.series?.dates?.length ? compareRainfallSources({ dates: gpm.dates, values: gpm.precipitation }, { dates: power.series.dates, values: power.series.prectotcorr }) : undefined,
   };
 }
 

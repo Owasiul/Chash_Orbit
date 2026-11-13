@@ -332,16 +332,19 @@ export function deriveSoilMoisture(
   const avgEtc = wb.dailyEtc.length ? totalEtc / wb.dailyEtc.length : 0;
 
   // NASA POWER Model-based Soil Wetness Parameters (Section 3.C)
+  // Guard: a missing/JSON-null last value must read as null, never as 0 % wet
+  // (null * 100 === 0 would report the soil as bone dry).
   const powerAny = power as any;
-  const surfaceWetness = powerAny.series?.gwettop?.length
-    ? Math.round(powerAny.series.gwettop[powerAny.series.gwettop.length - 1] * 100)
-    : null;
-  const rootWetness = powerAny.series?.gwetroot?.length
-    ? Math.round(powerAny.series.gwetroot[powerAny.series.gwetroot.length - 1] * 100)
-    : null;
-  const profileWetness = powerAny.series?.gwetprof?.length
-    ? Math.round(powerAny.series.gwetprof[powerAny.series.gwetprof.length - 1] * 100)
-    : null;
+  const wetnessPct = (arr?: number[]): number | null => {
+    if (!arr?.length) return null;
+    const v = arr[arr.length - 1];
+    return typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1
+      ? Math.round(v * 100)
+      : null;
+  };
+  const surfaceWetness = wetnessPct(powerAny.series?.gwettop);
+  const rootWetness = wetnessPct(powerAny.series?.gwetroot);
+  const profileWetness = wetnessPct(powerAny.series?.gwetprof);
 
   return {
     rootZoneWaterMm: Math.round(currentMm * 10) / 10,
@@ -469,3 +472,18 @@ export function deriveSoilCondition(
       'Derived through multi-criteria environmental modeling (NASA POWER rainfall variability, NDVI canopy protection, and user field topography). Not a direct soil lab assay.',
   };
 }
+export {
+  deriveSoilMoistureV2,
+  runWaterBalance,
+  referenceEt0,
+  kcForDay,
+  relativeYieldFromWater,
+  EXAMPLE_RICE_CURVE,
+  type SoilMoistureV2Options,
+  type WaterBalanceResult,
+  type KcCurve,
+  type DailyWeather,
+  type Et0Inputs,
+  type Et0Method,
+} from './gpm-imerg';
+
