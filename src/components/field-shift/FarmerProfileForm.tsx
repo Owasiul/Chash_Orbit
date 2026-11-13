@@ -281,7 +281,7 @@ const chipDesiredActive =
 const iconBtn =
   "inline-flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground transition-colors hover:border-white/20 hover:bg-white/[0.08] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50";
 const segmentBase =
-  "min-h-8 rounded-md px-1.5 py-1.5 text-center text-[10px] leading-tight whitespace-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 sm:text-[11px]";
+  "min-h-9 flex items-center justify-center rounded-md px-1.5 py-1 text-center text-[10px] leading-tight whitespace-normal break-words hyphens-auto transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 sm:text-[11px]";
 const menuCls =
   "max-h-64 w-56 overflow-y-auto rounded-xl border-white/10 bg-card/95 p-1.5 shadow-2xl backdrop-blur sm:w-60";
 
@@ -607,7 +607,7 @@ export function FarmerProfileForm({
               )}
             />
             <span className="truncate">
-              {currentCropLabel} - {candidateCount} {t("candidates")}
+              {`${currentCropLabel} - ${candidateCount} ${t("candidates")}`}
             </span>
           </span>
           <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-white/10 bg-white/[0.03] text-muted-foreground">
@@ -745,7 +745,7 @@ export function FarmerProfileForm({
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className={labelCls}>
-                {t("Crops Under Consideration")} ({candidateCount})
+                {`${t("Crops Under Consideration")} (${candidateCount})`}
               </span>
               <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground/60 sm:text-[11px]">
                 <span
@@ -935,7 +935,7 @@ export function FarmerProfileForm({
               )}
             >
               {isAnalyzing ? (
-                <>
+                <span key="cta-analyzing" className="flex items-center justify-center gap-2">
                   <Loader2
                     className="h-4 w-4 shrink-0 animate-spin"
                     aria-hidden="true"
@@ -943,18 +943,17 @@ export function FarmerProfileForm({
                   <span className="leading-tight">
                     {t("Querying NASA POWER & Satellite Grid...")}
                   </span>
-                </>
+                </span>
               ) : (
-                <>
+                <span key="cta-idle" className="flex items-center justify-center gap-2">
                   <Sparkles
                     className="h-4 w-4 shrink-0 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110"
                     aria-hidden="true"
                   />
                   <span className="leading-tight">
-                    {t("Analyze Field & Generate Rotation")} ({candidateCount}{" "}
-                    {t("Crops")})
+                    {`${t("Analyze Field & Generate Rotation")} (${candidateCount} ${t("Crops")})`}
                   </span>
-                </>
+                </span>
               )}
             </Button>
           </div>

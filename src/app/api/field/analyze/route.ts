@@ -84,7 +84,7 @@ export async function POST(req: Request) {
     polygon: body.polygon,
   };
 
-  // ── Step 1: Find-or-create the Farm record ─────────────────────────────
+  // ── Step 1: Find-or-create the Farm record (best-effort persistence) ──
   let farm;
   try {
     farm = await db.farm.upsert({
@@ -112,8 +112,23 @@ export async function POST(req: Request) {
       },
     });
   } catch (e) {
-    console.error('Failed to persist farm:', e);
-    return bad('Failed to persist farm.', 500, locale);
+    console.warn('Database unavailable or failed to persist farm, using ephemeral session:', e);
+    const now = new Date();
+    farm = {
+      id: `ephemeral-${latitude.toFixed(4)}-${longitude.toFixed(4)}`,
+      name: body.locationName || `Field at ${latitude.toFixed(2)}, ${longitude.toFixed(2)}`,
+      latitude,
+      longitude,
+      locationName: body.locationName || '',
+      country: body.country || null,
+      area: body.area ?? null,
+      areaUnit: body.areaUnit ?? 'acres',
+      soilType: resolvedSoil,
+      irrigationType: irrigation,
+      currentCrop: body.currentCrop ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
   }
 
   // ── Step 2: Save farmer preferences (replace existing) ─────────────────
