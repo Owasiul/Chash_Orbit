@@ -23,21 +23,7 @@ import {
   type PolygonValidationResult,
 } from '@/lib/polygon';
 import { useTranslation } from '@/lib/locale';
-import {
-  Layers,
-  Globe2,
-  MapPin,
-  Trash2,
-  Edit3,
-  CheckCircle2,
-  AlertTriangle,
-  Sparkles,
-  Maximize2,
-  Compass,
-  RotateCcw,
-  Square,
-  X,
-} from 'lucide-react';
+import { Layers, Globe2, MapPin, Trash2, Edit3, CheckCircle2, AlertTriangle, Maximize2, Compass, RotateCcw, Square, X, Sprout } from "lucide-react";
 import { cn } from '@/lib/utils';
 
 const HolographicGlobe = dynamic(
@@ -368,7 +354,7 @@ export function PolygonMap({
             if (initialPolygon && initialPolygon.length >= 4) {
               isProgrammaticUpdateRef.current = true;
               const initialFeature = createPolygonFeature(initialPolygon);
-              draw.addFeatures([initialFeature]);
+              draw.addFeatures([initialFeature as never]);
               isProgrammaticUpdateRef.current = false;
               lastReportedCoordsStr.current = JSON.stringify(initialPolygon);
               const valResult = validatePolygon(initialFeature);
@@ -395,7 +381,7 @@ export function PolygonMap({
           e.preventDefault();
           try {
             if (((polygonModeRef.current as any).currentCoordinate || 0) >= 3) {
-              polygonModeRef.current.close();
+              (polygonModeRef.current as unknown as { close(): void }).close();
             }
           } catch {}
         }
@@ -485,7 +471,7 @@ export function PolygonMap({
     isProgrammaticUpdateRef.current = true;
     draw.clear();
     const feat = createPolygonFeature(initialPolygon);
-    draw.addFeatures([feat]);
+    draw.addFeatures([feat as never]);
     isProgrammaticUpdateRef.current = false;
 
     const valResult = validatePolygon(feat);
@@ -535,7 +521,7 @@ export function PolygonMap({
     try {
       const coordsCount = (polyMode as any).currentCoordinate || 0;
       if (coordsCount >= 3) {
-        polyMode.close();
+        (polyMode as unknown as { close(): void }).close();
       } else {
         alert(t('Please click at least 3 points on the satellite map to outline your field boundary.'));
       }
@@ -575,7 +561,7 @@ export function PolygonMap({
 
       isProgrammaticUpdateRef.current = true;
       draw.clear();
-      draw.addFeatures([feat]);
+      draw.addFeatures([feat as never]);
       isProgrammaticUpdateRef.current = false;
 
       lastReportedCoordsStr.current = JSON.stringify(coords);
@@ -687,7 +673,7 @@ export function PolygonMap({
               <span>{t('Retry 3D Satellite Map')}</span>
             </button>
           </div>
-          <div className="mt-3 font-mono text-[11px] text-muted-foreground/60">
+          <div className="mt-3 font-mono text-xs text-muted-foreground/60">
             {t('Target Coordinates')}: {Math.abs(latitude).toFixed(4)}° {latitude >= 0 ? 'N' : 'S'},{' '}
             {Math.abs(longitude).toFixed(4)}° {longitude >= 0 ? 'E' : 'W'}
           </div>
@@ -839,14 +825,14 @@ export function PolygonMap({
           <AlertTriangle className="size-4 text-rose-400 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-rose-300">{t('Invalid Field Boundary')}</div>
-            <p className="mt-0.5 text-[11px] text-rose-200/90 leading-relaxed">{validation.error}</p>
+            <p className="mt-0.5 text-xs text-rose-200/90 leading-relaxed">{validation.error}</p>
           </div>
         </div>
       )}
 
       {/* Optional Empty State / Bottom Helper */}
       {showBottomHelper && !validation && currentMode !== 'polygon' && (
-        <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg bg-black/75 px-2.5 py-1.5 text-[11px] text-white/70 backdrop-blur-sm hidden sm:block">
+        <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg bg-black/75 px-2.5 py-1.5 text-xs text-white/70 backdrop-blur-sm hidden sm:block">
           {t('Search your location above, then click "Draw Field" or "Preset Field (1 ha)" to outline your farm.')}
         </div>
       )}

@@ -45,6 +45,15 @@ export interface PowerAnalysis {
   soilTempAvg?: number | null;         // TSOIL1 mean °C
   soilWetnessAvg?: number | null;      // GWETPROF mean (0-1)
 
+  /** 10-year mean temperature (°C) and rainfall (mm per month) for each calendar month, index 0 = Jan. */
+  monthlyNormals?: { tempC: (number | null)[]; rainMm: (number | null)[] };
+
+  /** Elevation of the POWER grid point and of the field (m), when both are known. */
+  gridElevationM?: number | null;
+  fieldElevationM?: number | null;
+  /** Temperature shift applied for the elevation difference (°C, negative = colder). */
+  tempAdjustmentC?: number;
+
   source: 'live' | 'cached' | 'demo';
   attribution: string;
   resolution?: string;
@@ -72,6 +81,7 @@ function last10YearRange(end = new Date()): { start: string; end: string } {
 
 // ── API call with retry & exponential backoff ────────────────────────────────
 interface PowerRawResponse {
+  geometry?: { coordinates?: number[] };
   properties?: {
     parameter?: Record<string, Record<string, number | null>>;
   };
@@ -206,6 +216,34 @@ function recentMeanOrNull(a: number[] | undefined, days = 90): number | null {
   return Number.isNaN(m) ? null : m;
 }
 
+// ── Elevation correction ────────────────────────────────────────────────────
+// POWER temperatures describe a ~50 km grid cell. If the field sits higher or
+// lower than the grid point, shift temperatures by the standard lapse rate.
+const LAPSE_RATE_C_PER_M = 0.0065;
+const MAX_ADJUSTMENT_C = 8;
+
+export function elevationAdjustmentC(gridM: number | null | undefined, fieldM: number | null | undefined): number {
+  if (typeof gridM !== 'number' || typeof fieldM !== 'number' || !Number.isFinite(gridM) || !Number.isFinite(fieldM)) return 0;
+  const adj = -(fieldM - gridM) * LAPSE_RATE_C_PER_M;
+  return Math.max(-MAX_ADJUSTMENT_C, Math.min(MAX_ADJUSTMENT_C, Math.round(adj * 10) / 10));
+}
+
+// Open-Meteo elevation API (Copernicus DEM, ~90 m). Returns null on any failure.
+async function fetchFieldElevation(latitude: number, longitude: number): Promise<number | null> {
+  try {
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/elevation?latitude=${latitude}&longitude=${longitude}`,
+      { signal: AbortSignal.timeout(5000), next: { revalidate: 86400 } },
+    );
+    if (!res.ok) return null;
+    const j = (await res.json()) as { elevation?: number[] };
+    const v = j.elevation?.[0];
+    return typeof v === 'number' && Number.isFinite(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 export async function fetchPowerAnalysis(
   latitude: number,
@@ -227,12 +265,21 @@ export async function fetchPowerAnalysis(
 
   // ── Fetch daily series (core + agro in parallel) ───────────────────────
   // Core failure throws (as before). Agro failure is non-fatal -> null.
-  const [dailyRaw, agroRaw] = await Promise.all([
+  const [dailyRaw, agroRaw, fieldElevationM] = await Promise.all([
     fetchPower('daily', latitude, longitude, daily.start, daily.end, CORE_PARAMS),
     fetchPower('daily', latitude, longitude, daily.start, daily.end, AGRO_PARAMS)
       .catch((): PowerRawResponse | null => null),
+    fetchFieldElevation(latitude, longitude),
   ]);
   const coreSeries = extractSeries(dailyRaw);
+  const gridElevationM = dailyRaw.geometry?.coordinates?.[2] ?? null;
+  const tempAdjustmentC = elevationAdjustmentC(gridElevationM, fieldElevationM);
+  if (tempAdjustmentC !== 0) {
+    const shift = (a: number[]) => a.map(v => v + tempAdjustmentC);
+    coreSeries.t2m = shift(coreSeries.t2m);
+    coreSeries.t2mMax = shift(coreSeries.t2mMax);
+    coreSeries.t2mMin = shift(coreSeries.t2mMin);
+  }
   const series: PowerDailySeries = {
     ...coreSeries,
     ...extractAgroSeries(agroRaw, coreSeries.dates),
@@ -241,6 +288,7 @@ export async function fetchPowerAnalysis(
   // ── Fetch monthly series for trend (T2M + PRECTOTCORR) ─────────────────
   let tenYearTempTrend = 0;
   let tenYearRainfallTrend = 0;
+  let monthlyNormals: PowerAnalysis['monthlyNormals'];
   try {
     const monthlyRaw = await fetchPower(
       'monthly',
@@ -266,6 +314,22 @@ export async function fetchPowerAnalysis(
       tempMeans.push(t);
       rainTotals.push(r * 365);
     });
+    // Calendar-month normals ('YYYYMM' keys, MM 01..12): the typical climate, not one year.
+    const tSum = Array(12).fill(0), tN = Array(12).fill(0);
+    const rSum = Array(12).fill(0), rN = Array(12).fill(0);
+    for (const k of Object.keys(t2mM)) {
+      const mm = parseInt(k.slice(4, 6), 10);
+      if (!/^\d{6}$/.test(k) || mm < 1 || mm > 12) continue;
+      const t = t2mM[k]; const r = preM[k];
+      const yr = parseInt(k.slice(0, 4), 10);
+      const days = new Date(Date.UTC(yr, mm, 0)).getUTCDate();
+      if (valid(t)) { tSum[mm - 1] += t; tN[mm - 1]++; }
+      if (valid(r)) { rSum[mm - 1] += r * days; rN[mm - 1]++; }
+    }
+    monthlyNormals = {
+      tempC: tSum.map((v, i) => (tN[i] ? v / tN[i] + tempAdjustmentC : null)),
+      rainMm: rSum.map((v, i) => (rN[i] ? v / rN[i] : null)),
+    };
     tenYearTempTrend = linearSlope(years, tempMeans);      // °C/year
     tenYearRainfallTrend = linearSlope(years, rainTotals); // mm/year
   } catch {
@@ -314,6 +378,10 @@ export async function fetchPowerAnalysis(
     landEvaporationAvg: recentMeanOrNull(series.evland),
     soilTempAvg: recentMeanOrNull(series.tsoil1),
     soilWetnessAvg: recentMeanOrNull(series.gwetprof),
+    monthlyNormals,
+    gridElevationM,
+    fieldElevationM,
+    tempAdjustmentC,
     source: 'live',
     attribution: 'NASA POWER (Prediction Of Worldwide Energy Resources), NASA Langley Research Center',
     resolution: '0.5° × 0.5° (~50 km MERRA-2 assimilation grid, queried at field centroid)',

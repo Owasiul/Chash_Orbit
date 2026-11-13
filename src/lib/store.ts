@@ -53,6 +53,7 @@ export interface FieldSummary {
 export interface FullAnalysis {
   field: FieldSummary;
   environment: Environment;
+  viability?: AnalysisResult['viability'];
   risks: AnalysisResult['risks'];
   cropCompatibility: AnalysisResult['cropCompatibility'];
   recommendations: AnalysisResult['recommendations'];
@@ -126,9 +127,21 @@ export const useAppStore = create<AppState>((set) => ({
   updateVegetation: (veg) =>
     set((state) => {
       if (!state.analysis) return state;
+      // Observed NDVI below 0.05 means open water, ice or snow, not crops.
+      const observed = veg.source === 'live' || veg.source === 'cached';
+      const barren = observed && typeof veg.ndvi === 'number' && veg.ndvi < 0.05;
+      const viability =
+        barren && state.analysis.viability?.farmable !== false
+          ? {
+              farmable: false,
+              reason: `Satellite vegetation data (MODIS NDVI ${veg.ndvi.toFixed(2)}) shows water, ice or bare ground here, so no crops are recommended.`,
+            }
+          : state.analysis.viability;
       return {
         analysis: {
           ...state.analysis,
+          viability,
+          recommendations: barren ? [] : state.analysis.recommendations,
           environment: {
             ...state.analysis.environment,
             vegetation: veg,

@@ -114,7 +114,7 @@ export default function FieldMap({
             type="button"
             aria-pressed={layer === value}
             onClick={() => setLayer(value)}
-            className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-2 text-[11px] capitalize sm:px-3 sm:py-1.5 sm:text-xs ${
+            className={`shrink-0 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs capitalize sm:px-3 sm:py-1.5 sm:text-xs ${
               layer === value ? 'bg-amber-300 text-black' : 'text-white'
             }`}
           >
@@ -138,7 +138,7 @@ export default function FieldMap({
       </MapContainer>
 
       {onPick && (
-        <div className="pointer-events-none absolute bottom-9 left-2 z-[1000] max-w-[calc(100%-1rem)] truncate rounded bg-black/75 px-2 py-1 text-[10px] text-white sm:bottom-2 sm:max-w-[50%]">
+        <div className="pointer-events-none absolute bottom-9 left-2 z-[1000] max-w-[calc(100%-1rem)] truncate rounded bg-black/75 px-2 py-1 text-xs text-white sm:bottom-2 sm:max-w-[50%]">
           {t('Click map to place field pin')}
           <span className="hidden lg:inline"> · {tile.attribution.replace(/<[^>]*>/g, '')}</span>
         </div>

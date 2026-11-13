@@ -45,7 +45,7 @@ function ScoreChip({ icon, label, score, color }: ScoreChipProps) {
       )}
     >
       {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-3.5' })}
-      <span className="font-mono text-[10px] uppercase tracking-widest">{t(label)}</span>
+      <span className="font-mono text-xs uppercase tracking-widest">{t(label)}</span>
       <span className="font-mono text-base font-light tabular-nums">{number(score)}</span>
     </div>
   );
@@ -92,7 +92,7 @@ function YearCard({
     >
       <Card className="border-white/10 bg-card/50 p-4 sm:p-5">
         <div className="mb-2 flex items-center justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+          <span className="font-mono text-xs uppercase tracking-widest text-amber-200/80">
             {t('Year {year}', { year })}
           </span>
           <span className="font-mono text-2xl font-light text-amber-300 tabular-nums">
@@ -101,7 +101,7 @@ function YearCard({
         </div>
         <div className="text-xl font-medium text-foreground">{t(crop)}</div>
         {(plantingSeason || harvestSeason) && (
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground/80">
+          <p className="mt-1 font-mono text-xs uppercase tracking-wide text-muted-foreground/80">
             {t('Plant')} {t(plantingSeason ?? '—')} · {t('Harvest')} {t(harvestSeason ?? '—')}
             {growingDays != null ? ` · ~${number(growingDays)}d` : ''}
           </p>
@@ -145,13 +145,13 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
     <div className="space-y-4">
       {/* Header */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-amber-200/80">
           <Calendar className="size-3" />
           {t('YOUR FIELD SHIFT PLAN')}
         </div>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
               {t('Overall score')}
             </div>
             <div className="font-mono text-4xl font-light text-amber-300 tabular-nums">
@@ -170,7 +170,7 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
 
       {/* Timeline */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="mb-4 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="mb-4 flex items-center gap-1.5 font-mono text-xs uppercase tracking-widest text-amber-200/80">
           <Sprout className="size-3" />
           {t('4-YEAR ROTATION')}
         </div>
@@ -218,7 +218,7 @@ export function PlannerPanel({ analysis }: { analysis: FullAnalysis }) {
 
       {/* Rationale */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="mb-2 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="mb-2 font-mono text-xs uppercase tracking-widest text-amber-200/80">
           {t('Rationale')}
         </div>
         <p className="text-sm italic text-muted-foreground">{t(plan.rationale)}</p>

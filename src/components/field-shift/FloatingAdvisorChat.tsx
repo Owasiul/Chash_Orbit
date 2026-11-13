@@ -2,20 +2,7 @@
 
 import * as React from "react";
 import ReactMarkdown from "react-markdown";
-import {
-  Sparkles,
-  X,
-  Send,
-  RotateCcw,
-  Loader2,
-  BrainCircuit,
-  MessageSquare,
-  Sprout,
-  Droplets,
-  Repeat,
-  AlertTriangle,
-  ChevronDown,
-} from "lucide-react";
+import { X, Send, RotateCcw, Loader2, BrainCircuit, MessageSquare, Sprout, Droplets, Repeat, AlertTriangle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -386,7 +373,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
             onClick={() => setIsOpen(true)}
             className="hidden md:flex cursor-pointer items-center gap-2 rounded-full border border-amber-400/30 bg-black/90 px-3.5 py-1.5 text-xs text-amber-200 shadow-2xl backdrop-blur-md transition-all hover:border-amber-400/60 hover:bg-black"
           >
-            <Sparkles className="size-3.5 text-amber-400 animate-spin" style={{ animationDuration: '4s' }} />
+            <Sprout className="size-3.5 text-amber-400" />
             <span className="font-medium">
               {analysis ? t("Ask Chash Advisor") : t("Explore with AI Advisor")}
             </span>
@@ -414,10 +401,10 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full size-3.5 border-2 border-slate-950 bg-emerald-400"></span>
               </span>
-              {/* Unread Sparkle Alert Pill */}
+              {/* Unread alert */}
               {unreadAlert && (
-                <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-black border-2 border-slate-950 animate-bounce">
-                  ✨
+                <span className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-amber-400 text-xs font-bold text-black border-2 border-slate-950 animate-bounce">
+                  !
                 </span>
               )}
             </>
@@ -439,17 +426,11 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                   <span className="font-semibold text-sm text-foreground">
                     {t("Chash Advisor")}
                   </span>
-                  <Badge
-                    variant="outline"
-                    className="border-amber-400/50 bg-amber-400/10 text-[9px] font-mono text-amber-300 px-1.5 py-0"
-                  >
-                    Gemini 3.5 Flash Lite
-                  </Badge>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span className="inline-block size-1.5 rounded-full bg-emerald-400"></span>
                   <span className="truncate max-w-[200px]">
-                    {analysis ? t("Grounded in NASA Decisions") : t("Agricultural Intelligence")}
+                    {analysis ? t("Grounded in NASA Decisions") : t("Crop and field questions")}
                   </span>
                 </div>
               </div>
@@ -481,11 +462,11 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
             {analysis ? (
               <div className="rounded-2xl border border-amber-400/25 bg-gradient-to-br from-amber-950/30 via-slate-900/60 to-black/80 p-3.5 shadow-lg backdrop-blur-sm space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-wider text-amber-300 font-semibold flex items-center gap-1.5">
+                  <span className="font-mono text-xs uppercase tracking-wider text-amber-300 font-semibold flex items-center gap-1.5">
                     <BrainCircuit className="size-3.5 text-amber-400" />
                     {t("Field Decision Summary")}
                   </span>
-                  <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-emerald-300 font-mono text-[10px]">
+                  <Badge variant="outline" className="border-emerald-400/40 bg-emerald-400/10 text-emerald-300 font-mono text-xs">
                     {topCropScore}% match
                   </Badge>
                 </div>
@@ -494,19 +475,19 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                   {t("Recommended Crop")}: <span className="text-amber-300 font-bold">{topCropName}</span>
                 </div>
 
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {summaryText ||
                     `Optimal for ${soilType} soil with ~${rainfall} mm annual precipitation. Current MODIS vegetation density is ${ndviVal}.`}
                 </p>
 
                 {rotationYears.length > 0 && (
                   <div className="pt-1 border-t border-white/10">
-                    <div className="text-[10px] font-mono text-muted-foreground mb-1.5">{t("4-Year Rotation")}:</div>
+                    <div className="text-xs font-mono text-muted-foreground mb-1.5">{t("4-Year Rotation")}:</div>
                     <div className="flex flex-wrap items-center gap-1">
                       {rotationYears.map((yr: any, idx: number) => (
                         <span
                           key={idx}
-                          className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-mono text-muted-foreground"
+                          className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-mono text-muted-foreground"
                         >
                           Y{yr.year}: {yr.crop}
                         </span>
@@ -519,17 +500,17 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
               <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-3 text-center space-y-1.5">
                 <AdvisorAvatarIcon className="size-10 mx-auto" />
                 <h4 className="font-semibold text-xs text-foreground">
-                  {t("Welcome to Chash Advisor")}
+                  {t("Ask about your field")}
                 </h4>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {t("Select your location on the map or outline your field to generate full Earth-observation insights. You can also ask me any questions about crop selection, soil, or climate!")}
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t("Pick a location or draw your field, then ask about crops, water or soil.")}
                 </p>
               </div>
             )}
 
             {/* Quick Suggestion Pills */}
             <div className="space-y-1.5">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/80 px-1">
+              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground/80 px-1">
                 {t("Suggested Questions:")}
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -541,7 +522,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                       type="button"
                       disabled={loading}
                       onClick={() => handleSend(pill.prompt)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-muted-foreground hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-200 transition-all text-left disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground hover:border-amber-400/40 hover:bg-amber-400/10 hover:text-amber-200 transition-all text-left disabled:opacity-50"
                     >
                       <Icon className="size-3 text-amber-400 shrink-0" />
                       <span className="truncate max-w-[260px]">{pill.label}</span>
@@ -591,7 +572,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                     ) : (
                       <div className="flex items-center gap-1.5 py-0.5 text-muted-foreground">
                         <Loader2 className="size-3 animate-spin text-amber-400" />
-                        <span className="text-[11px]">{t("Advisor is thinking...")}</span>
+                        <span className="text-xs">{t("Advisor is thinking...")}</span>
                       </div>
                     )}
                   </div>
@@ -605,7 +586,7 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
                 <AdvisorAvatarIcon className="size-7" />
                 <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-white/10 bg-slate-900/90 px-3 py-2 text-xs">
                   <Loader2 className="size-3 animate-spin text-amber-400" />
-                  <span>{t("Advisor is analyzing decision engine signals...")}</span>
+                  <span>{t("Reading your field data...")}</span>
                 </div>
               </div>
             )}
@@ -639,8 +620,8 @@ export function FloatingAdvisorChat({ analysis }: FloatingAdvisorChatProps) {
               </Button>
             </form>
 
-            <div className="mt-1.5 flex items-center justify-between text-[9px] font-mono text-muted-foreground/60 px-1">
-              <span>{t("Powered by Gemini 3.5 Flash Lite")}</span>
+            <div className="mt-1.5 flex items-center justify-between text-xs font-mono text-muted-foreground/60 px-1">
+              <span>{t("AI answers use only your field data")}</span>
               <span>{t("NASA POWER · MODIS 250m")}</span>
             </div>
           </div>

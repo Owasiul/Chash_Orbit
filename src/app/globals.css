@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :lang(bn) {
-  font-family: var(--font-geist-sans), "Noto Sans Bengali", "Noto Serif Bengali", sans-serif;
+  font-family: var(--font-noto-bengali), var(--font-geist-sans), sans-serif;
 }
 
 @theme inline {
@@ -240,5 +240,16 @@
   th, td {
     border: 1px solid #e5e7eb !important;
     color: #111111 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -37,76 +37,78 @@ function generateDeterministicAnswer(
   if (!analysis) {
     if (isBn) {
       return (
-        "👋 **স্বাগতম! আমি চাষ অরবিট এআই উপদেষ্টা (Gemini 3.5 Flash Lite দ্বারা চালিত)।**\n\n" +
+        "**চাষ অরবিট উপদেষ্টা**\n\n" +
         "আপনার খামারের উপগ্রহভিত্তিক সঠিক তথ্য পেতে উপরের মানচিত্রে আপনার অবস্থান খুঁজুন অথবা ড্রয়িং টুল দিয়ে জমির সীমানা নির্ধারণ করুন।\n\n" +
-        "- 🛰️ **নাসা পাওয়ার (NASA POWER)**: সৌর বিকিরণ, তাপমাত্রা এবং বাৎসরিক বৃষ্টিপাতের নির্ভুল ডেটা।\n" +
-        "- 🌿 **মোডিস ২৫০মি (MODIS 250m)**: ১৬ দিনের ব্যবধানে ফসলের ঘনত্ব (NDVI)।\n" +
-        "- 🌾 **ফসল পরিক্রমা**: মাটির উর্বরতা রক্ষা ও সর্বোচ্চ আয়ের জন্য ৪ বছরের পরিকল্পনা।"
+        "- **নাসা পাওয়ার (NASA POWER)**: সৌর বিকিরণ, তাপমাত্রা এবং বাৎসরিক বৃষ্টিপাতের নির্ভুল ডেটা।\n" +
+        "- **মোডিস ২৫০মি (MODIS 250m)**: ১৬ দিনের ব্যবধানে ফসলের ঘনত্ব (NDVI)।\n" +
+        "- **ফসল পরিক্রমা**: মাটির উর্বরতা রক্ষা ও সর্বোচ্চ আয়ের জন্য ৪ বছরের পরিকল্পনা।"
       );
     }
     return (
-      "👋 **Welcome! I am your Chash Advisor powered by Gemini 3.5 Flash Lite.**\n\n" +
-      "To receive personalized recommendations grounded in Earth-observation data, search for your farm on the map above or outline your field boundary.\n\n" +
-      "- 🛰️ **NASA POWER Telemetry**: Multi-year solar radiation, thermal ranges, and precipitation.\n" +
-      "- 🌿 **MODIS 250m NDVI**: 16-day dynamic vegetation index.\n" +
-      "- 🌾 **Crop Rotation Engine**: 4-year rotation plan balancing soil health, water conservation, and income."
+      "**Chash Advisor**\n\n" +
+      "Search for your farm on the map or outline your field boundary to get recommendations based on NASA data.\n\n" +
+      "- **NASA POWER**: daily temperature, rainfall, solar radiation and soil wetness.\n" +
+      "- **MODIS NDVI (250 m)**: 16-day vegetation greenness.\n" +
+      "- **Rotation plan**: 4 years balancing soil health, water use and income."
     );
   }
 
   const topRec = analysis.recommendations?.[0];
-  const cropName = topRec?.crop || 'Leading Crop';
-  const score = topRec?.score !== undefined ? Number(topRec.score).toFixed(1) : '85.0';
-  const rainfall = Math.round(analysis.environmental?.rainfallMm ?? 1100);
-  const ndviVal = (analysis.environmental?.vegetation?.ndvi ?? 0.55).toFixed(2);
-  const soilType = analysis.inputs?.soilType || 'loamy';
+  const cropName = topRec?.crop || 'the top-ranked crop';
+  const score = topRec?.score !== undefined ? Number(topRec.score).toFixed(1) : 'n/a';
+  const rainMm = analysis.environment?.rainfall?.annualRainfall;
+  const rainfall = typeof rainMm === 'number' ? `${Math.round(rainMm)} mm` : 'unavailable';
+  const ndviRaw = analysis.environment?.vegetation?.ndvi;
+  const ndviVal = typeof ndviRaw === 'number' ? ndviRaw.toFixed(2) : 'unavailable';
+  const soilType = analysis.field?.soilType || 'unknown';
   const rotationYears = analysis.rotationPlan?.years || [];
 
   if (q.includes('crop') || q.includes('recommend') || q.includes('choose') || q.includes('why') || q.includes('best') || q.includes('ফসল')) {
     if (isBn) {
       return (
-        `🌾 **সর্বোচ্চ সুপারিশকৃত ফসল: ${cropName} (${score}% স্কোর)**\n\n` +
-        `- **আবহাওয়া অনুকূলতা**: বাৎসরিক ${rainfall} মিমি বৃষ্টিপাত ও আঞ্চলিক তাপমাত্রার জন্য সবচেয়ে উপযোগী।\n` +
+        `**সর্বোচ্চ সুপারিশকৃত ফসল: ${cropName} (স্কোর ${score})**\n\n` +
+        `- **আবহাওয়া অনুকূলতা**: বাৎসরিক ${rainfall} বৃষ্টিপাত ও আঞ্চলিক তাপমাত্রার জন্য সবচেয়ে উপযোগী।\n` +
         `- **মাটির সামঞ্জস্য**: আপনার জমিতে বিদ্যমান ${soilType} মাটির আর্দ্রতা ধারণ ক্ষমতার সাথে সঙ্গতিপূর্ণ।\n` +
-        `- **আর্থিক সম্ভাবনা**: বর্তমান বাজার চাহিদা এবং কৃষক অগ্রাধিকারের ভিত্তিতে সর্বোচ্চ রেটিং প্রাপ্ত।`
+        `- **অগ্রাধিকার**: আপনার নির্ধারিত অগ্রাধিকারের ভিত্তিতে সর্বোচ্চ স্কোর পেয়েছে।`
       );
     }
     return (
-      `🌾 **Top Recommended Crop: ${cropName} (${score}% Compatibility Score)**\n\n` +
-      `- **Climate Fit**: Highly compatible with your annual precipitation of ~${rainfall} mm and regional thermal profile.\n` +
-      `- **Soil Match**: Well-suited for ${soilType} soil texture and root-zone water retention.\n` +
-      `- **Economic Balance**: Top-ranked based on your weighted priorities for soil conservation, water resilience, and farm income.`
+      `**Top Recommended Crop: ${cropName} (score ${score})**\n\n` +
+      `- **Climate Fit**: annual rainfall is ${rainfall}.\n` +
+      `- **Soil**: ${soilType} (check this against your own soil if it was estimated).\n` +
+      `- **Priorities**: ranked using the priority weights you set.`
     );
   }
 
   if (q.includes('water') || q.includes('rain') || q.includes('drought') || q.includes('irrigation') || q.includes('পানি') || q.includes('সেচ')) {
     if (isBn) {
       return (
-        `💧 **পানি ও সেচ ব্যবস্থাপনা বিশ্লেষণ**\n\n` +
-        `- **বাৎসরিক বৃষ্টিপাত**: প্রায় ${rainfall} মিমি (নাসা স্যাটেলাইট ডেটা)।\n` +
+        `**পানি ও সেচ ব্যবস্থাপনা বিশ্লেষণ**\n\n` +
+        `- **বাৎসরিক বৃষ্টিপাত**: ${rainfall} (নাসা স্যাটেলাইট ডেটা)।\n` +
         `- **এনডিভিআই উদ্ভিজ্জ সূচক**: ${ndviVal} (সবুজ উদ্ভিদের ঘনত্ব নির্দেশ করে)।\n` +
         `- **পরামর্শ**: শুষ্ক মৌসুমে ড্রিপ বা পরিমিত সেচ প্রয়োগ করুন এবং বাষ্পীভবন কমাতে জমিতে খড় বা মালচিং ব্যবহার করুন।`
       );
     }
     return (
-      `💧 **Water & Irrigation Assessment**\n\n` +
-      `- **Annual Precipitation**: ~${rainfall} mm derived from NASA POWER meteorological observations.\n` +
-      `- **Current NDVI**: ${ndviVal} (MODIS 250m composite reflecting field vegetative vigor).\n` +
-      `- **Actionable Advice**: Employ deficit or drip irrigation during critical vegetative stages. Use organic mulching to minimize soil evaporation.`
+      `**Water & Irrigation Assessment**\n\n` +
+      `- **Annual Precipitation**: ${rainfall} derived from NASA POWER meteorological observations.\n` +
+      `- **Latest NDVI**: ${ndviVal} (MODIS 250 m).\n` +
+      `- **Advice**: Use drip or deficit irrigation at the critical growth stages and mulch to reduce evaporation.`
     );
   }
 
   if (q.includes('rotation') || q.includes('plan') || q.includes('cycle') || q.includes('পরিক্রমা') || q.includes('ঘূর্ণন')) {
     const list = rotationYears
-      .map((y: any) => `- **Year ${y.year}**: ${y.crop} (${y.family}) — ${y.role}`)
+      .map((y: any) => `- **Year ${y.year}**: ${y.crop} (${y.plantingSeason}, ${y.growingDays} days): ${y.reason}`)
       .join('\n');
     if (isBn) {
       return (
-        `🔄 **৪ বছরের প্রস্তাবিত ফসল পরিক্রমা**\n\n${list}\n\n` +
+        `**৪ বছরের প্রস্তাবিত ফসল পরিক্রমা**\n\n${list}\n\n` +
         `*নীতিমালা*: একনাগাড়ে একই জাতের ফসল চাষ না করে শস্য ও ডালজাতীয় ফসলের পর্যায়ক্রমিক আবর্তন মাটির নাইট্রোজেন বৃদ্ধি করে এবং রোগবালাই প্রতিরোধ করে।`
       );
     }
     return (
-      `🔄 **Recommended 4-Year Crop Rotation Plan**\n\n${list}\n\n` +
+      `**Recommended 4-Year Crop Rotation Plan**\n\n${list}\n\n` +
       `*Agronomic Rule*: Alternates nitrogen-depleting cereals with nitrogen-fixing legumes to break pest lifecycles and rebuild organic matter.`
     );
   }
@@ -114,13 +116,13 @@ function generateDeterministicAnswer(
   if (q.includes('soil') || q.includes('fertilizer') || q.includes('organic') || q.includes('মাটি') || q.includes('সার')) {
     if (isBn) {
       return (
-        `🧪 **মাটির পুষ্টি ও জৈব ব্যবস্থাপনা**\n\n` +
+        `**মাটির পুষ্টি ও জৈব ব্যবস্থাপনা**\n\n` +
         `- **মাটির ধরন**: ${soilType}\n` +
         `- **সুপারিশ**: রাসায়নিক সারের উপর নির্ভরতা কমিয়ে কম্পোস্ট, ট্রাইকো-কম্পোস্ট ও সবুজ সার (যেমন ধইঞ্চা) প্রয়োগ করুন। ডালজাতীয় ফসলের শিকড়ের নডিউল মাটির প্রাকৃতিক উর্বরতা বৃদ্ধি করে।`
       );
     }
     return (
-      `🧪 **Soil Nutrient & Organic Management**\n\n` +
+      `**Soil Nutrient & Organic Management**\n\n` +
       `- **Soil Classification**: ${soilType}\n` +
       `- **Management Strategy**: Incorporate compost and green manure (e.g., Sesbania or clover) into seedbeds. The rotation plan integrates legumes to naturally fix atmospheric nitrogen and enhance cation exchange capacity.`
     );
@@ -129,20 +131,20 @@ function generateDeterministicAnswer(
   // General executive summary fallback
   if (isBn) {
     return (
-      `📊 **খামার বিশ্লেষণ সারসংক্ষেপ**\n\n` +
-      `- **অনুকূল ফসল**: ${cropName} (${score}% স্কোর)\n` +
-      `- **বৃষ্টিপাত ও আর্দ্রতা**: বাৎসরিক ${rainfall} মিমি, NDVI: ${ndviVal}\n` +
+      `**খামার সারসংক্ষেপ**\n\n` +
+      `- **অনুকূল ফসল**: ${cropName} (স্কোর ${score})\n` +
+      `- **বৃষ্টিপাত ও আর্দ্রতা**: বাৎসরিক ${rainfall}, NDVI: ${ndviVal}\n` +
       `- **মাটি**: ${soilType}\n\n` +
       `ফসল পরিক্রমা, সেচ বা রোগ প্রতিরোধ সম্পর্কে যেকোনো সুনির্দিষ্ট প্রশ্ন জিজ্ঞাসা করতে পারেন!`
     );
   }
 
   return (
-    `📊 **Field Analysis Executive Overview**\n\n` +
-    `- **Top Recommendation**: ${cropName} (${score}% compatibility score)\n` +
-    `- **Meteorology & NDVI**: ~${rainfall} mm annual rainfall, ${ndviVal} MODIS NDVI density\n` +
-    `- **Soil Type**: ${soilType}\n\n` +
-    `Feel free to ask specific questions about irrigation schedules, soil amendments, or crop rotation benefits!`
+    `**Field summary**\n\n` +
+    `- **Top Recommendation**: ${cropName} (score ${score})\n` +
+    `- **Meteorology & NDVI**: ${rainfall} annual rainfall, ${ndviVal} MODIS NDVI density\n` +
+    `- **Soil**: ${soilType}\n\n` +
+    `Ask about irrigation, soil or the rotation plan.`
   );
 }
 
@@ -238,7 +240,7 @@ export async function POST(req: Request) {
       return createUIMessageStreamResponse({ stream });
     }
 
-    const systemPrompt = `You are Chash Advisor, an expert agricultural decision-support chatbot powered by Gemini 3.5 Flash Lite.
+    const systemPrompt = `You are Chash Advisor, an expert agricultural decision-support chatbot built on NASA POWER and MODIS data.
 You are helping a farmer analyze their field and make grounded agricultural decisions.
 
 RULES:

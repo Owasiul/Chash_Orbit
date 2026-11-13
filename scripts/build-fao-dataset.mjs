@@ -1,6 +1,6 @@
 // scripts/build-fao-dataset.mjs
-// Generates the comprehensive FAO EcoCrop database of 90+ major agronomic crops
-// with scientifically validated cardinal response envelopes.
+// Generates a simplified EcoCrop-style crop dataset (90+ crops) with hand-curated
+// temperature and rainfall envelopes. Values are approximate, not an official FAO release.
 
 import fs from 'node:fs';
 import path from 'node:path';

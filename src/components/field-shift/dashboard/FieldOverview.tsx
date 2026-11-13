@@ -109,7 +109,7 @@ function InfoRing({ icon, label, value, accent }: RingProps) {
         </div>
       </div>
       <div className="leading-tight">
-        <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
           {t(label)}
         </div>
         <div className={cn('text-xs font-medium sm:text-sm', s.text)}>{t(value)}</div>
@@ -141,7 +141,7 @@ function ConditionRow({ icon, label, value, tone }: CondRowProps) {
       <span className="flex size-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-muted-foreground">
         {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'size-4' })}
       </span>
-      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70 w-28 shrink-0">
+      <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70 w-28 shrink-0">
         {label}
       </span>
       <span className="ml-auto flex items-center gap-2 text-sm">
@@ -234,31 +234,37 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
       {/* Profile header */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-amber-200/80">
+          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-amber-200/80">
             <MapPin className="size-3" />
             {t('YOUR FIELD')}
           </div>
           <DataSourceBadge source={environment.overallSource} size="sm" />
         </div>
+        {environment.overallSource === 'demo' && (
+          <p role="alert" className="mt-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+            {t('NASA data could not be reached. These numbers are illustrative, not measured for this field.')}
+          </p>
+        )}
         <h2 className="mt-2 text-2xl font-light text-foreground sm:text-3xl">
           {field.locationName || field.name}
         </h2>
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-xs text-muted-foreground">
             <Globe2 className="size-3" />
             {formatLatLng(field.latitude, field.longitude)}
           </span>
           {field.area != null && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-xs text-muted-foreground">
               {field.area} {field.areaUnit ? t(field.areaUnit) : ''}
             </span>
           )}
-          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-xs text-muted-foreground">
             <SproutIcon className="size-3" />
             {t(field.soilType)} {t('soil')}
+            {(field as { soilInferred?: boolean }).soilInferred && ` (${t('estimated from latitude')})`}
           </span>
           {field.irrigationType && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[10px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-xs text-muted-foreground">
               <Droplets className="size-3" />
               {t(field.irrigationType)} {t('irrigation')}
             </span>
@@ -271,7 +277,7 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
         </div>
         {field.desiredCrops.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/70">
+            <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground/70">
               {t('Considering:')}
             </span>
             {field.desiredCrops.map(c => (
@@ -310,14 +316,14 @@ export function FieldOverview({ analysis }: { analysis: FullAnalysis }) {
             ))}
           </div>
         </div>
-        <div className="mt-3 border-t border-white/5 pt-3 text-right font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+        <div className="mt-3 border-t border-white/5 pt-3 text-right font-mono text-xs uppercase tracking-widest text-muted-foreground/60">
           {environment.overallAttribution}
         </div>
       </Card>
 
       {/* Field condition */}
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
-        <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-amber-200/80">
+        <div className="mb-2 flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-amber-200/80">
           <Thermometer className="size-3" />
           {t('FIELD CONDITION')}
         </div>

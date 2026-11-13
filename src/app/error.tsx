@@ -5,10 +5,10 @@ import { useTranslation } from '@/lib/locale';
 
 export default function ErrorPage({
   error,
-  retry,
+  reset,
 }: {
   error: Error & { digest?: string };
-  retry: () => void;
+  reset: () => void;
 }) {
   const { t } = useTranslation();
 
@@ -24,7 +24,7 @@ export default function ErrorPage({
       </p>
       <button
         type="button"
-        onClick={() => retry()}
+        onClick={() => reset()}
         className="rounded-full border border-amber-400/30 px-4 py-2 text-sm text-amber-100 transition-colors hover:bg-amber-400/10"
       >
         {t('common.try-again')}

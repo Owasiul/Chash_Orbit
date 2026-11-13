@@ -96,6 +96,31 @@ export interface ApplyOptions {
   cropWaterMm?: number;
 }
 
+/**
+ * Soil moisture under a scenario. When the baseline uses measured NASA wetness
+ * we keep it and add only the change the water-balance model predicts.
+ */
+function scenarioSoilMoisture(env: Environment, basePower: PowerAnalysis, power: PowerAnalysis, cropWaterMm: number) {
+  const modelled = deriveSoilMoisture(power, cropWaterMm);
+  if (!env.soilMoisture.measured) return modelled;
+  const modelledBase = deriveSoilMoisture(basePower, cropWaterMm);
+  const pct = Math.max(0, Math.min(100, env.soilMoisture.rootZoneWaterPct + (modelled.rootZoneWaterPct - modelledBase.rootZoneWaterPct)));
+  const mm = (pct / 100) * env.soilMoisture.rootZoneCapacityMm;
+  return {
+    ...modelled,
+    measured: true,
+    rootZoneWaterPct: Math.round(pct * 10) / 10,
+    currentPct: Math.round(pct * 10) / 10,
+    rootZoneWaterMm: Math.round(mm * 10) / 10,
+    currentMm: Math.round(mm * 10) / 10,
+    rootZoneSoilWetnessPct: env.soilMoisture.rootZoneSoilWetnessPct,
+    surfaceSoilWetnessPct: env.soilMoisture.surfaceSoilWetnessPct,
+    source: env.soilMoisture.source,
+    status: env.soilMoisture.status,
+    attribution: env.soilMoisture.attribution,
+  };
+}
+
 /** Returns a new Environment with the scenario applied. Returns `env` itself if nothing can change. */
 export function applyScenario(env: Environment, sc: Scenario, opts: ApplyOptions): Environment {
   const base = env.rawPower;
@@ -125,7 +150,7 @@ export function applyScenario(env: Environment, sc: Scenario, opts: ApplyOptions
       growingSeasonAvg: r1(power.growingSeasonAvg),
     },
     rainfall: deriveRainfall(power, opts.latitude, anomaly),
-    soilMoisture: deriveSoilMoisture(power, opts.cropWaterMm ?? 500),
+    soilMoisture: scenarioSoilMoisture(env, base, power, opts.cropWaterMm ?? 500),
     rawPower: power,
   };
 }

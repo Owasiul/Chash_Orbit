@@ -13,7 +13,6 @@ import {
   applyRegionalBias,
   deriveVegetation,
 } from '../src/lib/nasa/modis.ts';
-import { demoPower } from '../src/lib/nasa/environment.ts';
 
 describe('Phase 2 — Polygon-aware NASA & MODIS NDVI', () => {
   it('computes spatial km window accurately from polygon coordinates', () => {
@@ -74,16 +73,22 @@ describe('Phase 2 — Polygon-aware NASA & MODIS NDVI', () => {
   });
 
   it('derives vegetation with honest spatial resolution labels and Sentinel-2 STAC link', () => {
-    const powerDemo = demoPower(24.37, 88.60);
-
-    // When power is demo, vegetation is labeled demo
-    const derivedDemo = deriveVegetation(powerDemo, 24.37, 88.60, null);
-    assert.equal(derivedDemo.source, 'demo');
-    assert.ok(derivedDemo.resolution?.includes('0.5°'));
-    assert.ok(derivedDemo.ndvi >= 0.05 && derivedDemo.ndvi <= 0.85);
+    // Minimal NASA POWER summary fixture (only the fields deriveVegetation reads).
+    const dates = [];
+    for (let m = 1; m <= 12; m++) for (let d = 1; d <= 28; d++) dates.push(`2024${String(m).padStart(2, '0')}${String(d).padStart(2, '0')}`);
+    const basePower = {
+      annualRainfall: 1500,
+      tenYearRainfallTrend: 2,
+      source: 'live',
+      series: {
+        dates,
+        t2m: dates.map(() => 26),
+        prectotcorr: dates.map((d) => (Number(d.slice(4, 6)) >= 6 && Number(d.slice(4, 6)) <= 9 ? 12 : 1)),
+      },
+    };
 
     // When power is live, unobserved MODIS is labeled derived
-    const powerLive = { ...powerDemo, source: 'live' };
+    const powerLive = { ...basePower, source: 'live' };
     const derivedLive = deriveVegetation(powerLive, 24.37, 88.60, null);
     assert.equal(derivedLive.source, 'derived');
     assert.ok(derivedLive.resolution?.includes('0.5°'));

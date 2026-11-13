@@ -41,7 +41,7 @@ export interface CropGrowthStage {
 }
 
 export interface SoilMoistureAnalysis {
-  // Root-zone storage (top ~1 metre) (Section 2.2)
+  // Root-zone storage (top ~1 metre)
   rootZoneWaterMm: number;
   rootZoneWaterPct: number;
   rootZoneCapacityMm: number;
@@ -52,21 +52,21 @@ export interface SoilMoistureAnalysis {
   /** @deprecated Use rootZoneWaterPct to clarify layer distinction. */
   currentPct?: number;
 
-  // NASA POWER Model Assimilation Layers (Section 3.C)
+  // NASA POWER Model Assimilation Layers
   surfaceSoilWetnessPct?: number | null; // GWETTOP (0-5cm)
   rootZoneSoilWetnessPct?: number | null; // GWETROOT (~1m)
   profileSoilWetnessPct?: number | null; // GWETPROF (full profile)
 
-  // Evapotranspiration metrics (Section 2.3)
+  // Evapotranspiration metrics
   referenceEtMmPerDay: number;
   cropEtMmPerDay: number;
   totalGrowingSeasonEtcMm: number;
 
-  // Crop-stage water deficit (Section 2.4)
+  // Crop-stage water deficit
   seasonalDeficit: number;
   effectiveRainfallMm: number;
 
-  // Separate, honest trend exposure (Section 2.5)
+  // Separate, honest trend exposure
   rainfallTrendMmPerYear: number | null;
   soilMoistureTrendPctPerYear: number | null; // null until direct SMAP time-series is active
   /** @deprecated Replaced by rainfallTrendMmPerYear & soilMoistureTrendPctPerYear */
@@ -77,6 +77,8 @@ export interface SoilMoistureAnalysis {
   attribution: string;
   resolution?: string;
   dataQuality: SoilMoistureDataQuality;
+  /** True when rootZoneWaterPct comes from NASA POWER GWETROOT instead of the water-balance model. */
+  measured?: boolean;
 }
 
 export interface SoilCondition {
@@ -99,7 +101,7 @@ export interface SoilCondition {
 }
 
 // ─────────────────────────────────────────────
-// Soil Capacity & Texture Modeling (Section 2.2)
+// Soil Capacity & Texture Modeling
 // ─────────────────────────────────────────────
 
 export function getAvailableWaterCapacity(
@@ -119,7 +121,7 @@ export function getAvailableWaterCapacity(
 }
 
 // ─────────────────────────────────────────────
-// Evapotranspiration Calculations (Section 2.3)
+// Evapotranspiration Calculations
 // ─────────────────────────────────────────────
 
 /**
@@ -177,7 +179,7 @@ export function calculateReferenceET0(
 }
 
 // ─────────────────────────────────────────────
-// Robust Root-Zone Water-Balance Model (Section 2.1)
+// Robust Root-Zone Water-Balance Model
 // ─────────────────────────────────────────────
 
 interface WaterBalanceResult {
@@ -207,7 +209,7 @@ function waterBalance(
     const p = prec[i];
     const t = t2m[i];
 
-    // Do NOT treat missing observations as zero or guess 2 mm/day PET (Section 2.1)
+    // Do NOT treat missing observations as zero or guess 2 mm/day PET
     if (!Number.isFinite(p) || !Number.isFinite(t)) {
       missingDays++;
       store.push(bucket);
@@ -249,7 +251,7 @@ function waterBalance(
 }
 
 // ─────────────────────────────────────────────
-// Seasonal Water Deficit (Section 2.4)
+// Seasonal Water Deficit
 // D = ETc - Peffective - I - DeltaS
 // ─────────────────────────────────────────────
 
@@ -264,6 +266,32 @@ function calculateEffectiveRainfall(precipitationMm: number[]): number {
   return Math.round(effective * 10) / 10;
 }
 
+/**
+ * Replaces the modelled root-zone wetness with NASA POWER's measured GWETROOT
+ * (last-7-day mean, 0..1) when it is available. The seasonal deficit stays modelled.
+ */
+export function applyMeasuredRootWetness(
+  sm: SoilMoistureAnalysis,
+  wetness: number | null,
+  status: 'live' | 'cached',
+): SoilMoistureAnalysis {
+  if (typeof wetness !== 'number' || !Number.isFinite(wetness) || wetness < 0 || wetness > 1) return sm;
+  const pct = Math.round(wetness * 1000) / 10;
+  const mm = Math.round((pct / 100) * sm.rootZoneCapacityMm * 10) / 10;
+  sm.rootZoneWaterPct = pct;
+  sm.currentPct = pct;
+  sm.rootZoneWaterMm = mm;
+  sm.currentMm = mm;
+  sm.rootZoneSoilWetnessPct = Math.round(pct);
+  sm.measured = true;
+  sm.source = 'NASA_POWER';
+  sm.status = status;
+  sm.attribution =
+    'NASA POWER GWETROOT root-zone soil wetness (MERRA-2 reanalysis, last 7 days). ' +
+    'Seasonal deficit comes from an FAO-56 water balance driven by rainfall and temperature.';
+  return sm;
+}
+
 export function deriveSoilMoisture(
   power: PowerAnalysis,
   cropWaterMm: number,
@@ -274,6 +302,8 @@ export function deriveSoilMoisture(
     latitude?: number;
     irrigationAppliedMm?: number;
     analysisDays?: number;
+    /** NASA POWER GWETROOT (0..1), recent mean. Replaces the modelled root-zone wetness when present. */
+    measuredRootWetness?: number | null;
   } = {}
 ): SoilMoistureAnalysis {
   const texture = options.soilTexture || 'unknown';
@@ -297,9 +327,9 @@ export function deriveSoilMoisture(
       rainfallTrendMmPerYear: null,
       soilMoistureTrendPctPerYear: null,
       tenYearTrend: null,
-      source: 'DEMO',
+      source: 'DERIVED',
       status: 'unavailable',
-      attribution: 'Demo estimate (NASA POWER observations unreachable).',
+      attribution: 'No NASA POWER observations available for this location.',
       resolution: '0.5° (~50 km derived water balance)',
       dataQuality: { validDays: 0, missingDays: 0, coveragePct: 0, isReliable: false },
     };
@@ -316,10 +346,15 @@ export function deriveSoilMoisture(
 
   const wb = waterBalance(precSlice, t2mSlice, capacity, kc, lat, datesSlice);
 
-  const currentMm = wb.store.length ? wb.store[wb.store.length - 1] : 0;
-  const currentPct = Math.max(0, Math.min(100, (currentMm / capacity) * 100));
+  const modelledMm = wb.store.length ? wb.store[wb.store.length - 1] : 0;
+  const w = options.measuredRootWetness;
+  const measured = typeof w === 'number' && Number.isFinite(w) && w >= 0 && w <= 1;
+  const currentPct = measured
+    ? Math.round(w * 1000) / 10
+    : Math.max(0, Math.min(100, (modelledMm / capacity) * 100));
+  const currentMm = measured ? (currentPct / 100) * capacity : modelledMm;
 
-  // Physical Water Deficit Equation (Section 2.4): D = ETc - Peffective - I - DeltaS
+  // Physical Water Deficit Equation: D = ETc - Peffective - I - DeltaS
   const totalEtc = wb.dailyEtc.reduce((a, b) => a + b, 0);
   const effectiveRainfall = calculateEffectiveRainfall(precSlice);
   const storageStart = wb.store[0] || (capacity * 0.5);
@@ -355,7 +390,7 @@ export function deriveSoilMoisture(
     currentPct: Math.round(currentPct * 10) / 10,
 
     surfaceSoilWetnessPct: surfaceWetness,
-    rootZoneSoilWetnessPct: rootWetness,
+    rootZoneSoilWetnessPct: measured ? Math.round(currentPct) : rootWetness,
     profileSoilWetnessPct: profileWetness,
 
     referenceEtMmPerDay: Math.round(avgEt0 * 10) / 10,
@@ -365,19 +400,19 @@ export function deriveSoilMoisture(
     seasonalDeficit: Math.round(physicalDeficit * 10) / 10,
     effectiveRainfallMm: effectiveRainfall,
 
-    // Removed arbitrary 0.05 scaling (Section 2.5)
+    // Removed arbitrary 0.05 scaling
     rainfallTrendMmPerYear: Number.isFinite(power.tenYearRainfallTrend)
       ? Math.round(power.tenYearRainfallTrend * 10) / 10
       : null,
     soilMoistureTrendPctPerYear: null, // Scientifically honest: no direct SMAP time-series yet
     tenYearTrend: null,
 
-    source: power.source === 'demo' ? 'DEMO' : 'DERIVED',
-    status: power.source === 'demo' ? 'unavailable' : 'fallback',
-    attribution:
-      power.source === 'demo'
-        ? 'Demo estimates (NASA POWER unreachable).'
-        : 'Derived root-zone soil water balance driven by NASA POWER daily meteorology (MERRA-2). Live SMAP assimilation prepared for NSIDC/Earthdata integration.',
+    measured,
+    source: measured ? 'NASA_POWER' : 'DERIVED',
+    status: measured ? (power.source === 'cached' ? 'cached' : 'live') : 'fallback',
+    attribution: measured
+      ? 'NASA POWER GWETROOT root-zone soil wetness (MERRA-2 reanalysis, last 7 days). Seasonal deficit comes from a water balance driven by POWER rainfall and temperature.'
+      : 'Root-zone soil water balance driven by NASA POWER daily rainfall and temperature (MERRA-2). Direct soil wetness was not available for this location.',
     resolution: '0.5° (~50 km derived water balance)',
     dataQuality: {
       validDays: wb.validDays,
@@ -389,7 +424,7 @@ export function deriveSoilMoisture(
 }
 
 // ─────────────────────────────────────────────
-// Soil Condition Inferences (Section 2.6)
+// Soil Condition Inferences
 // ─────────────────────────────────────────────
 
 export function deriveSoilCondition(
@@ -404,7 +439,7 @@ export function deriveSoilCondition(
     nodulationActive?: boolean;
   } = {}
 ): SoilCondition {
-  // Do NOT assume loamy if unknown (Section 2.6)
+  // Do NOT assume loamy if unknown
   const texture = soilType;
 
   // Water retention: accurately reflecting uncertainty when texture is unknown

@@ -50,7 +50,7 @@ export function VerdictCard({ analysis }: { analysis: FullAnalysis }) {
   return (
     <Card className="verdict-print-card relative overflow-hidden border-amber-400/30 bg-gradient-to-br from-amber-400/[0.08] via-card/70 to-card/90 p-5 sm:p-6 shadow-[0_0_25px_-5px_rgba(251,191,36,0.15)]">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.25em] text-amber-300">
+        <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.25em] text-amber-300">
           <CheckCircle2 className="size-3.5 text-amber-400" />
           <span>{t("EXECUTIVE FIELD VERDICT")}</span>
         </div>
@@ -77,7 +77,7 @@ export function VerdictCard({ analysis }: { analysis: FullAnalysis }) {
             <Sprout className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground/70">
               {t("Year 1 Next Crop")}
             </div>
             <div className="truncate text-xs font-medium text-foreground">{t(firstCrop)}</div>
@@ -89,7 +89,7 @@ export function VerdictCard({ analysis }: { analysis: FullAnalysis }) {
             <ArrowRight className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground/70">
               {t("Year 2 Next Crop")}
             </div>
             <div className="truncate text-xs font-medium text-foreground">{t(secondCrop)}</div>
@@ -101,7 +101,7 @@ export function VerdictCard({ analysis }: { analysis: FullAnalysis }) {
             <RiskIcon className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-mono text-[9px] uppercase tracking-wider text-muted-foreground/70">
+            <div className="font-mono text-xs uppercase tracking-wider text-muted-foreground/70">
               {t("Primary Risk")}
             </div>
             <div className="truncate text-xs font-medium text-foreground">{riskLabel}</div>

@@ -1,12 +1,10 @@
-# 🌍 Chash Orbit — From Space Data to Smarter Farming
+# Chash Orbit
 
-**An Earth-to-Farm Agricultural Decision Support System | NASA Space Apps Challenge 2026**
+Crop and rotation decision support from NASA Earth observation data. NASA Space Apps Challenge 2026.
 
-Chash Orbit transforms satellite observations, climate data, agricultural research, and farm-specific information into actionable insights for farmers.
+Chash Orbit takes a field location, pulls NASA POWER climate data and MODIS vegetation data, and scores crops with a rule-based engine. It shows the risks (heat, drought, flood), a 4-year rotation plan, and what-if climate scenarios.
 
-By combining NASA Earth observation data with a transparent, rule-based agricultural decision engine, Chash Orbit helps farmers understand their land, evaluate crop suitability, identify environmental risks, and make more informed planting decisions.
-
-**Our mission:** Make Earth science accessible and useful to the people who depend on the land.
+**AI use disclosure:** parts of this code base were written with AI coding assistants, and the in-app advisor uses a Gemini model. All crop scores come from the rule-based engine in `src/lib/decision/engine.ts`, not from a language model.
 
 <p align="center">
   <img src="public/docs/dashboard-preview.png" alt="Chash Orbit Dashboard" width="100%">
@@ -133,13 +131,13 @@ Two additional NASA missions are relevant to our agricultural monitoring archite
 
 **GPM IMERG**
 
-NASA's Global Precipitation Measurement mission provides satellite-based precipitation estimates. Direct IMERG integration would allow us to improve rainfall analysis and compare precipitation estimates with NASA POWER data.
+The app reads GPM IMERG V07 daily rainfall (0.1°) through NASA POWER (`IMERG_PRECTOT`) and uses it for the water balance, filling gaps with POWER rainfall.
 
 **SMAP**
 
 NASA's Soil Moisture Active Passive mission provides soil moisture observations. Integrating SMAP would help validate our modeled water conditions against satellite-derived soil moisture information.
 
-These are identified as future integrations, not currently operational direct data feeds.
+SMAP is still a planned integration.
 
 ---
 
@@ -151,7 +149,7 @@ For that reason, Chash Orbit combines environmental observations with agricultur
 
 Our crop library is maintained in:
 
-`src/lib/crops.ts`
+`src/lib/crops/` (see `index.ts`)
 
 It contains crop-specific information such as:
 
@@ -206,7 +204,7 @@ The core of Chash Orbit is a deterministic agricultural decision engine.
 
 Unlike a simple information dashboard, the engine processes environmental indicators and crop-specific requirements to produce comparable agricultural suitability scores.
 
-**Core implementation:** `engine.ts` and `crops.ts`
+**Core implementation:** `engine.ts` and `src/lib/crops/`
 
 ### Four Main Assessment Dimensions
 
@@ -470,7 +468,7 @@ DATABASE_URL="your_neon_postgresql_connection_string"
 
 GOOGLE_GENERATIVE_AI_API_KEY="your_gemini_api_key"
 
-GEMINI_MODEL="gemini-2.0-flash-lite"
+GEMINI_MODEL="gemini-3.5-flash-lite"
 ```
 
 The Gemini API key is optional. The application can use its deterministic decision generator when the AI assistant is not configured.
@@ -506,19 +504,19 @@ http://localhost:3000
 
 ---
 
-## 14. Our Vision
+## Validation
 
-Earth observation should not remain limited to researchers, scientists, and technical institutions.
+`tests/golden-locations.test.mjs` runs the engine against places where the agronomic answer is well known (it needs `npm run dev` running, and is skipped otherwise):
 
-The same satellite observations that help us understand Earth's changing environment can also help farmers make more informed decisions about their land.
+| Location | Expected | 
+|---|---|
+| Antarctica, open ocean | Not farmable, no crops |
+| Niger (Sahel) | Millet or sorghum rank above rice and wheat |
+| Iowa, USA | Maize or soybean rank first |
+| La Paz, Bolivia (3,800 m) | Potato ranks above rice and maize; temperature is corrected for elevation |
+| Bangladesh | Farmable, measured NASA soil wetness used |
 
-With Chash Orbit, we are bringing NASA Earth science, agricultural research, and transparent computational models together in one accessible platform.
-
-**From satellite observations to field-level understanding. From environmental data to smarter agricultural decisions.**
-
-**Chash Orbit — Helping Farmers Make Data-Informed Decisions, One Field at a Time.** 🌍🛰️
-
----
+These are sanity checks, not yield validation. Limits: NASA POWER is a ~50 km grid, soil type is entered by the farmer or estimated from latitude, and crop income values are an illustrative index.
 
 ## Acknowledgments and Data References
 

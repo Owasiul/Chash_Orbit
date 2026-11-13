@@ -49,7 +49,7 @@ export function DataSourceBadge({ source, size = 'md', className, showLabel = tr
     <span
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full border font-mono uppercase tracking-wider',
-        size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-[11px]',
+        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs',
         s.bg,
         s.text,
         className,

@@ -31,11 +31,11 @@ export async function POST(req: Request) {
     const soilType: SoilType = rawSoil === 'unknown' ? inferSoilType(latitude, longitude) : (rawSoil as SoilType);
     const resolvedIrrig: IrrigationType = irrigation as IrrigationType;
 
-    // 1. Fetch NASA Environment
+    // Fetch NASA Environment
     const env = await fetchEnvironment(latitude, longitude, 500, false);
     const risks = computeRisks(env);
 
-    // 2. Evaluate each requested crop
+    // Evaluate each requested crop
     const comparisons = await Promise.all(
       cropNames.map(async (name: string) => {
         let crop = getCropByName(name);
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       })
     );
 
-    // 3. Synthesize comparative trade-off insights
+    // Synthesize comparative trade-off insights
     const plantableNow = comparisons.filter(c => c.crossCheck.isPlantableNow).map(c => c.cropName);
     const nitrogenFixers = comparisons.filter(c => c.nitrogenEffect === 'fixer').map(c => c.cropName);
     const lowestDeficit = [...comparisons].sort((a, b) => a.crossCheck.waterDeficitMm - b.crossCheck.waterDeficitMm)[0]?.cropName;
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
         heatStressDays: env.temperature.heatStressDays,
         annualRainfallMm: Math.round(env.rainfall.annualRainfall),
         growingSeasonRainfallMm: Math.round(env.rainfall.growingSeasonRainfall),
-        soilMoisturePct: Math.round(env.soilMoisture.rootZoneWaterPct),
+        soilMoisturePct: Math.round(env.soilMoisture.rootZoneWaterPct ?? env.soilMoisture.currentPct ?? 0),
         soilDeficitMm: Math.round(env.soilMoisture.seasonalDeficit),
         vegetationNdvi: Math.round(env.vegetation.ndvi * 100) / 100,
         source: env.overallSource,

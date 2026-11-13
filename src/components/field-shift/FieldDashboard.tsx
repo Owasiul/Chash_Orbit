@@ -65,7 +65,7 @@ export function FieldDashboard() {
         </AnimatePresence>
       </main>
 
-      <footer className="break-words border-t border-white/5 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 text-center font-mono text-[10px] uppercase leading-relaxed tracking-wider text-muted-foreground/50 text-balance sm:px-6 sm:pb-4 sm:tracking-widest">
+      <footer className="break-words border-t border-white/5 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 text-center font-mono text-xs uppercase leading-relaxed tracking-wider text-muted-foreground/50 text-balance sm:px-6 sm:pb-4 sm:tracking-widest">
         {t('Chash Orbit · NASA Earth-observation decision system · POWER · MODIS · GPM-corrected rainfall')}
       </footer>
     </div>

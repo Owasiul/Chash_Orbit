@@ -300,7 +300,7 @@ export function LocationSearch({
             className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-mono text-muted-foreground hover:border-amber-400/40 hover:bg-amber-400/15 hover:text-amber-200 transition-colors shrink-0"
           >
             <Navigation className={cn("size-3 text-amber-400", locating && "animate-pulse")} />
-            <span className="hidden sm:inline text-[10px] font-medium">{t('My GPS')}</span>
+            <span className="hidden sm:inline text-xs font-medium">{t('My GPS')}</span>
           </button>
         </div>
       </div>
@@ -343,7 +343,7 @@ export function LocationSearch({
                   {[r.admin2, r.admin1, r.country].filter(Boolean).join(', ')}
                 </div>
               </div>
-              <div className="shrink-0 text-right font-mono text-[10px] leading-4 text-muted-foreground/70">
+              <div className="shrink-0 text-right font-mono text-xs leading-4 text-muted-foreground/70">
                 <div>
                   {number(Math.abs(r.latitude), { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}° {r.latitude >= 0 ? 'N' : 'S'}
                 </div>

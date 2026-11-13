@@ -122,7 +122,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
       DEMO: { color: 'bg-purple-500/20 text-purple-300 border-purple-500/30', label: t('dashboard.data-status-demo') },
     };
     const s = map[status] || { color: 'bg-gray-500/20 text-gray-300', label: t(status) };
-    return <Badge variant="outline" className={`text-[9px] ${s.color}`}>{s.label}</Badge>;
+    return <Badge variant="outline" className={`text-xs ${s.color}`}>{s.label}</Badge>;
   };
 
   const chatLoading = status === 'submitted' || status === 'streaming';
@@ -137,13 +137,13 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
     <div className="space-y-6">
       <Card className="border-white/10 bg-card/50 p-4 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">
+          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-cyan-300/80">
             <BrainCircuit className="size-4" />
             {t('AI Field Report')}
           </div>
 
           {!loadingReport && reportError && (
-            <Button variant="ghost" size="sm" onClick={fetchReport} className="h-6 text-[10px]">
+            <Button variant="ghost" size="sm" onClick={fetchReport} className="h-6 text-xs">
               <RefreshCcw className="mr-1 size-3" /> {t('Retry')}
             </Button>
           )}
@@ -257,7 +257,7 @@ export function AdvisorPanel({ analysis }: { analysis: FullAnalysis }) {
       </Card>
 
       <Card className="flex flex-col border-white/10 bg-card/50 overflow-hidden" style={{ height: '400px' }}>
-        <div className="flex items-center gap-2 border-b border-white/5 p-4 font-mono text-[10px] uppercase tracking-[0.3em] text-cyan-300/80">
+        <div className="flex items-center gap-2 border-b border-white/5 p-4 font-mono text-xs uppercase tracking-[0.3em] text-cyan-300/80">
           <BrainCircuit className="size-4" />
           {t('Ask Your Field')}
         </div>
